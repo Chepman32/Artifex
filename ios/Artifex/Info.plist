@@ -33,6 +33,10 @@
 	</dict>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string></string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Artifex needs access to your photo library to let you select images for editing.</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>Artifex needs permission to save your edited photos to your photo library.</string>
 	<key>RCTNewArchEnabled</key>
 	<true/>
 	<key>UILaunchStoryboardName</key>

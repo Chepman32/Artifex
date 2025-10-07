@@ -8,6 +8,7 @@ import {
   TouchableOpacity,
   Dimensions,
   Alert,
+  Image,
 } from 'react-native';
 import Animated, {
   useSharedValue,
@@ -24,6 +25,7 @@ import { StickerPickerModal } from '../components/modals/StickerPickerModal';
 import { ExportModal } from '../components/modals/ExportModal';
 import { WatermarkToolModal } from '../components/modals/WatermarkToolModal';
 import { FilterToolModal } from '../components/modals/FilterToolModal';
+import { SizeSlider } from '../components/SizeSlider';
 import {
   createTextElement,
   createStickerElement,
@@ -72,13 +74,22 @@ const EditorScreen: React.FC = () => {
   const [filterModalVisible, setFilterModalVisible] = useState(false);
   const [exportModalVisible, setExportModalVisible] = useState(false);
 
+  // Size slider state
+  const [sliderPosition, setSliderPosition] = useState({ x: 0, y: 0 });
+
   useEffect(() => {
+    console.log('EditorScreen received params:', params);
+
     if (params?.projectId) {
       // Load existing project
+      console.log('Loading existing project:', params.projectId);
       loadProject(params.projectId);
     } else if (params?.imageUri && params?.imageDimensions) {
       // Initialize new project
+      console.log('Initializing new project with image:', params.imageUri);
       initializeProject(params.imageUri, params.imageDimensions);
+    } else {
+      console.log('No valid params received');
     }
   }, [params]);
 
@@ -216,6 +227,18 @@ const EditorScreen: React.FC = () => {
     // This would modify the source image or add a filter layer to the canvas
   };
 
+  const handleSizeChange = (newScale: number) => {
+    if (selectedElementId) {
+      updateElement(selectedElementId, { scale: newScale });
+    }
+  };
+
+  // Get selected element for slider
+  const selectedElement = canvasElements.find(
+    el => el.id === selectedElementId,
+  );
+  const currentScale = selectedElement?.scale || 1;
+
   const calculateCanvasSize = () => {
     if (!sourceImageDimensions) return { width: screenWidth, height: 300 };
 
@@ -320,11 +343,13 @@ const EditorScreen: React.FC = () => {
       {/* Canvas */}
       <View style={styles.canvasContainer}>
         {sourceImagePath ? (
-          <SkiaCanvas
-            sourceImageUri={sourceImagePath}
-            canvasWidth={canvasSize.width}
-            canvasHeight={canvasSize.height}
-          />
+          <View>
+            <SkiaCanvas
+              sourceImageUri={sourceImagePath}
+              canvasWidth={canvasSize.width}
+              canvasHeight={canvasSize.height}
+            />
+          </View>
         ) : (
           <View
             style={[
@@ -334,9 +359,23 @@ const EditorScreen: React.FC = () => {
           >
             <View style={styles.emptyCanvas}>
               <Text style={styles.emptyCanvasText}>No image loaded</Text>
+              <Text style={styles.emptyCanvasText}>
+                Params: {JSON.stringify(params)}
+              </Text>
             </View>
           </View>
         )}
+
+        {/* Size Slider - appears when element is selected */}
+        <SizeSlider
+          visible={!!selectedElementId}
+          initialValue={currentScale}
+          onValueChange={handleSizeChange}
+          position={{
+            x: canvasSize.width + 20, // Position to the right of canvas
+            y: 50, // Vertical position
+          }}
+        />
       </View>
 
       {/* Tool Toolbar */}

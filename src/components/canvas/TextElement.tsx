@@ -20,7 +20,12 @@ interface TextElementProps {
   color?: string;
   isSelected: boolean;
   onSelect: () => void;
-  onUpdate: (transform: { x: number; y: number; scale: number; rotation: number }) => void;
+  onUpdate: (transform: {
+    x: number;
+    y: number;
+    scale: number;
+    rotation: number;
+  }) => void;
 }
 
 export const TextElement: React.FC<TextElementProps> = ({
@@ -48,11 +53,7 @@ export const TextElement: React.FC<TextElementProps> = ({
   return (
     <GestureDetector gesture={gesture}>
       <Animated.View
-        style={[
-          styles.container,
-          animatedStyle,
-          isSelected && styles.selected,
-        ]}
+        style={[styles.container, animatedStyle, isSelected && styles.selected]}
       >
         <Animated.Text
           style={[
@@ -68,15 +69,7 @@ export const TextElement: React.FC<TextElementProps> = ({
         </Animated.Text>
 
         {/* Selection indicators */}
-        {isSelected && (
-          <>
-            <Animated.View style={styles.selectionBorder} />
-            <Animated.View style={[styles.handle, styles.handleTopLeft]} />
-            <Animated.View style={[styles.handle, styles.handleTopRight]} />
-            <Animated.View style={[styles.handle, styles.handleBottomLeft]} />
-            <Animated.View style={[styles.handle, styles.handleBottomRight]} />
-          </>
-        )}
+        {isSelected && <Animated.View style={styles.selectionBorder} />}
       </Animated.View>
     </GestureDetector>
   );
@@ -101,30 +94,5 @@ const styles = StyleSheet.create({
     borderColor: Colors.accent.primary,
     borderStyle: 'dashed',
     borderRadius: 4,
-  },
-  handle: {
-    position: 'absolute',
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    backgroundColor: Colors.accent.primary,
-    borderWidth: 2,
-    borderColor: Colors.backgrounds.primary,
-  },
-  handleTopLeft: {
-    top: -6,
-    left: -6,
-  },
-  handleTopRight: {
-    top: -6,
-    right: -6,
-  },
-  handleBottomLeft: {
-    bottom: -6,
-    left: -6,
-  },
-  handleBottomRight: {
-    bottom: -6,
-    right: -6,
   },
 });

@@ -56,8 +56,12 @@ const HomeScreen: React.FC = () => {
   }, []);
 
   const handleFabPress = () => {
-    // Navigate to Image Picker
-    navigation.navigate('ImagePicker' as never);
+    try {
+      // Navigate to Image Picker
+      navigation.navigate('ImagePicker' as never);
+    } catch (error) {
+      console.error('Navigation error:', error);
+    }
   };
 
   const handleProjectPress = (project: Project) => {
@@ -111,7 +115,13 @@ const HomeScreen: React.FC = () => {
   };
 
   // Animated project item component
-  const AnimatedProjectItem = ({ item, index }: { item: Project; index: number }) => {
+  const AnimatedProjectItem = ({
+    item,
+    index,
+  }: {
+    item: Project;
+    index: number;
+  }) => {
     const opacity = useSharedValue(0);
     const translateY = useSharedValue(20);
     const scale = useSharedValue(0.9);
@@ -119,10 +129,7 @@ const HomeScreen: React.FC = () => {
 
     useEffect(() => {
       // Staggered entrance animation
-      opacity.value = withDelay(
-        index * 50,
-        withTiming(1, { duration: 400 }),
-      );
+      opacity.value = withDelay(index * 50, withTiming(1, { duration: 400 }));
       translateY.value = withDelay(
         index * 50,
         withSpring(0, { damping: 15, stiffness: 100 }),
@@ -135,10 +142,7 @@ const HomeScreen: React.FC = () => {
 
     const animatedStyle = useAnimatedStyle(() => ({
       opacity: opacity.value,
-      transform: [
-        { translateY: translateY.value },
-        { scale: scale.value },
-      ],
+      transform: [{ translateY: translateY.value }, { scale: scale.value }],
     }));
 
     return (
@@ -154,35 +158,35 @@ const HomeScreen: React.FC = () => {
           activeOpacity={0.8}
         >
           <View style={styles.projectThumbnail}>
-          {item.thumbnailPath ? (
-            <Image
-              source={{ uri: item.thumbnailPath }}
-              style={styles.thumbnailImage}
-            />
-          ) : (
-            <View style={styles.thumbnailPlaceholder}>
-              <Text style={styles.thumbnailPlaceholderText}>📷</Text>
-            </View>
-          )}
+            {item.thumbnailPath ? (
+              <Image
+                source={{ uri: item.thumbnailPath }}
+                style={styles.thumbnailImage}
+              />
+            ) : (
+              <View style={styles.thumbnailPlaceholder}>
+                <Text style={styles.thumbnailPlaceholderText}>📷</Text>
+              </View>
+            )}
 
-          {/* Timestamp badge */}
-          <View style={styles.timestampBadge}>
-            <Text style={styles.timestampText}>
-              {formatTimestamp(item.updatedAt)}
-            </Text>
-          </View>
-
-          {/* Selection indicator */}
-          {selectionMode && (
-            <View
-              style={[
-                styles.selectionIndicator,
-                isSelected && styles.selectionIndicatorSelected,
-              ]}
-            >
-              {isSelected && <Text style={styles.checkmark}>✓</Text>}
+            {/* Timestamp badge */}
+            <View style={styles.timestampBadge}>
+              <Text style={styles.timestampText}>
+                {formatTimestamp(item.updatedAt)}
+              </Text>
             </View>
-          )}
+
+            {/* Selection indicator */}
+            {selectionMode && (
+              <View
+                style={[
+                  styles.selectionIndicator,
+                  isSelected && styles.selectionIndicatorSelected,
+                ]}
+              >
+                {isSelected && <Text style={styles.checkmark}>✓</Text>}
+              </View>
+            )}
           </View>
         </TouchableOpacity>
       </Animated.View>
