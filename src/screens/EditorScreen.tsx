@@ -184,6 +184,7 @@ const EditorScreen: React.FC = () => {
   };
 
   const [canvasTextValue, setCanvasTextValue] = useState('');
+  const [editingTextId, setEditingTextId] = useState<string | null>(null);
   const submissionRef = useRef(false);
 
   const handleCanvasTextSubmit = () => {
@@ -194,11 +195,20 @@ const EditorScreen: React.FC = () => {
     submissionRef.current = true;
 
     if (canvasTextValue.trim()) {
-      handleAddText(canvasTextValue, 'System', 24, Colors.text.primary);
+      if (editingTextId) {
+        // Update existing text element
+        updateElement(editingTextId, {
+          textContent: canvasTextValue,
+        });
+      } else {
+        // Add new text element
+        handleAddText(canvasTextValue, 'System', 24, Colors.text.primary);
+      }
     }
 
     setCanvasTextValue('');
     setShowCanvasTextInput(false);
+    setEditingTextId(null);
 
     // Reset flag after component updates
     setTimeout(() => {
@@ -209,7 +219,15 @@ const EditorScreen: React.FC = () => {
   const handleCanvasTextCancel = () => {
     setCanvasTextValue('');
     setShowCanvasTextInput(false);
+    setEditingTextId(null);
     submissionRef.current = false;
+  };
+
+  const handleTextElementEdit = (elementId: string, currentText: string) => {
+    console.log('handleTextElementEdit called:', elementId, currentText);
+    setEditingTextId(elementId);
+    setCanvasTextValue(currentText);
+    setShowCanvasTextInput(true);
   };
 
   const handleAddSticker = (uri: string, width: number, height: number) => {
@@ -379,6 +397,7 @@ const EditorScreen: React.FC = () => {
               sourceImageUri={sourceImagePath}
               canvasWidth={canvasSize.width}
               canvasHeight={canvasSize.height}
+              onTextEdit={handleTextElementEdit}
             />
 
             {/* Canvas Text Input - appears when text tool is active */}

@@ -20,12 +20,14 @@ interface SkiaCanvasProps {
   sourceImageUri: string;
   canvasWidth: number;
   canvasHeight: number;
+  onTextEdit?: (elementId: string, currentText: string) => void;
 }
 
 export const SkiaCanvas: React.FC<SkiaCanvasProps> = ({
   sourceImageUri,
   canvasWidth,
   canvasHeight,
+  onTextEdit,
 }) => {
   const {
     canvasElements,
@@ -115,6 +117,9 @@ export const SkiaCanvas: React.FC<SkiaCanvasProps> = ({
                   onUpdate={transform =>
                     handleElementUpdate(element.id, transform)
                   }
+                  onEdit={() =>
+                    onTextEdit?.(element.id, element.textContent || '')
+                  }
                 />
               );
             }
@@ -164,28 +169,6 @@ export const SkiaCanvas: React.FC<SkiaCanvasProps> = ({
 
             return null;
           })}
-
-          {/* Alignment guides (will appear when dragging near center/edges) */}
-          {selectedElementId && (
-            <View style={styles.guidesContainer}>
-              {/* Vertical center guide */}
-              <View
-                style={[
-                  styles.guide,
-                  styles.verticalGuide,
-                  { left: canvasWidth / 2 },
-                ]}
-              />
-              {/* Horizontal center guide */}
-              <View
-                style={[
-                  styles.guide,
-                  styles.horizontalGuide,
-                  { top: canvasHeight / 2 },
-                ]}
-              />
-            </View>
-          )}
         </View>
       </GestureDetector>
     </View>
@@ -211,22 +194,5 @@ const styles = StyleSheet.create({
   overlay: {
     ...StyleSheet.absoluteFillObject,
     zIndex: 2,
-  },
-  guidesContainer: {
-    ...StyleSheet.absoluteFillObject,
-    pointerEvents: 'none',
-  },
-  guide: {
-    position: 'absolute',
-    backgroundColor: Colors.accent.primary,
-    opacity: 0.5,
-  },
-  verticalGuide: {
-    width: 1,
-    height: '100%',
-  },
-  horizontalGuide: {
-    width: '100%',
-    height: 1,
   },
 });

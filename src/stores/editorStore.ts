@@ -73,6 +73,7 @@ const applyReverseAction = (action: EditorHistory, set: any, get: any) => {
         );
         if (index !== -1) {
           const newElements = [...canvasElements];
+
           newElements[index] = { ...newElements[index], ...action.oldState };
           set({ canvasElements: newElements });
         }
@@ -207,6 +208,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     if (historyIndex < 0) return;
 
     const action = history[historyIndex];
+
     applyReverseAction(action, set, get);
 
     set({ historyIndex: historyIndex - 1 });

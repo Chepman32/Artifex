@@ -7,6 +7,7 @@ import {
   runOnJS,
 } from 'react-native-reanimated';
 import { Gesture } from 'react-native-gesture-handler';
+import { useEffect } from 'react';
 import { haptics } from '../utils/haptics';
 
 interface UseCanvasGesturesProps {
@@ -21,6 +22,7 @@ interface UseCanvasGesturesProps {
     rotation: number;
   }) => void;
   onSelect?: () => void;
+  onEdit?: () => void;
 }
 
 export const useCanvasGestures = ({
@@ -30,6 +32,7 @@ export const useCanvasGestures = ({
   initialRotation = 0,
   onUpdate,
   onSelect,
+  onEdit,
 }: UseCanvasGesturesProps) => {
   // Transform state
   const translateX = useSharedValue(initialX);
@@ -43,6 +46,20 @@ export const useCanvasGestures = ({
   const savedScale = useSharedValue(initialScale);
   const savedRotation = useSharedValue(initialRotation);
 
+  // Update shared values when props change (for undo/redo)
+  useEffect(() => {
+    translateX.value = initialX;
+    translateY.value = initialY;
+    scale.value = initialScale;
+    rotation.value = initialRotation;
+
+    // Also update saved values
+    savedTranslateX.value = initialX;
+    savedTranslateY.value = initialY;
+    savedScale.value = initialScale;
+    savedRotation.value = initialRotation;
+  }, [initialX, initialY, initialScale, initialRotation]);
+
   // Snap threshold for alignment guides
   const SNAP_THRESHOLD = 10;
 
@@ -50,9 +67,19 @@ export const useCanvasGestures = ({
     haptics.snap();
   };
 
-  // Pan gesture for dragging
+  // Tap gesture for editing
+  const tapGesture = Gesture.Tap().onEnd(() => {
+    console.log('Tap gesture triggered, calling onEdit');
+    if (onEdit) {
+      runOnJS(onEdit)();
+    }
+  });
+
+  // Pan gesture for dragging (only starts after minimum distance)
   const panGesture = Gesture.Pan()
+    .minDistance(15) // Only start pan after 15 pixels of movement
     .onStart(() => {
+      console.log('Pan gesture started (dragging)');
       savedTranslateX.value = translateX.value;
       savedTranslateY.value = translateY.value;
       if (onSelect) {
@@ -64,6 +91,7 @@ export const useCanvasGestures = ({
       translateY.value = savedTranslateY.value + event.translationY;
     })
     .onEnd(() => {
+      console.log('Pan gesture ended - updating position');
       if (onUpdate) {
         runOnJS(onUpdate)({
           x: translateX.value,
@@ -125,10 +153,9 @@ export const useCanvasGestures = ({
     });
 
   // Combine all gestures
-  const composedGesture = Gesture.Simultaneous(
-    panGesture,
-    pinchGesture,
-    rotationGesture,
+  const composedGesture = Gesture.Race(
+    tapGesture,
+    Gesture.Simultaneous(panGesture, pinchGesture, rotationGesture),
   );
 
   // Animated style for the element

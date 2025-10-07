@@ -26,6 +26,7 @@ interface TextElementProps {
     scale: number;
     rotation: number;
   }) => void;
+  onEdit?: () => void;
 }
 
 export const TextElement: React.FC<TextElementProps> = ({
@@ -40,27 +41,21 @@ export const TextElement: React.FC<TextElementProps> = ({
   isSelected,
   onSelect,
   onUpdate,
+  onEdit,
 }) => {
   const { gesture, animatedStyle } = useCanvasGestures({
     initialX: x,
     initialY: y,
     initialScale: scale,
     initialRotation: rotation,
-    onUpdate: transform => {
-      console.log('TextElement transform update:', transform);
-      onUpdate(transform);
-    },
-    onSelect: () => {
-      console.log('TextElement selected:', text);
-      onSelect();
-    },
+    onUpdate,
+    onSelect,
+    onEdit,
   });
 
   return (
     <GestureDetector gesture={gesture}>
-      <Animated.View
-        style={[styles.container, animatedStyle, isSelected && styles.selected]}
-      >
+      <Animated.View style={[styles.container, animatedStyle]}>
         <Animated.Text
           style={[
             styles.text,
@@ -73,9 +68,6 @@ export const TextElement: React.FC<TextElementProps> = ({
         >
           {text}
         </Animated.Text>
-
-        {/* Selection indicators */}
-        {isSelected && <Animated.View style={styles.selectionBorder} />}
       </Animated.View>
     </GestureDetector>
   );
@@ -90,15 +82,5 @@ const styles = StyleSheet.create({
   text: {
     ...Typography.body.regular,
     textAlign: 'center',
-  },
-  selected: {
-    // Selected state handled by border overlay
-  },
-  selectionBorder: {
-    ...StyleSheet.absoluteFillObject,
-    borderWidth: 2,
-    borderColor: Colors.accent.primary,
-    borderStyle: 'dashed',
-    borderRadius: 4,
   },
 });
