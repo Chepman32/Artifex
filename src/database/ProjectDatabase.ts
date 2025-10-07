@@ -1,19 +1,10 @@
-// Project database using MMKV for local storage
+// Project database using AsyncStorage for compatibility
 
-import { MMKV } from 'react-native-mmkv';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Project, SerializedElement } from '../types';
 
-// MMKV storage instance for projects
-const projectStorage = new MMKV({
-  id: 'artifex-projects',
-  encryptionKey: 'artifex-projects-key',
-});
-
-// Metadata storage for project list
-const metadataStorage = new MMKV({
-  id: 'artifex-metadata',
-  encryptionKey: 'artifex-metadata-key',
-});
+const PROJECT_PREFIX = 'artifex_project_';
+const METADATA_KEY = 'artifex_project_ids';
 
 export class ProjectDatabase {
   // Save or update a project
@@ -25,7 +16,10 @@ export class ProjectDatabase {
         updatedAt: new Date(),
       };
 
-      projectStorage.set(project.id, JSON.stringify(projectData));
+      await AsyncStorage.setItem(
+        PROJECT_PREFIX + project.id,
+        JSON.stringify(projectData),
+      );
 
       // Update project list metadata
       await this.updateProjectList(project.id);
@@ -40,7 +34,7 @@ export class ProjectDatabase {
   // Get project by ID
   static async getById(id: string): Promise<Project | null> {
     try {
-      const projectData = projectStorage.getString(id);
+      const projectData = await AsyncStorage.getItem(PROJECT_PREFIX + id);
       if (!projectData) return null;
 
       const project = JSON.parse(projectData);
@@ -59,7 +53,7 @@ export class ProjectDatabase {
   // Get all projects (metadata only for performance)
   static async getAll(): Promise<Project[]> {
     try {
-      const projectIds = this.getProjectIds();
+      const projectIds = await this.getProjectIds();
       const projects: Project[] = [];
 
       for (const id of projectIds) {
@@ -83,13 +77,12 @@ export class ProjectDatabase {
   static async delete(id: string): Promise<void> {
     try {
       // Remove project data
-      projectStorage.delete(id);
+      await AsyncStorage.removeItem(PROJECT_PREFIX + id);
 
       // Update project list
-      const projectIds = this.getProjectIds().filter(
-        projectId => projectId !== id,
-      );
-      metadataStorage.set('projectIds', JSON.stringify(projectIds));
+      const projectIds = await this.getProjectIds();
+      const updatedIds = projectIds.filter(projectId => projectId !== id);
+      await AsyncStorage.setItem(METADATA_KEY, JSON.stringify(updatedIds));
 
       console.log('Project deleted:', id);
     } catch (error) {
@@ -101,13 +94,14 @@ export class ProjectDatabase {
   // Delete multiple projects
   static async deleteMultiple(ids: string[]): Promise<void> {
     try {
-      for (const id of ids) {
-        projectStorage.delete(id);
-      }
+      // Remove project data
+      const keys = ids.map(id => PROJECT_PREFIX + id);
+      await AsyncStorage.multiRemove(keys);
 
       // Update project list
-      const projectIds = this.getProjectIds().filter(id => !ids.includes(id));
-      metadataStorage.set('projectIds', JSON.stringify(projectIds));
+      const projectIds = await this.getProjectIds();
+      const updatedIds = projectIds.filter(id => !ids.includes(id));
+      await AsyncStorage.setItem(METADATA_KEY, JSON.stringify(updatedIds));
 
       console.log('Projects deleted:', ids);
     } catch (error) {
@@ -175,15 +169,19 @@ export class ProjectDatabase {
   }
 
   // Get project count
-  static getProjectCount(): number {
-    return this.getProjectIds().length;
+  static async getProjectCount(): Promise<number> {
+    const projectIds = await this.getProjectIds();
+    return projectIds.length;
   }
 
   // Clear all projects (for debugging/reset)
   static async clearAll(): Promise<void> {
     try {
-      projectStorage.clearAll();
-      metadataStorage.clearAll();
+      const projectIds = await this.getProjectIds();
+      const keys = projectIds.map(id => PROJECT_PREFIX + id);
+      keys.push(METADATA_KEY);
+
+      await AsyncStorage.multiRemove(keys);
       console.log('All projects cleared');
     } catch (error) {
       console.error('Failed to clear projects:', error);
@@ -192,9 +190,9 @@ export class ProjectDatabase {
   }
 
   // Private helper methods
-  private static getProjectIds(): string[] {
+  private static async getProjectIds(): Promise<string[]> {
     try {
-      const idsData = metadataStorage.getString('projectIds');
+      const idsData = await AsyncStorage.getItem(METADATA_KEY);
       return idsData ? JSON.parse(idsData) : [];
     } catch (error) {
       console.error('Failed to get project IDs:', error);
@@ -204,10 +202,10 @@ export class ProjectDatabase {
 
   private static async updateProjectList(projectId: string): Promise<void> {
     try {
-      const projectIds = this.getProjectIds();
+      const projectIds = await this.getProjectIds();
       if (!projectIds.includes(projectId)) {
         projectIds.push(projectId);
-        metadataStorage.set('projectIds', JSON.stringify(projectIds));
+        await AsyncStorage.setItem(METADATA_KEY, JSON.stringify(projectIds));
       }
     } catch (error) {
       console.error('Failed to update project list:', error);

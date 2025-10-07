@@ -1,14 +1,16 @@
 // Asset loader for managing bundled stickers, fonts, and watermarks
 
-import { MMKV } from 'react-native-mmkv';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { STICKERS, WATERMARKS, STAMPS, FONTS } from '../constants/assets';
 import { useAppStore } from '../stores/appStore';
 
-// MMKV storage for asset caching
-const assetStorage = new MMKV({
-  id: 'artifex-assets',
-  encryptionKey: 'artifex-asset-cache-key',
-});
+// AsyncStorage keys for asset caching
+const ASSET_KEYS = {
+  stickers: 'artifex_stickers',
+  watermarks: 'artifex_watermarks',
+  stamps: 'artifex_stamps',
+  fonts: 'artifex_fonts',
+};
 
 export interface LoadedAsset {
   id: string;
@@ -55,9 +57,11 @@ class AssetLoader {
 
   private async loadCachedAssets(): Promise<void> {
     try {
-      const cachedStickers = assetStorage.getString('stickers');
-      const cachedWatermarks = assetStorage.getString('watermarks');
-      const cachedStamps = assetStorage.getString('stamps');
+      const cachedStickers = await AsyncStorage.getItem(ASSET_KEYS.stickers);
+      const cachedWatermarks = await AsyncStorage.getItem(
+        ASSET_KEYS.watermarks,
+      );
+      const cachedStamps = await AsyncStorage.getItem(ASSET_KEYS.stamps);
 
       if (cachedStickers) {
         this.loadedStickers = JSON.parse(cachedStickers);
@@ -99,7 +103,7 @@ class AssetLoader {
     this.loadedFonts = [...FONTS.free];
 
     // Cache the loaded assets
-    this.cacheAssets();
+    await this.cacheAssets();
   }
 
   private async preloadProAssets(): Promise<void> {
@@ -128,15 +132,17 @@ class AssetLoader {
     this.loadedFonts.push(...FONTS.pro);
 
     // Update cache
-    this.cacheAssets();
+    await this.cacheAssets();
   }
 
-  private cacheAssets(): void {
+  private async cacheAssets(): Promise<void> {
     try {
-      assetStorage.set('stickers', JSON.stringify(this.loadedStickers));
-      assetStorage.set('watermarks', JSON.stringify(this.loadedWatermarks));
-      assetStorage.set('stamps', JSON.stringify(this.loadedStamps));
-      assetStorage.set('fonts', JSON.stringify(this.loadedFonts));
+      await AsyncStorage.multiSet([
+        [ASSET_KEYS.stickers, JSON.stringify(this.loadedStickers)],
+        [ASSET_KEYS.watermarks, JSON.stringify(this.loadedWatermarks)],
+        [ASSET_KEYS.stamps, JSON.stringify(this.loadedStamps)],
+        [ASSET_KEYS.fonts, JSON.stringify(this.loadedFonts)],
+      ]);
     } catch (error) {
       console.error('Failed to cache assets:', error);
     }
@@ -172,13 +178,17 @@ class AssetLoader {
   }
 
   // Clear cache (useful for debugging or reset)
-  clearCache(): void {
-    assetStorage.clearAll();
-    this.loadedStickers = [];
-    this.loadedWatermarks = [];
-    this.loadedStamps = [];
-    this.loadedFonts = [];
-    this.isInitialized = false;
+  async clearCache(): Promise<void> {
+    try {
+      await AsyncStorage.multiRemove(Object.values(ASSET_KEYS));
+      this.loadedStickers = [];
+      this.loadedWatermarks = [];
+      this.loadedStamps = [];
+      this.loadedFonts = [];
+      this.isInitialized = false;
+    } catch (error) {
+      console.error('Failed to clear asset cache:', error);
+    }
   }
 
   // Get asset by ID
