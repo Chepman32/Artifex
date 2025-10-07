@@ -1,6 +1,11 @@
 // Hook for managing canvas element gestures (pinch, rotate, drag)
 
-import { useSharedValue, useAnimatedStyle, withSpring, runOnJS } from 'react-native-reanimated';
+import {
+  useSharedValue,
+  useAnimatedStyle,
+  withSpring,
+  runOnJS,
+} from 'react-native-reanimated';
 import { Gesture } from 'react-native-gesture-handler';
 import { haptics } from '../utils/haptics';
 

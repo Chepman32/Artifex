@@ -46,8 +46,14 @@ export const TextElement: React.FC<TextElementProps> = ({
     initialY: y,
     initialScale: scale,
     initialRotation: rotation,
-    onUpdate,
-    onSelect,
+    onUpdate: transform => {
+      console.log('TextElement transform update:', transform);
+      onUpdate(transform);
+    },
+    onSelect: () => {
+      console.log('TextElement selected:', text);
+      onSelect();
+    },
   });
 
   return (

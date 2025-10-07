@@ -1,6 +1,6 @@
 // Editor screen - Main canvas for photo annotation
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import {
   View,
   Text,
@@ -9,6 +9,7 @@ import {
   Dimensions,
   Alert,
   Image,
+  TextInput,
 } from 'react-native';
 import Animated, {
   useSharedValue,
@@ -20,7 +21,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { useEditorStore } from '../stores/editorStore';
 import { SkiaCanvas } from '../components/SkiaCanvas';
-import { TextToolModal } from '../components/modals/TextToolModal';
+
 import { StickerPickerModal } from '../components/modals/StickerPickerModal';
 import { ExportModal } from '../components/modals/ExportModal';
 import { WatermarkToolModal } from '../components/modals/WatermarkToolModal';
@@ -60,6 +61,7 @@ const EditorScreen: React.FC = () => {
     initializeProject,
     saveProject,
     addElement,
+    updateElement,
   } = useEditorStore();
 
   const [activeToolbar, setActiveToolbar] = useState<
@@ -68,7 +70,7 @@ const EditorScreen: React.FC = () => {
 
   // Animated values for toolbar
   const activeToolIndex = useSharedValue(1); // Text is default (index 1)
-  const [textModalVisible, setTextModalVisible] = useState(false);
+  const [showCanvasTextInput, setShowCanvasTextInput] = useState(false);
   const [stickerModalVisible, setStickerModalVisible] = useState(false);
   const [watermarkModalVisible, setWatermarkModalVisible] = useState(false);
   const [filterModalVisible, setFilterModalVisible] = useState(false);
@@ -146,7 +148,7 @@ const EditorScreen: React.FC = () => {
     // Add element to canvas based on tool type
     switch (tool) {
       case 'text':
-        setTextModalVisible(true);
+        setShowCanvasTextInput(true);
         break;
       case 'watermark':
         setWatermarkModalVisible(true);
@@ -179,6 +181,35 @@ const EditorScreen: React.FC = () => {
       canvasSize.height / 2 - fontSize,
     );
     addElement(element);
+  };
+
+  const [canvasTextValue, setCanvasTextValue] = useState('');
+  const submissionRef = useRef(false);
+
+  const handleCanvasTextSubmit = () => {
+    if (submissionRef.current) {
+      return; // Prevent double submission
+    }
+
+    submissionRef.current = true;
+
+    if (canvasTextValue.trim()) {
+      handleAddText(canvasTextValue, 'System', 24, Colors.text.primary);
+    }
+
+    setCanvasTextValue('');
+    setShowCanvasTextInput(false);
+
+    // Reset flag after component updates
+    setTimeout(() => {
+      submissionRef.current = false;
+    }, 50);
+  };
+
+  const handleCanvasTextCancel = () => {
+    setCanvasTextValue('');
+    setShowCanvasTextInput(false);
+    submissionRef.current = false;
   };
 
   const handleAddSticker = (uri: string, width: number, height: number) => {
@@ -343,12 +374,43 @@ const EditorScreen: React.FC = () => {
       {/* Canvas */}
       <View style={styles.canvasContainer}>
         {sourceImagePath ? (
-          <View>
+          <View style={{ position: 'relative' }}>
             <SkiaCanvas
               sourceImageUri={sourceImagePath}
               canvasWidth={canvasSize.width}
               canvasHeight={canvasSize.height}
             />
+
+            {/* Canvas Text Input - appears when text tool is active */}
+            {showCanvasTextInput && (
+              <View
+                style={[
+                  styles.canvasTextInputContainer,
+                  {
+                    width: canvasSize.width,
+                    height: canvasSize.height,
+                  },
+                ]}
+              >
+                <TouchableOpacity
+                  style={styles.canvasTextInputOverlay}
+                  onPress={handleCanvasTextSubmit}
+                />
+                <View style={styles.canvasTextInputWrapper}>
+                  <TextInput
+                    style={styles.canvasTextInput}
+                    placeholder="Tap to add text..."
+                    placeholderTextColor="rgba(255, 255, 255, 0.6)"
+                    value={canvasTextValue}
+                    onChangeText={setCanvasTextValue}
+                    autoFocus
+                    returnKeyType="done"
+                    onSubmitEditing={handleCanvasTextSubmit}
+                    blurOnSubmit={true}
+                  />
+                </View>
+              </View>
+            )}
           </View>
         ) : (
           <View
@@ -378,26 +440,23 @@ const EditorScreen: React.FC = () => {
         />
       </View>
 
-      {/* Tool Toolbar */}
-      <View style={styles.toolbar}>
-        <View style={styles.toolContainer}>
-          {renderToolIcon('watermark', '💧', 'Watermark')}
-          {renderToolIcon('text', 'T', 'Text')}
-          {renderToolIcon('sticker', '🎨', 'Sticker')}
-          {renderToolIcon('stamp', '⭐', 'Stamp')}
-          {renderToolIcon('filter', '🖼️', 'Filter')}
+      {/* Tool Toolbar - hidden when canvas text input is active */}
+      {!showCanvasTextInput && (
+        <View style={styles.toolbar}>
+          <View style={styles.toolContainer}>
+            {renderToolIcon('watermark', '💧', 'Watermark')}
+            {renderToolIcon('text', 'T', 'Text')}
+            {renderToolIcon('sticker', '🎨', 'Sticker')}
+            {renderToolIcon('stamp', '⭐', 'Stamp')}
+            {renderToolIcon('filter', '🖼️', 'Filter')}
+          </View>
+
+          {/* Active indicator */}
+          <Animated.View style={[styles.activeIndicator, indicatorStyle]} />
         </View>
+      )}
 
-        {/* Active indicator */}
-        <Animated.View style={[styles.activeIndicator, indicatorStyle]} />
-      </View>
-
-      {/* Text Tool Modal */}
-      <TextToolModal
-        visible={textModalVisible}
-        onClose={() => setTextModalVisible(false)}
-        onAdd={handleAddText}
-      />
+      {/* Text Tool Modal - Replaced with canvas text input */}
 
       {/* Sticker Picker Modal */}
       <StickerPickerModal
@@ -551,6 +610,39 @@ const styles = StyleSheet.create({
     height: 3,
     backgroundColor: Colors.accent.primary,
     borderRadius: 1.5,
+  },
+  canvasTextInputContainer: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 1000,
+  },
+  canvasTextInputOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+  },
+  canvasTextInputWrapper: {
+    backgroundColor: 'transparent',
+    borderRadius: 12,
+    padding: Spacing.m,
+    minWidth: 200,
+    maxWidth: 300,
+  },
+  canvasTextInput: {
+    ...Typography.body.regular,
+    color: '#FFFFFF',
+    fontSize: 24,
+    minHeight: 60,
+    textAlignVertical: 'top',
+    backgroundColor: 'transparent',
+    paddingHorizontal: Spacing.s,
+    paddingVertical: Spacing.s,
   },
 });
 
