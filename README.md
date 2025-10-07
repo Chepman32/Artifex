@@ -1,97 +1,265 @@
-This is a new [**React Native**](https://reactnative.dev) project, bootstrapped using [`@react-native-community/cli`](https://github.com/react-native-community/cli).
+# Artifex - Offline Photo Annotation App
 
-# Getting Started
+Artifex is a premium iOS photo annotation app built with React Native, designed to provide an elegant, gesture-driven interface for adding watermarks, text, stickers, and stamps to photos. The app operates completely offline, ensuring user privacy and reliability.
 
-> **Note**: Make sure you have completed the [Set Up Your Environment](https://reactnative.dev/docs/set-up-your-environment) guide before proceeding.
+## 🎯 Key Features
 
-## Step 1: Start Metro
+### Core Functionality
 
-First, you will need to run **Metro**, the JavaScript build tool for React Native.
+- **Offline-First Architecture**: All features work without internet connection
+- **Gesture-Driven Editing**: Pinch, rotate, and drag elements with natural physics
+- **Professional Export**: High-resolution PNG/JPG export with customizable quality
+- **Privacy-Focused**: No data collection, no tracking, no cloud dependencies
 
-To start the Metro dev server, run the following command from the root of your React Native project:
+### Free Tier
 
-```sh
-# Using npm
-npm start
+- ✅ Unlimited text, stickers, watermarks, and stamps
+- ✅ 8 fonts, 30 stickers, 10 watermark templates, 8 stamps
+- ✅ Full gesture editing capabilities
+- ✅ Unlimited project saves
+- ⚠️ Exported photos include small "Made with Artifex" watermark
 
-# OR using Yarn
+### Pro Tier ($9.99 one-time purchase)
+
+- ✅ 30+ premium fonts
+- ✅ 100+ premium stickers
+- ✅ 40+ professional watermark templates
+- ✅ Custom watermark uploads
+- ✅ Advanced photo filters
+- ✅ No export watermark
+- ✅ Priority support
+
+## 🏗 Architecture
+
+### Technology Stack
+
+- **React Native 0.81+** - Cross-platform framework
+- **React Native Reanimated 3.6+** - 60/120fps animations on UI thread
+- **React Native Skia 1.0+** - High-performance 2D graphics rendering
+- **Zustand 4.5+** - Lightweight state management
+- **MMKV 2.11+** - Fast, synchronous local storage
+- **TypeScript 5.3+** - Type safety and better DX
+
+### Key Design Principles
+
+1. **Dark Mode First**: Optimized for OLED displays and reduced eye strain
+2. **8pt Grid System**: Consistent spacing and visual hierarchy
+3. **60fps Minimum**: All animations run on UI thread via Reanimated worklets
+4. **Accessibility**: WCAG AA compliance, VoiceOver support, Dynamic Type
+5. **Privacy by Design**: No network requests except for IAP
+
+### Project Structure
+
+```
+src/
+├── components/          # Reusable UI components
+├── constants/          # Colors, typography, spacing
+├── database/           # Local storage (MMKV)
+├── navigation/         # React Navigation setup
+├── screens/           # Main app screens
+├── stores/            # Zustand state management
+├── types/             # TypeScript definitions
+└── utils/             # Helper functions
+```
+
+## 🚀 Getting Started
+
+### Prerequisites
+
+- Node.js 20+
+- React Native development environment
+- iOS development setup (Xcode, iOS Simulator)
+- Yarn package manager
+
+### Installation
+
+1. **Clone and install dependencies:**
+
+```bash
+git clone <repository-url>
+cd Artifex
+yarn install
+```
+
+2. **iOS Setup:**
+
+```bash
+cd ios
+bundle install
+bundle exec pod install
+cd ..
+```
+
+3. **Start Metro bundler:**
+
+```bash
 yarn start
 ```
 
-## Step 2: Build and run your app
+4. **Run on iOS:**
 
-With Metro running, open a new terminal window/pane from the root of your React Native project, and use one of the following commands to build and run your Android or iOS app:
-
-### Android
-
-```sh
-# Using npm
-npm run android
-
-# OR using Yarn
-yarn android
-```
-
-### iOS
-
-For iOS, remember to install CocoaPods dependencies (this only needs to be run on first clone or after updating native deps).
-
-The first time you create a new project, run the Ruby bundler to install CocoaPods itself:
-
-```sh
-bundle install
-```
-
-Then, and every time you update your native dependencies, run:
-
-```sh
-bundle exec pod install
-```
-
-For more information, please visit [CocoaPods Getting Started guide](https://guides.cocoapods.org/using/getting-started.html).
-
-```sh
-# Using npm
-npm run ios
-
-# OR using Yarn
+```bash
 yarn ios
 ```
 
-If everything is set up correctly, you should see your new app running in the Android Emulator, iOS Simulator, or your connected device.
+### Development Dependencies
 
-This is one way to run your app — you can also build it directly from Android Studio or Xcode.
+The app requires several native dependencies that need proper linking:
 
-## Step 3: Modify your app
+```bash
+# Core dependencies (already in package.json)
+yarn add react-native-reanimated
+yarn add react-native-gesture-handler
+yarn add @shopify/react-native-skia
+yarn add react-native-mmkv
+yarn add @react-native-camera-roll/camera-roll
+yarn add react-native-vision-camera
+yarn add react-native-fast-image
+yarn add react-native-iap
+yarn add react-native-share
+yarn add react-native-fs
+yarn add react-native-haptic-feedback
+```
 
-Now that you have successfully run the app, let's make changes!
+**Note**: Some dependencies may require additional native configuration. Refer to each library's documentation for iOS setup instructions.
 
-Open `App.tsx` in your text editor of choice and make some changes. When you save, your app will automatically update and reflect these changes — this is powered by [Fast Refresh](https://reactnative.dev/docs/fast-refresh).
+## 📱 App Flow
 
-When you want to forcefully reload, for example to reset the state of your app, you can perform a full reload:
+### User Journey
 
-- **Android**: Press the <kbd>R</kbd> key twice or select **"Reload"** from the **Dev Menu**, accessed via <kbd>Ctrl</kbd> + <kbd>M</kbd> (Windows/Linux) or <kbd>Cmd ⌘</kbd> + <kbd>M</kbd> (macOS).
-- **iOS**: Press <kbd>R</kbd> in iOS Simulator.
+1. **Splash Screen** (2.8s) - Physics-based logo animation
+2. **Onboarding** (First launch) - 3-panel carousel explaining features
+3. **Home Screen** - Project gallery with FAB for new projects
+4. **Image Picker** - Custom photo selection with camera integration
+5. **Editor** - Main canvas with gesture-driven editing
+6. **Export** - High-resolution rendering with format options
 
-## Congratulations! :tada:
+### State Management
 
-You've successfully run and modified your React Native App. :partying_face:
+- **App Store**: Global settings, Pro status, onboarding state
+- **Project Gallery Store**: Project list, selection mode, sorting
+- **Editor Store**: Canvas elements, history, undo/redo
 
-### Now what?
+## 🎨 Design System
 
-- If you want to add this new React Native code to an existing application, check out the [Integration guide](https://reactnative.dev/docs/integration-with-existing-apps).
-- If you're curious to learn more about React Native, check out the [docs](https://reactnative.dev/docs/getting-started).
+### Color Palette
 
-# Troubleshooting
+- **Primary Background**: `#0F0F12` (Near black with blue tint)
+- **Secondary Background**: `#1A1A1D` (Elevated surfaces)
+- **Accent Gold**: `#D4AF37` (CTAs, Pro indicators)
+- **Text Primary**: `#FFFFFF` (Headings, important text)
+- **Text Secondary**: `#A0A0A0` (Body text, labels)
 
-If you're having issues getting the above steps to work, see the [Troubleshooting](https://reactnative.dev/docs/troubleshooting) page.
+### Typography
 
-# Learn More
+- **Font Family**: SF Pro (Apple's system font)
+- **Scale**: Hero (36pt) → H1 (32pt) → H2 (28pt) → Body (17pt) → Caption (13pt)
+- **Dynamic Type**: Supports iOS accessibility text scaling
 
-To learn more about React Native, take a look at the following resources:
+### Spacing
 
-- [React Native Website](https://reactnative.dev) - learn more about React Native.
-- [Getting Started](https://reactnative.dev/docs/environment-setup) - an **overview** of React Native and how setup your environment.
-- [Learn the Basics](https://reactnative.dev/docs/getting-started) - a **guided tour** of the React Native **basics**.
-- [Blog](https://reactnative.dev/blog) - read the latest official React Native **Blog** posts.
-- [`@facebook/react-native`](https://github.com/facebook/react-native) - the Open Source; GitHub **repository** for React Native.
+- **Base Unit**: 8pt grid system
+- **Scale**: 4pt → 8pt → 12pt → 16pt → 24pt → 32pt → 48pt → 64pt
+
+## 🔧 Development
+
+### Running Tests
+
+```bash
+# Unit tests
+yarn test
+
+# E2E tests (requires setup)
+yarn test:e2e
+```
+
+### Code Quality
+
+```bash
+# Linting
+yarn lint
+
+# Type checking
+yarn type-check
+
+# Format code
+yarn format
+```
+
+### Performance Monitoring
+
+- Use Flipper for debugging
+- Monitor with Xcode Instruments for performance profiling
+- Test on physical devices for accurate performance metrics
+
+## 📦 Build & Release
+
+### iOS Build
+
+```bash
+# Development build
+yarn ios --configuration Debug
+
+# Release build
+yarn ios --configuration Release
+```
+
+### App Store Submission
+
+1. Update version in `package.json` and iOS project
+2. Generate release build with proper signing
+3. Upload to App Store Connect
+4. Submit for review with metadata from SDD
+
+## 🔒 Privacy & Security
+
+### Data Handling
+
+- **No Analytics**: No Firebase, Mixpanel, or tracking SDKs
+- **Local Storage**: All data stored on device using iOS encryption
+- **Photos Access**: Minimal permissions, user controls access
+- **No Servers**: Completely offline operation
+
+### Permissions
+
+- **Photos**: Read access for image selection, write access for saving
+- **Camera**: Optional, only when user taps camera button
+- **No Other Permissions**: No location, contacts, microphone, etc.
+
+## 🛣 Roadmap
+
+### Version 1.1 (Q2 2025)
+
+- Light mode support
+- Additional export formats (HEIC)
+- More free tier assets
+
+### Version 1.2 (Q3 2025)
+
+- iPad optimization
+- Multi-select and group manipulation
+- Custom font installation
+
+### Version 2.0 (2026)
+
+- Optional cloud sync (encrypted)
+- Collaboration features
+- AI-powered features
+
+## 📄 License
+
+This project is proprietary software. All rights reserved.
+
+## 🤝 Contributing
+
+This is a commercial project. For bug reports or feature requests, please contact support@artifex.app.
+
+## 📞 Support
+
+- **Email**: support@artifex.app
+- **Privacy Policy**: artifex.app/privacy
+- **Terms of Service**: artifex.app/terms
+
+---
+
+Built with ❤️ using React Native
