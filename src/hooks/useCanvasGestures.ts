@@ -119,8 +119,8 @@ export const useCanvasGestures = ({
     })
     .onUpdate(event => {
       const newScale = savedScale.value * event.scale;
-      // Constrain scale between 0.1 and 5
-      scale.value = Math.min(Math.max(newScale, 0.1), 5);
+      // Constrain scale between 0.5 and 5
+      scale.value = Math.min(Math.max(newScale, 0.5), 5);
     })
     .onEnd(() => {
       if (onUpdate) {
@@ -186,7 +186,7 @@ export const useCanvasGestures = ({
   };
 
   const setScale = (newScale: number) => {
-    scale.value = withSpring(Math.min(Math.max(newScale, 0.1), 5));
+    scale.value = withSpring(Math.min(Math.max(newScale, 0.5), 5));
   };
 
   const setRotation = (degrees: number) => {

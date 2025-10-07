@@ -14,7 +14,7 @@ import { haptics } from '../utils/haptics';
 
 interface SizeSliderProps {
   visible: boolean;
-  initialValue: number; // 0.1 to 3.0
+  initialValue: number; // 0.5 to 3.0
   onValueChange: (value: number) => void;
   position: { x: number; y: number }; // Position relative to canvas
 }
@@ -22,7 +22,7 @@ interface SizeSliderProps {
 const SLIDER_HEIGHT = 200;
 const SLIDER_WIDTH = 40;
 const THUMB_SIZE = 24;
-const MIN_SCALE = 0.1;
+const MIN_SCALE = 0.5;
 const MAX_SCALE = 3.0;
 
 export const SizeSlider: React.FC<SizeSliderProps> = ({
