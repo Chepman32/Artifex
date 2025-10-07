@@ -76,9 +76,6 @@ const EditorScreen: React.FC = () => {
   const [filterModalVisible, setFilterModalVisible] = useState(false);
   const [exportModalVisible, setExportModalVisible] = useState(false);
 
-  // Size slider state
-  const [sliderPosition, setSliderPosition] = useState({ x: 0, y: 0 });
-
   useEffect(() => {
     console.log('EditorScreen received params:', params);
 
@@ -93,7 +90,7 @@ const EditorScreen: React.FC = () => {
     } else {
       console.log('No valid params received');
     }
-  }, [params]);
+  }, [initializeProject, loadProject, params]);
 
   const handleBack = async () => {
     // Check if there are unsaved changes
@@ -214,13 +211,6 @@ const EditorScreen: React.FC = () => {
     setTimeout(() => {
       submissionRef.current = false;
     }, 50);
-  };
-
-  const handleCanvasTextCancel = () => {
-    setCanvasTextValue('');
-    setShowCanvasTextInput(false);
-    setEditingTextId(null);
-    submissionRef.current = false;
   };
 
   const handleTextElementEdit = (elementId: string, currentText: string) => {
@@ -453,8 +443,8 @@ const EditorScreen: React.FC = () => {
           initialValue={currentScale}
           onValueChange={handleSizeChange}
           position={{
-            x: canvasSize.width + 20, // Position to the right of canvas
-            y: 50, // Vertical position
+            x: -canvasSize.width / 2.3, // Much more to the left
+            y: -canvasSize.height / 7, // Much higher up
           }}
         />
       </View>

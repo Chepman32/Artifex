@@ -67,13 +67,23 @@ export const useCanvasGestures = ({
     haptics.snap();
   };
 
-  // Tap gesture for editing
+  // Tap gesture for selection
   const tapGesture = Gesture.Tap().onEnd(() => {
-    console.log('Tap gesture triggered, calling onEdit');
-    if (onEdit) {
-      runOnJS(onEdit)();
+    console.log('Tap gesture triggered, calling onSelect');
+    if (onSelect) {
+      runOnJS(onSelect)();
     }
   });
+
+  // Double tap gesture for editing
+  const doubleTapGesture = Gesture.Tap()
+    .numberOfTaps(2)
+    .onEnd(() => {
+      console.log('Double tap gesture triggered, calling onEdit');
+      if (onEdit) {
+        runOnJS(onEdit)();
+      }
+    });
 
   // Pan gesture for dragging (only starts after minimum distance)
   const panGesture = Gesture.Pan()
@@ -154,6 +164,7 @@ export const useCanvasGestures = ({
 
   // Combine all gestures
   const composedGesture = Gesture.Race(
+    doubleTapGesture,
     tapGesture,
     Gesture.Simultaneous(panGesture, pinchGesture, rotationGesture),
   );

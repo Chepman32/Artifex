@@ -5,14 +5,11 @@ import { View, StyleSheet } from 'react-native';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
-  useAnimatedGestureHandler,
   withSpring,
-  interpolate,
   runOnJS,
 } from 'react-native-reanimated';
-import { PanGestureHandler } from 'react-native-gesture-handler';
+import { GestureDetector, Gesture } from 'react-native-gesture-handler';
 import { Colors } from '../constants/colors';
-import { Spacing } from '../constants/spacing';
 import { haptics } from '../utils/haptics';
 
 interface SizeSliderProps {
@@ -42,39 +39,43 @@ export const SizeSlider: React.FC<SizeSliderProps> = ({
     return (scaleValue - MIN_SCALE) / (MAX_SCALE - MIN_SCALE);
   };
 
-  // Convert slider position to scale value
-  const getScaleFromPosition = (position: number) => {
-    return MIN_SCALE + position * (MAX_SCALE - MIN_SCALE);
-  };
-
   React.useEffect(() => {
     const sliderPos = getSliderPosition(initialValue);
+    // Center thumb on track endpoints (thumb center at track top/bottom)
+    const trackRange = SLIDER_HEIGHT;
     translateY.value = withSpring(
-      (1 - sliderPos) * (SLIDER_HEIGHT - THUMB_SIZE),
+      (1 - sliderPos) * trackRange - THUMB_SIZE / 2,
     );
+    scale.value = initialValue;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialValue]);
 
-  const gestureHandler = useAnimatedGestureHandler({
-    onStart: (_, ctx: any) => {
-      ctx.startY = translateY.value;
+  const startY = useSharedValue(0);
+
+  const panGesture = Gesture.Pan()
+    .onStart(() => {
+      startY.value = translateY.value;
       runOnJS(haptics.light)();
-    },
-    onActive: (event, ctx: any) => {
-      const newY = ctx.startY + event.translationY;
-      const clampedY = Math.max(0, Math.min(newY, SLIDER_HEIGHT - THUMB_SIZE));
+    })
+    .onUpdate(event => {
+      const newY = startY.value + event.translationY;
+      // Center thumb on track endpoints (thumb center reaches track top/bottom)
+      const minY = -THUMB_SIZE / 2;
+      const maxY = SLIDER_HEIGHT - THUMB_SIZE / 2;
+      const clampedY = Math.max(minY, Math.min(newY, maxY));
       translateY.value = clampedY;
 
-      // Convert position to scale value
-      const position = 1 - clampedY / (SLIDER_HEIGHT - THUMB_SIZE);
-      const newScale = getScaleFromPosition(position);
+      // Convert position to scale value (inline worklet calculation)
+      const trackRange = SLIDER_HEIGHT;
+      const normalizedPos = 1 - (clampedY + THUMB_SIZE / 2) / trackRange;
+      const newScale = MIN_SCALE + normalizedPos * (MAX_SCALE - MIN_SCALE);
       scale.value = newScale;
 
       runOnJS(onValueChange)(newScale);
-    },
-    onEnd: () => {
+    })
+    .onEnd(() => {
       runOnJS(haptics.light)();
-    },
-  });
+    });
 
   const containerStyle = useAnimatedStyle(() => ({
     opacity: visible ? withSpring(1) : withSpring(0),
@@ -89,13 +90,6 @@ export const SizeSlider: React.FC<SizeSliderProps> = ({
     transform: [{ translateY: translateY.value }],
   }));
 
-  const trackFillStyle = useAnimatedStyle(() => {
-    const fillHeight = SLIDER_HEIGHT - translateY.value - THUMB_SIZE / 2;
-    return {
-      height: fillHeight,
-    };
-  });
-
   if (!visible) {
     return null;
   }
@@ -103,17 +97,14 @@ export const SizeSlider: React.FC<SizeSliderProps> = ({
   return (
     <Animated.View style={[styles.container, containerStyle]}>
       {/* Background Track */}
-      <View style={styles.track}>
-        {/* Fill Track */}
-        <Animated.View style={[styles.trackFill, trackFillStyle]} />
-      </View>
+      <View style={styles.track} />
 
       {/* Draggable Thumb */}
-      <PanGestureHandler onGestureEvent={gestureHandler}>
+      <GestureDetector gesture={panGesture}>
         <Animated.View style={[styles.thumb, thumbStyle]}>
           <View style={styles.thumbInner} />
         </Animated.View>
-      </PanGestureHandler>
+      </GestureDetector>
 
       {/* Size Indicator Lines */}
       <View style={styles.indicators}>
@@ -130,26 +121,22 @@ const styles = StyleSheet.create({
     position: 'absolute',
     width: SLIDER_WIDTH,
     height: SLIDER_HEIGHT,
-    justifyContent: 'center',
-    alignItems: 'center',
   },
   track: {
     position: 'absolute',
+    left: (SLIDER_WIDTH - 4) / 2,
+    top: 0,
     width: 4,
     height: SLIDER_HEIGHT,
     backgroundColor: Colors.backgrounds.tertiary,
     borderRadius: 2,
     overflow: 'hidden',
   },
-  trackFill: {
-    position: 'absolute',
-    bottom: 0,
-    width: '100%',
-    backgroundColor: Colors.accent.primary,
-    borderRadius: 2,
-  },
+
   thumb: {
     position: 'absolute',
+    left: (SLIDER_WIDTH - THUMB_SIZE) / 2,
+    top: 0,
     width: THUMB_SIZE,
     height: THUMB_SIZE,
     justifyContent: 'center',
