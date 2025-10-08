@@ -48,6 +48,27 @@ export interface CanvasElement {
   assetPath?: string;
 }
 
+export interface ImageFilter {
+  id: string;
+  name: string;
+  intensity: number;
+  type:
+    | 'none'
+    | 'bw'
+    | 'sepia'
+    | 'vintage'
+    | 'cool'
+    | 'warm'
+    | 'cinematic'
+    | 'film'
+    | 'hdr'
+    | 'portrait'
+    | 'landscape'
+    | 'neon'
+    | 'cyberpunk'
+    | 'retro';
+}
+
 export interface UserPreferences {
   defaultExportFormat: 'png' | 'jpg';
   defaultExportQuality: number;

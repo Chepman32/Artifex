@@ -1,7 +1,12 @@
 // Editor state management for canvas operations
 
 import { create } from 'zustand';
-import { CanvasElement, EditorHistory, ExportOptions } from '../types';
+import {
+  CanvasElement,
+  EditorHistory,
+  ExportOptions,
+  ImageFilter,
+} from '../types';
 import { ProjectDatabase } from '../database/ProjectDatabase';
 
 interface EditorState {
@@ -12,6 +17,7 @@ interface EditorState {
   currentProjectId: string | null;
   sourceImagePath: string | null;
   sourceImageDimensions: { width: number; height: number } | null;
+  appliedFilter: ImageFilter | null;
 
   // Element manipulation
   addElement: (element: CanvasElement) => void;
@@ -25,6 +31,10 @@ interface EditorState {
   redo: () => void;
   canUndo: () => boolean;
   canRedo: () => boolean;
+
+  // Filter management
+  applyFilter: (filter: ImageFilter) => void;
+  removeFilter: () => void;
 
   // Project management
   loadProject: (projectId: string) => Promise<void>;
@@ -129,6 +139,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   currentProjectId: null,
   sourceImagePath: null,
   sourceImageDimensions: null,
+  appliedFilter: null,
 
   addElement: element => {
     const { canvasElements, history, historyIndex } = get();
@@ -291,6 +302,14 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     });
   },
 
+  applyFilter: (filter: ImageFilter) => {
+    set({ appliedFilter: filter });
+  },
+
+  removeFilter: () => {
+    set({ appliedFilter: null });
+  },
+
   reset: () =>
     set({
       canvasElements: [],
@@ -300,5 +319,6 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       currentProjectId: null,
       sourceImagePath: null,
       sourceImageDimensions: null,
+      appliedFilter: null,
     }),
 }));

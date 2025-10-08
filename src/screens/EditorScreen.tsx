@@ -28,7 +28,7 @@ import { SkiaCanvas } from '../components/SkiaCanvas';
 import { StickerPickerModal } from '../components/modals/StickerPickerModal';
 import { ExportModal } from '../components/modals/ExportModal';
 import { WatermarkToolModal } from '../components/modals/WatermarkToolModal';
-import { FilterToolModal } from '../components/modals/FilterToolModal';
+
 import { SizeSlider } from '../components/SizeSlider';
 import {
   createTextElement,
@@ -45,6 +45,16 @@ interface EditorRouteParams {
   imageUri?: string;
   imageDimensions?: { width: number; height: number };
 }
+
+// Filters data
+const FILTERS = [
+  { id: 'none', name: 'Original', emoji: '📷', color: '#666666' },
+  { id: 'bw', name: 'B&W', emoji: '⚫', color: '#888888' },
+  { id: 'sepia', name: 'Sepia', emoji: '🟤', color: '#D2B48C' },
+  { id: 'vintage', name: 'Vintage', emoji: '📸', color: '#F4A460' },
+  { id: 'cool', name: 'Cool', emoji: '🧊', color: '#87CEEB' },
+  { id: 'warm', name: 'Warm', emoji: '🔥', color: '#FFB347' },
+];
 
 // Seal stamps data
 const SEAL_STAMPS = [
@@ -165,6 +175,7 @@ const EditorScreen: React.FC = () => {
     selectedElementId,
     sourceImagePath,
     sourceImageDimensions,
+    appliedFilter, // Used in SkiaCanvas via store and filter toolbar
     canUndo,
     canRedo,
     undo,
@@ -175,6 +186,8 @@ const EditorScreen: React.FC = () => {
     addElement,
     updateElement,
     deleteElement,
+    applyFilter,
+    removeFilter,
   } = useEditorStore();
 
   const [activeToolbar, setActiveToolbar] = useState<
@@ -186,7 +199,7 @@ const EditorScreen: React.FC = () => {
   const [showCanvasTextInput, setShowCanvasTextInput] = useState(false);
   const [stickerModalVisible, setStickerModalVisible] = useState(false);
   const [watermarkModalVisible, setWatermarkModalVisible] = useState(false);
-  const [filterModalVisible, setFilterModalVisible] = useState(false);
+
   const [exportModalVisible, setExportModalVisible] = useState(false);
 
   useEffect(() => {
@@ -253,8 +266,8 @@ const EditorScreen: React.FC = () => {
       ? ['watermark', 'text', 'sticker', 'stamps', 'filter'].indexOf(tool)
       : -1;
     activeToolIndex.value = withSpring(toolIndex, {
-      damping: 15,
-      stiffness: 150,
+      damping: 15.0,
+      stiffness: 150.0,
     });
 
     // Add element to canvas based on tool type
@@ -272,7 +285,7 @@ const EditorScreen: React.FC = () => {
         // Stamps tool shows horizontal scrolling toolbar - no modal needed
         break;
       case 'filter':
-        setFilterModalVisible(true);
+        // Filter tool shows horizontal scrolling toolbar - no modal needed
         break;
     }
   };
@@ -326,8 +339,8 @@ const EditorScreen: React.FC = () => {
     // Deactivate text tool after editing
     setActiveToolbar(null);
     activeToolIndex.value = withSpring(-1, {
-      damping: 15,
-      stiffness: 150,
+      damping: 15.0,
+      stiffness: 150.0,
     });
 
     // Reset flag after component updates
@@ -343,8 +356,8 @@ const EditorScreen: React.FC = () => {
     setActiveToolbar('text');
     activeToolIndex.value = withSpring(1, {
       // Text tool is at index 1
-      damping: 15,
-      stiffness: 150,
+      damping: 15.0,
+      stiffness: 150.0,
     });
 
     // Set up editing state
@@ -386,8 +399,33 @@ const EditorScreen: React.FC = () => {
     // Deactivate stamps tool after adding
     setActiveToolbar(null);
     activeToolIndex.value = withSpring(-1, {
-      damping: 15,
-      stiffness: 150,
+      damping: 15.0,
+      stiffness: 150.0,
+    });
+  };
+
+  const handleFilterSelect = (filterId: string) => {
+    console.log('Filter selected:', filterId);
+
+    if (filterId === 'none') {
+      removeFilter();
+      console.log('Filter removed');
+    } else {
+      const filter = {
+        id: filterId,
+        name: filterId,
+        intensity: 1,
+        type: filterId as any,
+      };
+      applyFilter(filter);
+      console.log('Filter applied:', filter);
+    }
+
+    // Deactivate filter tool after applying
+    setActiveToolbar(null);
+    activeToolIndex.value = withSpring(-1, {
+      damping: 15.0,
+      stiffness: 150.0,
     });
   };
 
@@ -416,13 +454,6 @@ const EditorScreen: React.FC = () => {
       );
       addElement(element);
     }
-  };
-
-  const handleApplyFilter = (filterId: string, intensity: number) => {
-    // TODO: Implement filter application with Skia shaders
-    // For now, just log the filter selection
-    console.log('Applying filter:', filterId, 'with intensity:', intensity);
-    // This would modify the source image or add a filter layer to the canvas
   };
 
   const handleSizeChange = (newScale: number) => {
@@ -634,6 +665,36 @@ const EditorScreen: React.FC = () => {
                 </TouchableOpacity>
               ))}
             </ScrollView>
+          ) : activeToolbar === 'filter' ? (
+            // Filters horizontal scrolling toolbar
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.filtersScrollContainer}
+              style={styles.filtersScrollView}
+            >
+              {FILTERS.map(filter => (
+                <TouchableOpacity
+                  key={filter.id}
+                  style={[
+                    styles.filterButton,
+                    appliedFilter?.id === filter.id &&
+                      styles.filterButtonActive,
+                  ]}
+                  onPress={() => handleFilterSelect(filter.id)}
+                >
+                  <View
+                    style={[
+                      styles.filterPreview,
+                      { backgroundColor: filter.color },
+                    ]}
+                  >
+                    <Text style={styles.filterEmoji}>{filter.emoji}</Text>
+                  </View>
+                  <Text style={styles.filterName}>{filter.name}</Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
           ) : (
             // Regular tool icons
             <>
@@ -664,13 +725,6 @@ const EditorScreen: React.FC = () => {
         visible={watermarkModalVisible}
         onClose={() => setWatermarkModalVisible(false)}
         onSelect={handleAddWatermark}
-      />
-
-      {/* Filter Tool Modal */}
-      <FilterToolModal
-        visible={filterModalVisible}
-        onClose={() => setFilterModalVisible(false)}
-        onApply={handleApplyFilter}
       />
 
       {/* Export Modal */}
@@ -867,6 +921,39 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     resizeMode: 'contain',
+  },
+  filtersScrollView: {
+    flex: 1,
+  },
+  filtersScrollContainer: {
+    paddingHorizontal: Spacing.s,
+    alignItems: 'center',
+    minHeight: 48,
+  },
+  filterButton: {
+    alignItems: 'center',
+    marginHorizontal: Spacing.xs,
+    padding: Spacing.xs,
+  },
+  filterButtonActive: {
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 8,
+  },
+  filterPreview: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  filterEmoji: {
+    fontSize: 16,
+  },
+  filterName: {
+    ...Typography.body.caption,
+    color: Colors.text.secondary,
+    fontSize: 10,
   },
 });
 

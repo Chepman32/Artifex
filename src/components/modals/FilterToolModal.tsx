@@ -22,6 +22,40 @@ const FILTER_COLUMNS = 3;
 const FILTER_SIZE =
   (screenWidth - Spacing.m * 2 - Spacing.s * 2) / FILTER_COLUMNS;
 
+// Get preview style for different filters
+const getFilterPreviewStyle = (filterId: string) => {
+  switch (filterId) {
+    case 'bw':
+      return { backgroundColor: '#888888' };
+    case 'sepia':
+      return { backgroundColor: '#D2B48C' };
+    case 'vintage':
+      return { backgroundColor: '#F4A460' };
+    case 'cool':
+      return { backgroundColor: '#87CEEB' };
+    case 'warm':
+      return { backgroundColor: '#FFB347' };
+    case 'cinematic':
+      return { backgroundColor: '#2F4F4F' };
+    case 'film':
+      return { backgroundColor: '#696969' };
+    case 'hdr':
+      return { backgroundColor: '#FFD700' };
+    case 'portrait':
+      return { backgroundColor: '#DDA0DD' };
+    case 'landscape':
+      return { backgroundColor: '#98FB98' };
+    case 'neon':
+      return { backgroundColor: '#FF1493' };
+    case 'cyberpunk':
+      return { backgroundColor: '#00FFFF' };
+    case 'retro':
+      return { backgroundColor: '#FF69B4' };
+    default:
+      return {};
+  }
+};
+
 interface Filter {
   id: string;
   name: string;
@@ -96,11 +130,12 @@ export const FilterToolModal: React.FC<FilterToolModalProps> = ({
         activeOpacity={0.7}
       >
         <View style={styles.filterPreview}>
-          {/* Placeholder for filter preview - would show actual filtered image */}
+          {/* Filter preview with color indication */}
           <View
             style={[
               styles.previewPlaceholder,
               isLocked && styles.previewPlaceholderLocked,
+              getFilterPreviewStyle(item.id),
             ]}
           >
             <Text style={styles.previewText}>{item.name.charAt(0)}</Text>

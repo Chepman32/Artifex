@@ -16,6 +16,39 @@ import { Colors } from '../constants/colors';
 
 const { width: screenWidth } = Dimensions.get('window');
 
+// CSS-like filter styles for regular Image component (photo library URIs)
+const getImageFilterStyle = (filter: any) => {
+  const intensity = Math.round(filter.intensity * 100) / 100; // Round to 2 decimal places
+
+  // Round alpha values to avoid precision issues
+  const roundAlpha = (alpha: number) => Math.round(alpha * 100) / 100;
+
+  switch (filter.type) {
+    case 'bw':
+      return {
+        backgroundColor: `rgba(128, 128, 128, ${roundAlpha(intensity * 0.5)})`,
+      };
+    case 'sepia':
+      return {
+        backgroundColor: `rgba(210, 180, 140, ${roundAlpha(intensity * 0.4)})`,
+      };
+    case 'vintage':
+      return {
+        backgroundColor: `rgba(244, 164, 96, ${roundAlpha(intensity * 0.35)})`,
+      };
+    case 'cool':
+      return {
+        backgroundColor: `rgba(135, 206, 235, ${roundAlpha(intensity * 0.3)})`,
+      };
+    case 'warm':
+      return {
+        backgroundColor: `rgba(255, 179, 71, ${roundAlpha(intensity * 0.35)})`,
+      };
+    default:
+      return {};
+  }
+};
+
 interface SkiaCanvasProps {
   sourceImageUri: string;
   canvasWidth: number;
@@ -32,6 +65,7 @@ export const SkiaCanvas: React.FC<SkiaCanvasProps> = ({
   const {
     canvasElements,
     selectedElementId,
+    appliedFilter,
     selectElement,
     updateElement,
     deselectElement,
@@ -70,29 +104,82 @@ export const SkiaCanvas: React.FC<SkiaCanvasProps> = ({
     <View
       style={[styles.container, { width: canvasWidth, height: canvasHeight }]}
     >
-      {/* Background image layer */}
+      {/* Background image layer with filter overlay */}
       {sourceImageUri.startsWith('ph://') ? (
-        <Image
-          source={{ uri: sourceImageUri }}
-          style={[
-            styles.backgroundImage,
-            { width: canvasWidth, height: canvasHeight },
-          ]}
-          resizeMode="contain"
-        />
-      ) : (
-        <Canvas style={styles.skiaCanvas}>
-          {sourceImage && (
-            <SkiaImage
-              image={sourceImage}
-              x={0}
-              y={0}
-              width={canvasWidth}
-              height={canvasHeight}
-              fit="contain"
+        <View
+          style={{
+            position: 'relative',
+            width: canvasWidth,
+            height: canvasHeight,
+          }}
+        >
+          <Image
+            source={{ uri: sourceImageUri }}
+            style={[
+              styles.backgroundImage,
+              { width: canvasWidth, height: canvasHeight },
+            ]}
+            resizeMode="contain"
+          />
+          {/* Filter overlay positioned exactly over the image */}
+          {appliedFilter && appliedFilter.type !== 'none' && (
+            <View
+              style={[
+                {
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  width: canvasWidth,
+                  height: canvasHeight,
+                  zIndex: 1,
+                },
+                getImageFilterStyle(appliedFilter),
+              ]}
             />
           )}
-        </Canvas>
+        </View>
+      ) : (
+        <View
+          style={{
+            position: 'relative',
+            width: canvasWidth,
+            height: canvasHeight,
+          }}
+        >
+          <Canvas
+            style={[
+              styles.skiaCanvas,
+              { width: canvasWidth, height: canvasHeight },
+            ]}
+          >
+            {sourceImage && (
+              <SkiaImage
+                image={sourceImage}
+                x={0}
+                y={0}
+                width={canvasWidth}
+                height={canvasHeight}
+                fit="contain"
+              />
+            )}
+          </Canvas>
+          {/* Filter overlay positioned exactly over the canvas */}
+          {appliedFilter && appliedFilter.type !== 'none' && (
+            <View
+              style={[
+                {
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  width: canvasWidth,
+                  height: canvasHeight,
+                  zIndex: 1,
+                },
+                getImageFilterStyle(appliedFilter),
+              ]}
+            />
+          )}
+        </View>
       )}
 
       {/* Interactive overlay for canvas elements */}
@@ -183,7 +270,8 @@ const styles = StyleSheet.create({
     position: 'relative',
   },
   skiaCanvas: {
-    flex: 1,
+    width: '100%',
+    height: '100%',
   },
   backgroundImage: {
     position: 'absolute',
@@ -194,5 +282,9 @@ const styles = StyleSheet.create({
   overlay: {
     ...StyleSheet.absoluteFillObject,
     zIndex: 2,
+  },
+  filterOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    zIndex: 10, // Above everything to ensure visibility
   },
 });
