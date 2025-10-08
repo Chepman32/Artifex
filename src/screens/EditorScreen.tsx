@@ -65,11 +65,11 @@ const EditorScreen: React.FC = () => {
   } = useEditorStore();
 
   const [activeToolbar, setActiveToolbar] = useState<
-    'watermark' | 'text' | 'sticker' | 'stamp' | 'filter'
-  >('text');
+    'watermark' | 'text' | 'sticker' | 'stamp' | 'filter' | null
+  >(null);
 
   // Animated values for toolbar
-  const activeToolIndex = useSharedValue(1); // Text is default (index 1)
+  const activeToolIndex = useSharedValue(-1); // No tool selected by default
   const [showCanvasTextInput, setShowCanvasTextInput] = useState(false);
   const [stickerModalVisible, setStickerModalVisible] = useState(false);
   const [watermarkModalVisible, setWatermarkModalVisible] = useState(false);
@@ -130,13 +130,9 @@ const EditorScreen: React.FC = () => {
     setActiveToolbar(tool);
 
     // Update animated indicator position
-    const toolIndex = [
-      'watermark',
-      'text',
-      'sticker',
-      'stamp',
-      'filter',
-    ].indexOf(tool);
+    const toolIndex = tool
+      ? ['watermark', 'text', 'sticker', 'stamp', 'filter'].indexOf(tool)
+      : -1;
     activeToolIndex.value = withSpring(toolIndex, {
       damping: 15,
       stiffness: 150,
@@ -302,11 +298,14 @@ const EditorScreen: React.FC = () => {
   const indicatorStyle = useAnimatedStyle(() => {
     const translateX = interpolate(
       activeToolIndex.value,
-      [0, 1, 2, 3, 4],
-      [0, 1, 2, 3, 4].map(i => (screenWidth / 5) * i + screenWidth / 10 - 14), // Center each tool
+      [-1, 0, 1, 2, 3, 4],
+      [-100, 0, 1, 2, 3, 4].map((i, index) =>
+        index === 0 ? -100 : (screenWidth / 5) * i + screenWidth / 10 - 14,
+      ), // Hide indicator when no tool selected (-1), center each tool otherwise
     );
     return {
       transform: [{ translateX }],
+      opacity: activeToolIndex.value === -1 ? 0 : 1,
     };
   });
 
@@ -329,14 +328,6 @@ const EditorScreen: React.FC = () => {
         ]}
       >
         {icon}
-      </Text>
-      <Text
-        style={[
-          styles.toolLabel,
-          activeToolbar === tool && styles.toolLabelActive,
-        ]}
-      >
-        {label}
       </Text>
     </TouchableOpacity>
   );
@@ -576,7 +567,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   toolbar: {
-    height: 72,
+    height: 48,
     backgroundColor: Colors.backgrounds.secondary,
     paddingHorizontal: Spacing.m,
     justifyContent: 'center',
@@ -588,7 +579,8 @@ const styles = StyleSheet.create({
   },
   toolButton: {
     alignItems: 'center',
-    padding: Spacing.xs,
+    paddingVertical: 4,
+    paddingHorizontal: Spacing.xs,
     minWidth: 60,
   },
   toolButtonActive: {
@@ -596,7 +588,6 @@ const styles = StyleSheet.create({
   },
   toolIcon: {
     fontSize: 24,
-    marginBottom: 4,
     opacity: 0.6,
   },
   toolIconActive: {
