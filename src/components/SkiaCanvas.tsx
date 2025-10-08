@@ -6,6 +6,7 @@ import {
   Canvas,
   Image as SkiaImage,
   useImage,
+  ColorMatrix,
 } from '@shopify/react-native-skia';
 import { GestureDetector, Gesture } from 'react-native-gesture-handler';
 import { runOnJS } from 'react-native-reanimated';
@@ -16,33 +17,75 @@ import { Colors } from '../constants/colors';
 
 const { width: screenWidth } = Dimensions.get('window');
 
-// CSS-like filter styles for regular Image component (photo library URIs)
-const getImageFilterStyle = (filter: any) => {
-  const intensity = Math.round(filter.intensity * 100) / 100; // Round to 2 decimal places
+// Get color matrix for filters
+const getColorMatrix = (filter: any) => {
+  const intensity = filter.intensity || 1;
 
-  // Round alpha values to avoid precision issues
-  const roundAlpha = (alpha: number) => Math.round(alpha * 100) / 100;
+  switch (filter.type) {
+    case 'bw':
+      // Strong grayscale matrix - full desaturation
+      return [
+        0.299, 0.587, 0.114, 0, 0, 0.299, 0.587, 0.114, 0, 0, 0.299, 0.587,
+        0.114, 0, 0, 0, 0, 0, 1, 0,
+      ];
+    case 'sepia':
+      // Strong sepia matrix
+      return [
+        0.393, 0.769, 0.189, 0, 0, 0.349, 0.686, 0.168, 0, 0, 0.272, 0.534,
+        0.131, 0, 0, 0, 0, 0, 1, 0,
+      ];
+    case 'vintage':
+      // Strong vintage warm tone with reduced contrast
+      return [
+        1.2, 0.15, 0, 0, 15, 0.1, 1.1, 0.1, 0, 10, 0, 0.15, 0.85, 0, 0, 0, 0, 0,
+        1, 0,
+      ];
+    case 'cool':
+      // Strong cool blue tone
+      return [
+        0.85, 0, 0.15, 0, 0, 0, 1.05, 0.1, 0, 0, 0.15, 0.15, 1.3, 0, 15, 0, 0,
+        0, 1, 0,
+      ];
+    case 'warm':
+      // Strong warm orange tone
+      return [
+        1.3, 0.15, 0, 0, 20, 0.1, 1.15, 0, 0, 10, 0, 0, 0.8, 0, 0, 0, 0, 0, 1,
+        0,
+      ];
+    default:
+      return null;
+  }
+};
+
+// Fallback overlay styles for photo URIs (ph://) that don't support Skia
+const getImageOverlayStyle = (filter: any) => {
+  const intensity = filter.intensity || 1;
 
   switch (filter.type) {
     case 'bw':
       return {
-        backgroundColor: `rgba(128, 128, 128, ${roundAlpha(intensity * 0.5)})`,
+        backgroundColor: `rgba(128, 128, 128, 0.7)`,
+        mixBlendMode: 'color' as any,
       };
     case 'sepia':
       return {
-        backgroundColor: `rgba(210, 180, 140, ${roundAlpha(intensity * 0.4)})`,
+        backgroundColor: `rgba(196, 154, 108, 0.8)`,
+        mixBlendMode: 'color' as any,
       };
     case 'vintage':
       return {
-        backgroundColor: `rgba(244, 164, 96, ${roundAlpha(intensity * 0.35)})`,
+        backgroundColor: `rgba(244, 164, 96, 0.35)`,
+        mixBlendMode: 'multiply' as any,
       };
     case 'cool':
       return {
-        backgroundColor: `rgba(135, 206, 235, ${roundAlpha(intensity * 0.3)})`,
+        backgroundColor: `rgba(135, 206, 235, 0.3)`,
+        mixBlendMode: 'multiply' as any,
       };
     case 'warm':
       return {
-        backgroundColor: `rgba(255, 179, 71, ${roundAlpha(intensity * 0.35)})`,
+        backgroundColor: `rgba(255, 179, 71, 0.35)`,
+        mixBlendMode: 'multiply' as any,
       };
     default:
       return {};
@@ -100,11 +143,14 @@ export const SkiaCanvas: React.FC<SkiaCanvasProps> = ({
     [updateElement],
   );
 
+  // Get color matrix for current filter
+  const colorMatrix = appliedFilter ? getColorMatrix(appliedFilter) : null;
+
   return (
     <View
       style={[styles.container, { width: canvasWidth, height: canvasHeight }]}
     >
-      {/* Background image layer with filter overlay */}
+      {/* Background image layer with filter effects */}
       {sourceImageUri.startsWith('ph://') ? (
         <View
           style={{
@@ -113,6 +159,7 @@ export const SkiaCanvas: React.FC<SkiaCanvasProps> = ({
             height: canvasHeight,
           }}
         >
+          {/* Base image */}
           <Image
             source={{ uri: sourceImageUri }}
             style={[
@@ -121,7 +168,8 @@ export const SkiaCanvas: React.FC<SkiaCanvasProps> = ({
             ]}
             resizeMode="contain"
           />
-          {/* Filter overlay positioned exactly over the image */}
+
+          {/* Filter overlay for photo URIs */}
           {appliedFilter && appliedFilter.type !== 'none' && (
             <View
               style={[
@@ -133,7 +181,7 @@ export const SkiaCanvas: React.FC<SkiaCanvasProps> = ({
                   height: canvasHeight,
                   zIndex: 1,
                 },
-                getImageFilterStyle(appliedFilter),
+                getImageOverlayStyle(appliedFilter),
               ]}
             />
           )}
@@ -160,25 +208,11 @@ export const SkiaCanvas: React.FC<SkiaCanvasProps> = ({
                 width={canvasWidth}
                 height={canvasHeight}
                 fit="contain"
-              />
+              >
+                {colorMatrix && <ColorMatrix matrix={colorMatrix} />}
+              </SkiaImage>
             )}
           </Canvas>
-          {/* Filter overlay positioned exactly over the canvas */}
-          {appliedFilter && appliedFilter.type !== 'none' && (
-            <View
-              style={[
-                {
-                  position: 'absolute',
-                  top: 0,
-                  left: 0,
-                  width: canvasWidth,
-                  height: canvasHeight,
-                  zIndex: 1,
-                },
-                getImageFilterStyle(appliedFilter),
-              ]}
-            />
-          )}
         </View>
       )}
 
