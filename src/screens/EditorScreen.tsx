@@ -8,8 +8,11 @@ import {
   TouchableOpacity,
   Dimensions,
   Alert,
-  Image,
   TextInput,
+  KeyboardAvoidingView,
+  Platform,
+  Image,
+  ScrollView,
 } from 'react-native';
 import Animated, {
   useSharedValue,
@@ -43,6 +46,115 @@ interface EditorRouteParams {
   imageDimensions?: { width: number; height: number };
 }
 
+// Seal stamps data
+const SEAL_STAMPS = [
+  {
+    id: 'approved-147677',
+    name: 'Approved',
+    uri: require('../assets/stamps/approved-147677_640.png'),
+  },
+  {
+    id: 'approved-1966719',
+    name: 'Approved Alt',
+    uri: require('../assets/stamps/approved-1966719_640.png'),
+  },
+  {
+    id: 'approved-1966719-1',
+    name: 'Approved Alt 2',
+    uri: require('../assets/stamps/approved-1966719_640 (1).png'),
+  },
+  {
+    id: 'best-seller',
+    name: 'Best Seller',
+    uri: require('../assets/stamps/best-seller-158885_1280.png'),
+  },
+  {
+    id: 'cancelled',
+    name: 'Cancelled',
+    uri: require('../assets/stamps/cancelled-5250908_640.png'),
+  },
+  {
+    id: 'do-not-copy',
+    name: 'Do Not Copy',
+    uri: require('../assets/stamps/do-not-copy-160138_640.png'),
+  },
+  {
+    id: 'draft',
+    name: 'Draft',
+    uri: require('../assets/stamps/draft-160133_640.png'),
+  },
+  {
+    id: 'label',
+    name: 'Label',
+    uri: require('../assets/stamps/label-5419657_640.png'),
+  },
+  {
+    id: 'original',
+    name: 'Original',
+    uri: require('../assets/stamps/original-160130_640.png'),
+  },
+  {
+    id: 'paid-160126',
+    name: 'Paid',
+    uri: require('../assets/stamps/paid-160126_640.png'),
+  },
+  {
+    id: 'paid-5025785',
+    name: 'Paid Alt',
+    uri: require('../assets/stamps/paid-5025785_640.png'),
+  },
+  {
+    id: 'quality-5254406',
+    name: 'Quality',
+    uri: require('../assets/stamps/quality-5254406_640.png'),
+  },
+  {
+    id: 'quality-5254458',
+    name: 'Quality Alt',
+    uri: require('../assets/stamps/quality-5254458_640.png'),
+  },
+  {
+    id: 'real-stamp',
+    name: 'Real Stamp',
+    uri: require('../assets/stamps/real-stamp-7823814_640.png'),
+  },
+  {
+    id: 'received',
+    name: 'Received',
+    uri: require('../assets/stamps/received-160122_640.png'),
+  },
+  {
+    id: 'red',
+    name: 'Red Stamp',
+    uri: require('../assets/stamps/red-42286_640.png'),
+  },
+  {
+    id: 'seal',
+    name: 'Seal',
+    uri: require('../assets/stamps/seal-1771694_640.png'),
+  },
+  {
+    id: 'sold',
+    name: 'Sold',
+    uri: require('../assets/stamps/sold-5250892_640.png'),
+  },
+  {
+    id: 'stamp',
+    name: 'Stamp',
+    uri: require('../assets/stamps/stamp-161691_640.png'),
+  },
+  {
+    id: 'success',
+    name: 'Success',
+    uri: require('../assets/stamps/success-5025797_640.png'),
+  },
+  {
+    id: 'winner',
+    name: 'Winner',
+    uri: require('../assets/stamps/winner-5257940_640.png'),
+  },
+];
+
 const EditorScreen: React.FC = () => {
   const navigation = useNavigation();
   const route = useRoute();
@@ -65,7 +177,7 @@ const EditorScreen: React.FC = () => {
   } = useEditorStore();
 
   const [activeToolbar, setActiveToolbar] = useState<
-    'watermark' | 'text' | 'sticker' | 'stamp' | 'filter' | null
+    'watermark' | 'text' | 'sticker' | 'stamps' | 'filter' | null
   >(null);
 
   // Animated values for toolbar
@@ -131,7 +243,7 @@ const EditorScreen: React.FC = () => {
 
     // Update animated indicator position
     const toolIndex = tool
-      ? ['watermark', 'text', 'sticker', 'stamp', 'filter'].indexOf(tool)
+      ? ['watermark', 'text', 'sticker', 'stamps', 'filter'].indexOf(tool)
       : -1;
     activeToolIndex.value = withSpring(toolIndex, {
       damping: 15,
@@ -149,8 +261,8 @@ const EditorScreen: React.FC = () => {
       case 'sticker':
         setStickerModalVisible(true);
         break;
-      case 'stamp':
-        setStickerModalVisible(true); // Use same picker for stamps
+      case 'stamps':
+        // Stamps tool shows horizontal scrolling toolbar - no modal needed
         break;
       case 'filter':
         setFilterModalVisible(true);
@@ -199,9 +311,17 @@ const EditorScreen: React.FC = () => {
       }
     }
 
+    // Clear text editing state
     setCanvasTextValue('');
     setShowCanvasTextInput(false);
     setEditingTextId(null);
+
+    // Deactivate text tool after editing
+    setActiveToolbar(null);
+    activeToolIndex.value = withSpring(-1, {
+      damping: 15,
+      stiffness: 150,
+    });
 
     // Reset flag after component updates
     setTimeout(() => {
@@ -211,6 +331,16 @@ const EditorScreen: React.FC = () => {
 
   const handleTextElementEdit = (elementId: string, currentText: string) => {
     console.log('handleTextElementEdit called:', elementId, currentText);
+
+    // Set the text tool as active when editing existing text
+    setActiveToolbar('text');
+    activeToolIndex.value = withSpring(1, {
+      // Text tool is at index 1
+      damping: 15,
+      stiffness: 150,
+    });
+
+    // Set up editing state
     setEditingTextId(elementId);
     setCanvasTextValue(currentText);
     setShowCanvasTextInput(true);
@@ -226,6 +356,32 @@ const EditorScreen: React.FC = () => {
       height,
     );
     addElement(element);
+  };
+
+  const handleAddStamp = (stampRequire: any) => {
+    const canvasSize = calculateCanvasSize();
+    // Default stamp size
+    const stampSize = 80;
+
+    // Convert require object to URI string
+    const resolvedAsset = Image.resolveAssetSource(stampRequire);
+    const stampUri = resolvedAsset.uri;
+
+    const element = createStickerElement(
+      stampUri,
+      canvasSize.width / 2 - stampSize / 2,
+      canvasSize.height / 2 - stampSize / 2,
+      stampSize,
+      stampSize,
+    );
+    addElement(element);
+
+    // Deactivate stamps tool after adding
+    setActiveToolbar(null);
+    activeToolIndex.value = withSpring(-1, {
+      damping: 15,
+      stiffness: 150,
+    });
   };
 
   const handleAddWatermark = (uri: string, width: number, height: number) => {
@@ -312,7 +468,7 @@ const EditorScreen: React.FC = () => {
   const renderToolIcon = (
     tool: typeof activeToolbar,
     icon: string,
-    label: string,
+    _label: string,
   ) => (
     <TouchableOpacity
       style={[
@@ -370,93 +526,114 @@ const EditorScreen: React.FC = () => {
         </TouchableOpacity>
       </View>
 
-      {/* Canvas */}
-      <View style={styles.canvasContainer}>
-        {sourceImagePath ? (
-          <View style={{ position: 'relative' }}>
-            <SkiaCanvas
-              sourceImageUri={sourceImagePath}
-              canvasWidth={canvasSize.width}
-              canvasHeight={canvasSize.height}
-              onTextEdit={handleTextElementEdit}
-            />
+      <KeyboardAvoidingView
+        style={styles.keyboardAvoidingContainer}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      >
+        {/* Canvas Container */}
+        <View style={styles.canvasContainer}>
+          {sourceImagePath ? (
+            <View style={styles.canvasWrapper}>
+              <SkiaCanvas
+                sourceImageUri={sourceImagePath}
+                canvasWidth={canvasSize.width}
+                canvasHeight={canvasSize.height}
+                onTextEdit={handleTextElementEdit}
+              />
 
-            {/* Canvas Text Input - appears when text tool is active */}
-            {showCanvasTextInput && (
-              <View
-                style={[
-                  styles.canvasTextInputContainer,
-                  {
-                    width: canvasSize.width,
-                    height: canvasSize.height,
-                  },
-                ]}
-              >
-                <TouchableOpacity
-                  style={styles.canvasTextInputOverlay}
-                  onPress={handleCanvasTextSubmit}
-                />
-                <View style={styles.canvasTextInputWrapper}>
-                  <TextInput
-                    style={styles.canvasTextInput}
-                    placeholder="Tap to add text..."
-                    placeholderTextColor="rgba(255, 255, 255, 0.6)"
-                    value={canvasTextValue}
-                    onChangeText={setCanvasTextValue}
-                    autoFocus
-                    returnKeyType="done"
-                    onSubmitEditing={handleCanvasTextSubmit}
-                    blurOnSubmit={true}
+              {/* Text Input - positioned over canvas without backdrop */}
+              {showCanvasTextInput && (
+                <View
+                  style={[
+                    styles.canvasTextOverlay,
+                    { width: canvasSize.width, height: canvasSize.height },
+                  ]}
+                >
+                  <TouchableOpacity
+                    style={styles.transparentOverlay}
+                    onPress={handleCanvasTextSubmit}
                   />
+                  <View style={styles.textInputWrapper}>
+                    <TextInput
+                      style={styles.canvasTextInput}
+                      placeholder="Enter text..."
+                      placeholderTextColor="rgba(255, 255, 255, 0.8)"
+                      value={canvasTextValue}
+                      onChangeText={setCanvasTextValue}
+                      autoFocus
+                      returnKeyType="done"
+                      onSubmitEditing={handleCanvasTextSubmit}
+                      multiline
+                    />
+                  </View>
                 </View>
-              </View>
-            )}
-          </View>
-        ) : (
-          <View
-            style={[
-              styles.canvas,
-              { width: canvasSize.width, height: canvasSize.height },
-            ]}
-          >
-            <View style={styles.emptyCanvas}>
-              <Text style={styles.emptyCanvasText}>No image loaded</Text>
-              <Text style={styles.emptyCanvasText}>
-                Params: {JSON.stringify(params)}
-              </Text>
+              )}
             </View>
-          </View>
-        )}
+          ) : (
+            <View
+              style={[
+                styles.canvas,
+                { width: canvasSize.width, height: canvasSize.height },
+              ]}
+            >
+              <View style={styles.emptyCanvas}>
+                <Text style={styles.emptyCanvasText}>No image loaded</Text>
+                <Text style={styles.emptyCanvasText}>
+                  Params: {JSON.stringify(params)}
+                </Text>
+              </View>
+            </View>
+          )}
 
-        {/* Size Slider - appears when element is selected */}
-        <SizeSlider
-          visible={!!selectedElementId}
-          initialValue={currentScale}
-          onValueChange={handleSizeChange}
-          position={{
-            x: -canvasSize.width / 2.3, // Much more to the left
-            y: -canvasSize.height / 7, // Much higher up
-          }}
-        />
-      </View>
-
-      {/* Tool Toolbar - hidden when canvas text input is active */}
-      {!showCanvasTextInput && (
-        <View style={styles.toolbar}>
-          <View style={styles.toolContainer}>
-            {renderToolIcon('watermark', '💧', 'Watermark')}
-            {renderToolIcon('text', 'T', 'Text')}
-            {renderToolIcon('sticker', '🎨', 'Sticker')}
-            {renderToolIcon('stamp', '⭐', 'Stamp')}
-            {renderToolIcon('filter', '🖼️', 'Filter')}
-          </View>
-
-          {/* Active indicator */}
-          <Animated.View style={[styles.activeIndicator, indicatorStyle]} />
+          {/* Size Slider - appears when element is selected */}
+          <SizeSlider
+            visible={!!selectedElementId}
+            initialValue={currentScale}
+            onValueChange={handleSizeChange}
+            position={{
+              x: -canvasSize.width / 2.3,
+              y: -canvasSize.height / 7,
+            }}
+          />
         </View>
-      )}
 
-      {/* Text Tool Modal - Replaced with canvas text input */}
+        {/* Tool Toolbar - will be pushed above keyboard by KeyboardAvoidingView */}
+        <View style={styles.toolbar}>
+          {activeToolbar === 'stamps' ? (
+            // Stamps horizontal scrolling toolbar
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.stampsScrollContainer}
+              style={styles.stampsScrollView}
+            >
+              {SEAL_STAMPS.map(stamp => (
+                <TouchableOpacity
+                  key={stamp.id}
+                  style={styles.stampButton}
+                  onPress={() => handleAddStamp(stamp.uri)}
+                >
+                  <Image source={stamp.uri} style={styles.stampPreview} />
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          ) : (
+            // Regular tool icons
+            <>
+              <View style={styles.toolContainer}>
+                {renderToolIcon('watermark', '💧', 'Watermark')}
+                {renderToolIcon('text', 'T', 'Text')}
+                {renderToolIcon('sticker', '🎨', 'Sticker')}
+                {renderToolIcon('stamps', '🔖', 'Stamps')}
+                {renderToolIcon('filter', '🖼️', 'Filter')}
+              </View>
+
+              {/* Active indicator */}
+              <Animated.View style={[styles.activeIndicator, indicatorStyle]} />
+            </>
+          )}
+        </View>
+      </KeyboardAvoidingView>
 
       {/* Sticker Picker Modal */}
       <StickerPickerModal
@@ -541,11 +718,17 @@ const styles = StyleSheet.create({
     color: Colors.accent.primary,
     fontWeight: '600',
   },
+  keyboardAvoidingContainer: {
+    flex: 1,
+  },
   canvasContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     padding: Spacing.m,
+  },
+  canvasWrapper: {
+    position: 'relative',
   },
   canvas: {
     backgroundColor: Colors.backgrounds.secondary,
@@ -565,6 +748,42 @@ const styles = StyleSheet.create({
     ...Typography.body.regular,
     color: Colors.text.tertiary,
     textAlign: 'center',
+  },
+  canvasTextOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 1000,
+  },
+  transparentOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    // No background color - completely transparent
+  },
+  textInputWrapper: {
+    // No background - transparent wrapper
+    borderRadius: 8,
+    padding: Spacing.s,
+    minWidth: 200,
+    maxWidth: 300,
+  },
+  canvasTextInput: {
+    ...Typography.body.regular,
+    color: '#FFFFFF',
+    fontSize: 24,
+    minHeight: 40,
+    textAlignVertical: 'center',
+    backgroundColor: 'transparent', // No background
+    paddingHorizontal: Spacing.xs,
+    paddingVertical: Spacing.xs,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.3)', // Subtle border for visibility
+    borderRadius: 4,
   },
   toolbar: {
     height: 48,
@@ -593,15 +812,6 @@ const styles = StyleSheet.create({
   toolIconActive: {
     opacity: 1,
   },
-  toolLabel: {
-    ...Typography.body.caption,
-    color: Colors.text.tertiary,
-    fontSize: 10,
-  },
-  toolLabelActive: {
-    color: Colors.accent.primary,
-    fontWeight: '600',
-  },
   activeIndicator: {
     position: 'absolute',
     bottom: 0,
@@ -611,38 +821,24 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.accent.primary,
     borderRadius: 1.5,
   },
-  canvasTextInputContainer: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    justifyContent: 'center',
-    alignItems: 'center',
-    zIndex: 1000,
+  stampsScrollView: {
+    flex: 1,
   },
-  canvasTextInputOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.3)',
-  },
-  canvasTextInputWrapper: {
-    backgroundColor: 'transparent',
-    borderRadius: 12,
-    padding: Spacing.m,
-    minWidth: 200,
-    maxWidth: 300,
-  },
-  canvasTextInput: {
-    ...Typography.body.regular,
-    color: '#FFFFFF',
-    fontSize: 24,
-    minHeight: 60,
-    textAlignVertical: 'top',
-    backgroundColor: 'transparent',
+  stampsScrollContainer: {
     paddingHorizontal: Spacing.s,
-    paddingVertical: Spacing.s,
+    alignItems: 'center',
+    minHeight: 48,
+  },
+  stampButton: {
+    marginHorizontal: Spacing.xs,
+    padding: Spacing.xs,
+    borderRadius: 8,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  stampPreview: {
+    width: 32,
+    height: 32,
+    resizeMode: 'contain',
   },
 });
 
