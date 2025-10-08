@@ -23,10 +23,10 @@ const getColorMatrix = (filter: any) => {
 
   switch (filter.type) {
     case 'bw':
-      // Strong grayscale matrix - full desaturation
+      // Very strong grayscale matrix with enhanced contrast
       return [
-        0.299, 0.587, 0.114, 0, 0, 0.299, 0.587, 0.114, 0, 0, 0.299, 0.587,
-        0.114, 0, 0, 0, 0, 0, 1, 0,
+        0.35, 0.7, 0.15, 0, -10, 0.35, 0.7, 0.15, 0, -10, 0.35, 0.7, 0.15, 0,
+        -10, 0, 0, 0, 1, 0,
       ];
     case 'sepia':
       // Strong sepia matrix
@@ -35,16 +35,16 @@ const getColorMatrix = (filter: any) => {
         0.131, 0, 0, 0, 0, 0, 1, 0,
       ];
     case 'vintage':
-      // Strong vintage warm tone with reduced contrast
+      // Strong vintage sepia-toned old photograph look
       return [
-        1.2, 0.15, 0, 0, 15, 0.1, 1.1, 0.1, 0, 10, 0, 0.15, 0.85, 0, 0, 0, 0, 0,
-        1, 0,
+        0.5, 0.95, 0.25, 0, 0, 0.43, 0.85, 0.22, 0, 0, 0.33, 0.68, 0.17, 0, 0,
+        0, 0, 0, 1, 0,
       ];
     case 'cool':
-      // Strong cool blue tone
+      // Very strong cool blue tone - icy effect
       return [
-        0.85, 0, 0.15, 0, 0, 0, 1.05, 0.1, 0, 0, 0.15, 0.15, 1.3, 0, 15, 0, 0,
-        0, 1, 0,
+        0.7, 0, 0.2, 0, -10, 0, 1.1, 0.15, 0, 0, 0.25, 0.2, 1.5, 0, 30, 0, 0, 0,
+        1, 0,
       ];
     case 'warm':
       // Strong warm orange tone
@@ -64,7 +64,7 @@ const getImageOverlayStyle = (filter: any) => {
   switch (filter.type) {
     case 'bw':
       return {
-        backgroundColor: `rgba(128, 128, 128, 0.7)`,
+        backgroundColor: `rgba(128, 128, 128, 0.9)`,
         mixBlendMode: 'color' as any,
       };
     case 'sepia':
@@ -74,12 +74,12 @@ const getImageOverlayStyle = (filter: any) => {
       };
     case 'vintage':
       return {
-        backgroundColor: `rgba(244, 164, 96, 0.35)`,
-        mixBlendMode: 'multiply' as any,
+        backgroundColor: `rgba(180, 140, 90, 0.85)`,
+        mixBlendMode: 'color' as any,
       };
     case 'cool':
       return {
-        backgroundColor: `rgba(135, 206, 235, 0.3)`,
+        backgroundColor: `rgba(100, 180, 255, 0.5)`,
         mixBlendMode: 'multiply' as any,
       };
     case 'warm':
