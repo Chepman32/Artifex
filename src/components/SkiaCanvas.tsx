@@ -233,6 +233,8 @@ export const SkiaCanvas: React.FC<SkiaCanvasProps> = ({
                   fontSize={element.fontSize}
                   fontFamily={element.fontFamily}
                   color={element.color}
+                  textEffect={element.textEffect}
+                  textBackground={element.textBackground}
                   isSelected={element.id === selectedElementId}
                   onSelect={() => handleElementSelect(element.id)}
                   onUpdate={transform =>

@@ -18,6 +18,8 @@ interface TextElementProps {
   fontSize?: number;
   fontFamily?: string;
   color?: string;
+  textEffect?: 'none' | 'neon' | 'glow' | 'shadow' | 'outline';
+  textBackground?: string | null;
   isSelected: boolean;
   onSelect: () => void;
   onUpdate: (transform: {
@@ -38,6 +40,8 @@ export const TextElement: React.FC<TextElementProps> = ({
   fontSize = 24,
   fontFamily = 'System',
   color = Colors.text.primary,
+  textEffect = 'none',
+  textBackground = null,
   isSelected,
   onSelect,
   onUpdate,
@@ -53,21 +57,167 @@ export const TextElement: React.FC<TextElementProps> = ({
     onEdit,
   });
 
+  // Render text with effects using multiple layers
+  const renderTextWithEffect = () => {
+    const baseStyle = {
+      fontSize,
+      fontFamily,
+      color,
+    };
+
+    switch (textEffect) {
+      case 'neon':
+        // Neon effect with multiple glow layers
+        return (
+          <>
+            {/* Outer glow */}
+            <Animated.Text
+              style={[
+                styles.text,
+                styles.effectLayer,
+                baseStyle,
+                {
+                  textShadowColor: color,
+                  textShadowOffset: { width: 0, height: 0 },
+                  textShadowRadius: fontSize * 0.8,
+                  opacity: 0.8,
+                },
+              ]}
+            >
+              {text}
+            </Animated.Text>
+            {/* Middle glow */}
+            <Animated.Text
+              style={[
+                styles.text,
+                styles.effectLayer,
+                baseStyle,
+                {
+                  textShadowColor: color,
+                  textShadowOffset: { width: 0, height: 0 },
+                  textShadowRadius: fontSize * 0.5,
+                  opacity: 0.9,
+                },
+              ]}
+            >
+              {text}
+            </Animated.Text>
+            {/* Core text */}
+            <Animated.Text style={[styles.text, baseStyle]}>
+              {text}
+            </Animated.Text>
+          </>
+        );
+
+      case 'glow':
+        // Soft glow effect
+        return (
+          <>
+            <Animated.Text
+              style={[
+                styles.text,
+                styles.effectLayer,
+                baseStyle,
+                {
+                  textShadowColor: color,
+                  textShadowOffset: { width: 0, height: 0 },
+                  textShadowRadius: fontSize * 0.4,
+                  opacity: 0.8,
+                },
+              ]}
+            >
+              {text}
+            </Animated.Text>
+            <Animated.Text style={[styles.text, baseStyle]}>
+              {text}
+            </Animated.Text>
+          </>
+        );
+
+      case 'shadow':
+        // Drop shadow effect
+        return (
+          <>
+            <Animated.Text
+              style={[
+                styles.text,
+                styles.effectLayer,
+                baseStyle,
+                {
+                  color: 'rgba(0, 0, 0, 0.75)',
+                  textShadowColor: 'rgba(0, 0, 0, 0.5)',
+                  textShadowOffset: {
+                    width: fontSize * 0.15,
+                    height: fontSize * 0.15,
+                  },
+                  textShadowRadius: fontSize * 0.2,
+                },
+              ]}
+            >
+              {text}
+            </Animated.Text>
+            <Animated.Text style={[styles.text, baseStyle]}>
+              {text}
+            </Animated.Text>
+          </>
+        );
+
+      case 'outline':
+        // Outline effect using multiple shadows
+        return (
+          <>
+            {/* Create outline with multiple text layers */}
+            {[-1, 0, 1].map(dx =>
+              [-1, 0, 1].map(dy => {
+                if (dx === 0 && dy === 0) return null;
+                return (
+                  <Animated.Text
+                    key={`${dx}-${dy}`}
+                    style={[
+                      styles.text,
+                      styles.effectLayer,
+                      baseStyle,
+                      {
+                        color: '#000000',
+                        transform: [
+                          { translateX: dx * 2 },
+                          { translateY: dy * 2 },
+                        ],
+                      },
+                    ]}
+                  >
+                    {text}
+                  </Animated.Text>
+                );
+              }),
+            )}
+            <Animated.Text style={[styles.text, baseStyle]}>
+              {text}
+            </Animated.Text>
+          </>
+        );
+
+      default:
+        return (
+          <Animated.Text style={[styles.text, baseStyle]}>{text}</Animated.Text>
+        );
+    }
+  };
+
   return (
     <GestureDetector gesture={gesture}>
       <Animated.View style={[styles.container, animatedStyle]}>
-        <Animated.Text
-          style={[
-            styles.text,
-            {
-              fontSize,
-              fontFamily,
-              color,
-            },
-          ]}
-        >
-          {text}
-        </Animated.Text>
+        {textBackground && (
+          <Animated.View
+            style={[
+              styles.textBackground,
+              {
+                backgroundColor: textBackground,
+              },
+            ]}
+          />
+        )}
+        {renderTextWithEffect()}
       </Animated.View>
     </GestureDetector>
   );
@@ -79,8 +229,22 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  textBackground: {
+    position: 'absolute',
+    top: -4,
+    left: -8,
+    right: -8,
+    bottom: -4,
+    borderRadius: 4,
+    zIndex: -1,
+  },
   text: {
     ...Typography.body.regular,
     textAlign: 'center',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+  },
+  effectLayer: {
+    position: 'absolute',
   },
 });

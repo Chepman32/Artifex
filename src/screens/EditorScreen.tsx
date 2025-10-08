@@ -1,6 +1,6 @@
 // Editor screen - Main canvas for photo annotation
 
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
 import {
   View,
   Text,
@@ -13,6 +13,7 @@ import {
   Platform,
   Image,
   ScrollView,
+  Keyboard,
 } from 'react-native';
 import Animated, {
   useSharedValue,
@@ -30,6 +31,7 @@ import { ExportModal } from '../components/modals/ExportModal';
 import { WatermarkToolModal } from '../components/modals/WatermarkToolModal';
 
 import { SizeSlider } from '../components/SizeSlider';
+import { TextToolbar } from '../components/TextToolbar';
 import {
   createTextElement,
   createStickerElement,
@@ -186,6 +188,7 @@ const EditorScreen: React.FC = () => {
     addElement,
     updateElement,
     deleteElement,
+    selectElement,
     applyFilter,
     removeFilter,
   } = useEditorStore();
@@ -273,6 +276,22 @@ const EditorScreen: React.FC = () => {
     // Add element to canvas based on tool type
     switch (tool) {
       case 'text':
+        // Create a live text element immediately
+        const canvasSize = calculateCanvasSize();
+        const newTextElement = createTextElement(
+          ' ', // Start with space to make element visible
+          textFont,
+          24,
+          textColor,
+          canvasSize.width / 2 - 100,
+          canvasSize.height / 2 - 12,
+          textEffect,
+          textBackground,
+        );
+        addElement(newTextElement);
+        selectElement(newTextElement.id); // Select the element so it's visible
+        setEditingTextId(newTextElement.id);
+        setCanvasTextValue('');
         setShowCanvasTextInput(true);
         break;
       case 'watermark':
@@ -290,27 +309,100 @@ const EditorScreen: React.FC = () => {
     }
   };
 
-  const handleAddText = (
-    text: string,
-    fontFamily: string,
-    fontSize: number,
-    color: string,
-  ) => {
-    const canvasSize = calculateCanvasSize();
-    const element = createTextElement(
-      text,
-      fontFamily,
-      fontSize,
-      color,
-      canvasSize.width / 2 - 100,
-      canvasSize.height / 2 - fontSize,
-    );
-    addElement(element);
-  };
-
   const [canvasTextValue, setCanvasTextValue] = useState('');
   const [editingTextId, setEditingTextId] = useState<string | null>(null);
   const submissionRef = useRef(false);
+  const textInputRef = useRef<TextInput>(null);
+
+  // Text styling state
+  const [textFont, setTextFont] = useState('System');
+  const [textColor, setTextColor] = useState('#FFFFFF');
+  const [textEffect, setTextEffect] = useState<
+    'none' | 'neon' | 'glow' | 'shadow' | 'outline'
+  >('none');
+  const [textBackground, setTextBackground] = useState<string | null>(null);
+
+  // Update text element in real-time as user types
+  const updateLiveText = useCallback(
+    (text: string) => {
+      if (editingTextId) {
+        updateElement(editingTextId, {
+          textContent: text || ' ', // Use space if empty to keep element visible
+        });
+      }
+    },
+    [editingTextId, updateElement],
+  );
+
+  // Update text styling in real-time
+  const updateLiveTextStyling = useCallback(() => {
+    if (editingTextId) {
+      updateElement(editingTextId, {
+        fontFamily: textFont,
+        color: textColor,
+        textEffect: textEffect,
+        textBackground: textBackground,
+      });
+    }
+  }, [
+    editingTextId,
+    textFont,
+    textColor,
+    textEffect,
+    textBackground,
+    updateElement,
+  ]);
+
+  // Update text in real-time when value changes
+  useEffect(() => {
+    if (showCanvasTextInput && editingTextId) {
+      updateLiveText(canvasTextValue);
+    }
+  }, [canvasTextValue, showCanvasTextInput, editingTextId, updateLiveText]);
+
+  // Update styling in real-time when any style changes
+  useEffect(() => {
+    if (showCanvasTextInput && editingTextId) {
+      updateLiveTextStyling();
+    }
+  }, [
+    textFont,
+    textColor,
+    textEffect,
+    textBackground,
+    showCanvasTextInput,
+    editingTextId,
+    updateLiveTextStyling,
+  ]);
+
+  // Keep keyboard open when text input is active
+  useEffect(() => {
+    if (showCanvasTextInput) {
+      // Ensure TextInput is focused
+      const focusTimeout = setTimeout(() => {
+        textInputRef.current?.focus();
+      }, 100);
+
+      // Prevent keyboard from dismissing
+      const keyboardDidHideListener = Keyboard.addListener(
+        'keyboardDidHide',
+        () => {
+          // Refocus if text input should still be visible
+          if (showCanvasTextInput && textInputRef.current) {
+            console.log('Keyboard closed, refocusing...');
+            setTimeout(() => {
+              textInputRef.current?.focus();
+            }, 50);
+          }
+        },
+      );
+
+      return () => {
+        clearTimeout(focusTimeout);
+        keyboardDidHideListener.remove();
+      };
+    }
+  }, [showCanvasTextInput]);
 
   const handleCanvasTextSubmit = () => {
     if (submissionRef.current) {
@@ -319,16 +411,18 @@ const EditorScreen: React.FC = () => {
 
     submissionRef.current = true;
 
-    if (canvasTextValue.trim()) {
-      if (editingTextId) {
-        // Update existing text element
-        updateElement(editingTextId, {
-          textContent: canvasTextValue,
-        });
-      } else {
-        // Add new text element
-        handleAddText(canvasTextValue, 'System', 24, Colors.text.primary);
+    if (editingTextId) {
+      if (!canvasTextValue.trim()) {
+        // Delete element if text is empty
+        deleteElement(editingTextId);
       }
+      // Text element already exists and is updated, just finalize
+      console.log('Finalizing text with styling:', {
+        font: textFont,
+        color: textColor,
+        effect: textEffect,
+        background: textBackground,
+      });
     }
 
     // Clear text editing state
@@ -360,7 +454,16 @@ const EditorScreen: React.FC = () => {
       stiffness: 150.0,
     });
 
-    // Set up editing state
+    // Load existing text element properties
+    const element = canvasElements.find(el => el.id === elementId);
+    if (element && element.type === 'text') {
+      setTextFont(element.fontFamily || 'System');
+      setTextColor(element.color || '#FFFFFF');
+      setTextEffect(element.textEffect || 'none');
+      setTextBackground(element.textBackground || null);
+    }
+
+    // Set up editing state - element already exists, just edit it
     setEditingTextId(elementId);
     setCanvasTextValue(currentText);
     setShowCanvasTextInput(true);
@@ -488,6 +591,16 @@ const EditorScreen: React.FC = () => {
 
   const canvasSize = calculateCanvasSize();
 
+  // Debug: Log current text styling state
+  console.log('Current text styling:', {
+    font: textFont,
+    color: textColor,
+    effect: textEffect,
+    background: textBackground,
+    toolbarActive: activeToolbar === 'text',
+    inputVisible: showCanvasTextInput,
+  });
+
   // Animated style for the active indicator
   const indicatorStyle = useAnimatedStyle(() => {
     const translateX = interpolate(
@@ -589,32 +702,21 @@ const EditorScreen: React.FC = () => {
                 onTextEdit={handleTextElementEdit}
               />
 
-              {/* Text Input - positioned over canvas without backdrop */}
+              {/* Hidden TextInput for keyboard input */}
               {showCanvasTextInput && (
-                <View
-                  style={[
-                    styles.canvasTextOverlay,
-                    { width: canvasSize.width, height: canvasSize.height },
-                  ]}
-                >
-                  <TouchableOpacity
-                    style={styles.transparentOverlay}
-                    onPress={handleCanvasTextSubmit}
-                  />
-                  <View style={styles.textInputWrapper}>
-                    <TextInput
-                      style={styles.canvasTextInput}
-                      placeholder="Enter text..."
-                      placeholderTextColor="rgba(255, 255, 255, 0.8)"
-                      value={canvasTextValue}
-                      onChangeText={setCanvasTextValue}
-                      autoFocus
-                      returnKeyType="done"
-                      onSubmitEditing={handleCanvasTextSubmit}
-                      multiline
-                    />
-                  </View>
-                </View>
+                <TextInput
+                  ref={textInputRef}
+                  style={styles.hiddenTextInput}
+                  value={canvasTextValue}
+                  onChangeText={setCanvasTextValue}
+                  autoFocus
+                  returnKeyType="done"
+                  onSubmitEditing={handleCanvasTextSubmit}
+                  multiline
+                  placeholder=""
+                  keyboardType="default"
+                  blurOnSubmit={false}
+                />
               )}
             </View>
           ) : (
@@ -644,6 +746,49 @@ const EditorScreen: React.FC = () => {
             }}
           />
         </View>
+
+        {/* Text Toolbar - appears when text tool is active */}
+        {activeToolbar === 'text' && (
+          <TextToolbar
+            onFontSelect={font => {
+              console.log('Font selected:', font);
+              setTextFont(font);
+              // Refocus text input after selection
+              setTimeout(() => {
+                console.log('Refocusing after font selection');
+                textInputRef.current?.focus();
+              }, 100);
+            }}
+            onColorSelect={color => {
+              console.log('Color selected:', color);
+              setTextColor(color);
+              // Refocus text input after selection
+              setTimeout(() => {
+                textInputRef.current?.focus();
+              }, 50);
+            }}
+            onEffectSelect={effect => {
+              console.log('Effect selected:', effect);
+              setTextEffect(effect as any);
+              // Refocus text input after selection
+              setTimeout(() => {
+                textInputRef.current?.focus();
+              }, 50);
+            }}
+            onBackgroundSelect={bg => {
+              console.log('Background selected:', bg);
+              setTextBackground(bg);
+              // Refocus text input after selection
+              setTimeout(() => {
+                textInputRef.current?.focus();
+              }, 50);
+            }}
+            selectedFont={textFont}
+            selectedColor={textColor}
+            selectedEffect={textEffect}
+            selectedBackground={textBackground}
+          />
+        )}
 
         {/* Tool Toolbar - will be pushed above keyboard by KeyboardAvoidingView */}
         <View style={styles.toolbar}>
@@ -831,41 +976,13 @@ const styles = StyleSheet.create({
     color: Colors.text.tertiary,
     textAlign: 'center',
   },
-  canvasTextOverlay: {
+  hiddenTextInput: {
     position: 'absolute',
-    top: 0,
+    top: -1000, // Hide off-screen
     left: 0,
-    justifyContent: 'center',
-    alignItems: 'center',
-    zIndex: 1000,
-  },
-  transparentOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    // No background color - completely transparent
-  },
-  textInputWrapper: {
-    // No background - transparent wrapper
-    borderRadius: 8,
-    padding: Spacing.s,
-    minWidth: 200,
-    maxWidth: 300,
-  },
-  canvasTextInput: {
-    ...Typography.body.regular,
-    color: '#FFFFFF',
-    fontSize: 24,
-    minHeight: 40,
-    textAlignVertical: 'center',
-    backgroundColor: 'transparent', // No background
-    paddingHorizontal: Spacing.xs,
-    paddingVertical: Spacing.xs,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.3)', // Subtle border for visibility
-    borderRadius: 4,
+    width: 1,
+    height: 1,
+    opacity: 0,
   },
   toolbar: {
     height: 48,

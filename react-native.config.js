@@ -7,6 +7,7 @@ module.exports = {
     },
   },
   assets: [
+    './src/assets/fonts/',
     './assets/fonts/',
     './assets/stickers/',
     './assets/watermarks/',

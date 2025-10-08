@@ -263,3 +263,5 @@ This is a commercial project. For bug reports or feature requests, please contac
 ---
 
 Built with ❤️ using React Native
+
+TODO: add feeling/resizing button ![alt text](image.png)

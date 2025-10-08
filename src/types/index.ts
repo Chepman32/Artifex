@@ -45,6 +45,8 @@ export interface CanvasElement {
   fontFamily?: string;
   fontSize?: number;
   color?: string;
+  textEffect?: 'none' | 'neon' | 'glow' | 'shadow' | 'outline';
+  textBackground?: string | null;
   assetPath?: string;
 }
 

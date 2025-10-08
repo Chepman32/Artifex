@@ -13,6 +13,8 @@ export const createTextElement = (
   color: string,
   x: number = 0,
   y: number = 0,
+  textEffect: 'none' | 'neon' | 'glow' | 'shadow' | 'outline' = 'none',
+  textBackground: string | null = null,
 ): CanvasElement => {
   return {
     id: generateId(),
@@ -21,6 +23,8 @@ export const createTextElement = (
     fontFamily,
     fontSize,
     color,
+    textEffect,
+    textBackground,
     position: { x, y },
     scale: 1,
     rotation: 0,
