@@ -293,6 +293,7 @@ const EditorScreen: React.FC = () => {
         setEditingTextId(newTextElement.id);
         setCanvasTextValue('');
         setShowCanvasTextInput(true);
+        keepKeyboardAliveRef.current = true;
         break;
       case 'watermark':
         setWatermarkModalVisible(true);
@@ -313,6 +314,7 @@ const EditorScreen: React.FC = () => {
   const [editingTextId, setEditingTextId] = useState<string | null>(null);
   const submissionRef = useRef(false);
   const textInputRef = useRef<TextInput>(null);
+  const keepKeyboardAliveRef = useRef(false);
 
   // Text styling state
   const [textFont, setTextFont] = useState('System');
@@ -378,17 +380,18 @@ const EditorScreen: React.FC = () => {
   // Keep keyboard open when text input is active
   useEffect(() => {
     if (showCanvasTextInput) {
+      keepKeyboardAliveRef.current = true;
+
       // Ensure TextInput is focused
       const focusTimeout = setTimeout(() => {
         textInputRef.current?.focus();
       }, 100);
 
-      // Prevent keyboard from dismissing
+      // Prevent keyboard from dismissing unless explicitly finalized
       const keyboardDidHideListener = Keyboard.addListener(
         'keyboardDidHide',
         () => {
-          // Refocus if text input should still be visible
-          if (showCanvasTextInput && textInputRef.current) {
+          if (keepKeyboardAliveRef.current && textInputRef.current) {
             console.log('Keyboard closed, refocusing...');
             setTimeout(() => {
               textInputRef.current?.focus();
@@ -398,10 +401,13 @@ const EditorScreen: React.FC = () => {
       );
 
       return () => {
+        keepKeyboardAliveRef.current = false;
         clearTimeout(focusTimeout);
         keyboardDidHideListener.remove();
       };
     }
+
+    keepKeyboardAliveRef.current = false;
   }, [showCanvasTextInput]);
 
   const handleCanvasTextSubmit = () => {
@@ -410,6 +416,8 @@ const EditorScreen: React.FC = () => {
     }
 
     submissionRef.current = true;
+    keepKeyboardAliveRef.current = false;
+    Keyboard.dismiss();
 
     if (editingTextId) {
       if (!canvasTextValue.trim()) {
@@ -443,6 +451,14 @@ const EditorScreen: React.FC = () => {
     }, 50);
   };
 
+  const handleCanvasBackgroundTap = () => {
+    if (showCanvasTextInput) {
+      handleCanvasTextSubmit();
+    } else {
+      Keyboard.dismiss();
+    }
+  };
+
   const handleTextElementEdit = (elementId: string, currentText: string) => {
     console.log('handleTextElementEdit called:', elementId, currentText);
 
@@ -467,6 +483,7 @@ const EditorScreen: React.FC = () => {
     setEditingTextId(elementId);
     setCanvasTextValue(currentText);
     setShowCanvasTextInput(true);
+    keepKeyboardAliveRef.current = true;
   };
 
   const handleAddSticker = (uri: string, width: number, height: number) => {
@@ -700,6 +717,7 @@ const EditorScreen: React.FC = () => {
                 canvasWidth={canvasSize.width}
                 canvasHeight={canvasSize.height}
                 onTextEdit={handleTextElementEdit}
+                onCanvasBackgroundTap={handleCanvasBackgroundTap}
               />
 
               {/* Hidden TextInput for keyboard input */}

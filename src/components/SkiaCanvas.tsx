@@ -97,6 +97,7 @@ interface SkiaCanvasProps {
   canvasWidth: number;
   canvasHeight: number;
   onTextEdit?: (elementId: string, currentText: string) => void;
+  onCanvasBackgroundTap?: () => void;
 }
 
 export const SkiaCanvas: React.FC<SkiaCanvasProps> = ({
@@ -104,6 +105,7 @@ export const SkiaCanvas: React.FC<SkiaCanvasProps> = ({
   canvasWidth,
   canvasHeight,
   onTextEdit,
+  onCanvasBackgroundTap,
 }) => {
   const {
     canvasElements,
@@ -120,13 +122,23 @@ export const SkiaCanvas: React.FC<SkiaCanvasProps> = ({
   // Handle tap outside to deselect
   const tapGesture = Gesture.Tap().onEnd(() => {
     runOnJS(deselectElement)();
+    if (onCanvasBackgroundTap) {
+      runOnJS(onCanvasBackgroundTap)();
+    }
   });
 
   const handleElementSelect = useCallback(
     (elementId: string) => {
       selectElement(elementId);
+
+      if (onCanvasBackgroundTap) {
+        const element = canvasElements.find(el => el.id === elementId);
+        if (!element || element.type !== 'text') {
+          onCanvasBackgroundTap();
+        }
+      }
     },
-    [selectElement],
+    [selectElement, onCanvasBackgroundTap, canvasElements],
   );
 
   const handleElementUpdate = useCallback(
