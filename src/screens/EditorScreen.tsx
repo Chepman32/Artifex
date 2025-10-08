@@ -174,6 +174,7 @@ const EditorScreen: React.FC = () => {
     saveProject,
     addElement,
     updateElement,
+    deleteElement,
   } = useEditorStore();
 
   const [activeToolbar, setActiveToolbar] = useState<
@@ -236,6 +237,12 @@ const EditorScreen: React.FC = () => {
 
   const handleExport = () => {
     setExportModalVisible(true);
+  };
+
+  const handleDeleteElement = () => {
+    if (selectedElementId) {
+      deleteElement(selectedElementId);
+    }
   };
 
   const handleToolSelect = (tool: typeof activeToolbar) => {
@@ -519,6 +526,16 @@ const EditorScreen: React.FC = () => {
           >
             <Text style={styles.historyIcon}>↷</Text>
           </TouchableOpacity>
+
+          {/* Delete button - only visible when element is selected */}
+          {selectedElementId && (
+            <TouchableOpacity
+              style={styles.deleteButton}
+              onPress={handleDeleteElement}
+            >
+              <Text style={styles.deleteIcon}>🗑️</Text>
+            </TouchableOpacity>
+          )}
         </View>
 
         <TouchableOpacity style={styles.exportButton} onPress={handleExport}>
@@ -704,6 +721,17 @@ const styles = StyleSheet.create({
   },
   historyButtonDisabled: {
     opacity: 0.3,
+  },
+  deleteButton: {
+    width: 44,
+    height: 44,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginLeft: Spacing.xs,
+  },
+  deleteIcon: {
+    fontSize: 20,
+    color: '#FF4444',
   },
   historyIcon: {
     fontSize: 20,
