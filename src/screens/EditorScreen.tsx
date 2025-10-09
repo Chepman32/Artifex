@@ -980,7 +980,14 @@ const EditorScreen: React.FC = () => {
       {/* Watermark Tool Modal */}
       <WatermarkToolModal
         visible={watermarkModalVisible}
-        onClose={() => setWatermarkModalVisible(false)}
+        onClose={() => {
+          setWatermarkModalVisible(false);
+          setActiveToolbar(null);
+          activeToolIndex.value = withSpring(-1, {
+            damping: 15.0,
+            stiffness: 150.0,
+          });
+        }}
         onApplyPreset={handleApplyWatermarkPreset}
       />
 
