@@ -205,10 +205,5 @@ export const WATERMARK_PRESETS: WatermarkPreset[] = [
 ];
 
 export const PRESET_CATEGORIES = [
-  { id: 'all', name: 'All', icon: '🎨' },
-  { id: 'coverage', name: 'Coverage', icon: '📐' },
   { id: 'pattern', name: 'Pattern', icon: '🔲' },
-  { id: 'density', name: 'Density', icon: '⚡' },
-  { id: 'size', name: 'Size', icon: '📏' },
-  { id: 'style', name: 'Style', icon: '✨' },
 ];

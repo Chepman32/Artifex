@@ -16,10 +16,7 @@ import { BottomSheet } from './BottomSheet';
 import { Colors } from '../../constants/colors';
 import { Typography } from '../../constants/typography';
 import { Spacing } from '../../constants/spacing';
-import {
-  WATERMARK_PRESETS,
-  PRESET_CATEGORIES,
-} from '../../constants/watermarkPresets';
+import { WATERMARK_PRESETS } from '../../constants/watermarkPresets';
 import { WatermarkPreset } from '../../types/watermark';
 
 const { width: screenWidth } = Dimensions.get('window');
@@ -42,7 +39,6 @@ export const WatermarkToolModal: React.FC<WatermarkToolModalProps> = ({
   onApplyPreset,
 }) => {
   const insets = useSafeAreaInsets();
-  const [selectedCategory, setSelectedCategory] = useState('all');
   const [watermarkText, setWatermarkText] = useState('© Your Brand');
   const [selectedPresetId, setSelectedPresetId] = useState<string | null>(null);
   const [showCustomization, setShowCustomization] = useState(false);
@@ -55,8 +51,7 @@ export const WatermarkToolModal: React.FC<WatermarkToolModalProps> = ({
   const [globalRotation, setGlobalRotation] = useState(0);
 
   const filteredPresets = WATERMARK_PRESETS.filter(preset => {
-    if (selectedCategory === 'all') return true;
-    return preset.category === selectedCategory;
+    return preset.category === 'pattern';
   });
 
   const handlePresetPress = (preset: WatermarkPreset) => {
@@ -79,32 +74,6 @@ export const WatermarkToolModal: React.FC<WatermarkToolModalProps> = ({
       setGlobalScale(1);
       setGlobalRotation(0);
     }
-  };
-
-  const renderCategory = (category: {
-    id: string;
-    name: string;
-    icon: string;
-  }) => {
-    const isSelected = selectedCategory === category.id;
-
-    return (
-      <TouchableOpacity
-        key={category.id}
-        style={[styles.categoryPill, isSelected && styles.categoryPillSelected]}
-        onPress={() => setSelectedCategory(category.id)}
-      >
-        <Text style={styles.categoryIcon}>{category.icon}</Text>
-        <Text
-          style={[
-            styles.categoryText,
-            isSelected && styles.categoryTextSelected,
-          ]}
-        >
-          {category.name}
-        </Text>
-      </TouchableOpacity>
-    );
   };
 
   const renderPreset = ({ item }: { item: WatermarkPreset }) => {
@@ -226,16 +195,6 @@ export const WatermarkToolModal: React.FC<WatermarkToolModalProps> = ({
                 placeholderTextColor={Colors.text.tertiary}
               />
             </View>
-
-            {/* Category Filter */}
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              style={styles.categoriesScroll}
-              contentContainerStyle={styles.categoriesContainer}
-            >
-              {PRESET_CATEGORIES.map(category => renderCategory(category))}
-            </ScrollView>
 
             {/* Preset Grid */}
             <View style={{ flex: 1 }}>
@@ -407,7 +366,9 @@ export const WatermarkToolModal: React.FC<WatermarkToolModalProps> = ({
                   onPress={handleApply}
                   disabled={!watermarkText.trim()}
                 >
-                  <Text style={styles.applyButtonText}>Confirm Adjustments</Text>
+                  <Text style={styles.applyButtonText}>
+                    Confirm Adjustments
+                  </Text>
                 </TouchableOpacity>
 
                 {/* Preview Info */}
@@ -461,43 +422,6 @@ const styles = StyleSheet.create({
     color: Colors.text.primary,
     borderWidth: 2,
     borderColor: 'transparent',
-  },
-  categoriesScroll: {
-    marginBottom: Spacing.m,
-  },
-  categoriesContainer: {
-    paddingRight: Spacing.m,
-  },
-  categoryPill: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: Spacing.s,
-    paddingVertical: Spacing.m,
-    backgroundColor: Colors.backgrounds.tertiary,
-    borderRadius: 24,
-    borderWidth: 2,
-    borderColor: 'transparent',
-    marginRight: Spacing.s,
-    minHeight: 88,
-    minWidth: 96,
-  },
-  categoryPillSelected: {
-    backgroundColor: Colors.backgrounds.primary,
-    borderColor: Colors.accent.primary,
-  },
-  categoryIcon: {
-    fontSize: 20,
-    marginBottom: Spacing.xs,
-  },
-  categoryText: {
-    ...Typography.body.small,
-    color: Colors.text.secondary,
-    fontWeight: '500',
-    textAlign: 'center',
-  },
-  categoryTextSelected: {
-    color: Colors.accent.primary,
-    fontWeight: '600',
   },
   grid: {
     paddingBottom: Spacing.l,
