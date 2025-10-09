@@ -248,6 +248,7 @@ export const SkiaCanvas: React.FC<SkiaCanvasProps> = ({
                   textEffect={element.textEffect}
                   textBackground={element.textBackground}
                   isSelected={element.id === selectedElementId}
+                  canvasBounds={{ width: canvasWidth, height: canvasHeight }}
                   onSelect={() => handleElementSelect(element.id)}
                   onUpdate={transform =>
                     handleElementUpdate(element.id, transform)
@@ -272,6 +273,7 @@ export const SkiaCanvas: React.FC<SkiaCanvasProps> = ({
                   width={element.width}
                   height={element.height}
                   isSelected={element.id === selectedElementId}
+                  canvasBounds={{ width: canvasWidth, height: canvasHeight }}
                   onSelect={() => handleElementSelect(element.id)}
                   onUpdate={transform =>
                     handleElementUpdate(element.id, transform)

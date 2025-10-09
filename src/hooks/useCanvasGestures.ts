@@ -15,6 +15,9 @@ interface UseCanvasGesturesProps {
   initialY?: number;
   initialScale?: number;
   initialRotation?: number;
+  elementWidth?: number;
+  elementHeight?: number;
+  canvasBounds?: { width: number; height: number };
   onUpdate?: (transform: {
     x: number;
     y: number;
@@ -30,6 +33,9 @@ export const useCanvasGestures = ({
   initialY = 0,
   initialScale = 1,
   initialRotation = 0,
+  elementWidth = 100,
+  elementHeight = 100,
+  canvasBounds,
   onUpdate,
   onSelect,
   onEdit,
@@ -67,6 +73,40 @@ export const useCanvasGestures = ({
     haptics.snap();
   };
 
+  // Clamp position to keep element within canvas bounds
+  const clampPosition = (x: number, y: number, currentScale: number) => {
+    'worklet';
+    if (!canvasBounds) return { x, y };
+
+    // Calculate element dimensions with current scale
+    const scaledWidth = elementWidth * currentScale;
+    const scaledHeight = elementHeight * currentScale;
+
+    // Position represents top-left corner, so ensure entire element stays within bounds
+    // Account for the fact that scale transforms from center, so element expands in all directions
+    const halfScaledWidth = scaledWidth / 2;
+    const halfScaledHeight = scaledHeight / 2;
+    const halfOriginalWidth = elementWidth / 2;
+    const halfOriginalHeight = elementHeight / 2;
+
+    // When scaled, the element expands from its center
+    // So the effective top-left moves by (scaledSize - originalSize) / 2
+    const scaleOffset = currentScale - 1;
+    const leftOffset = halfOriginalWidth * scaleOffset;
+    const topOffset = halfOriginalHeight * scaleOffset;
+
+    // Calculate bounds (keep entire element visible)
+    const minX = leftOffset;
+    const maxX = canvasBounds.width - scaledWidth + leftOffset;
+    const minY = topOffset;
+    const maxY = canvasBounds.height - scaledHeight + topOffset;
+
+    return {
+      x: Math.max(minX, Math.min(x, maxX)),
+      y: Math.max(minY, Math.min(y, maxY)),
+    };
+  };
+
   // Tap gesture for selection
   const tapGesture = Gesture.Tap().onEnd(() => {
     console.log('Tap gesture triggered, calling onSelect');
@@ -97,8 +137,11 @@ export const useCanvasGestures = ({
       }
     })
     .onUpdate(event => {
-      translateX.value = savedTranslateX.value + event.translationX;
-      translateY.value = savedTranslateY.value + event.translationY;
+      const newX = savedTranslateX.value + event.translationX;
+      const newY = savedTranslateY.value + event.translationY;
+      const clamped = clampPosition(newX, newY, scale.value);
+      translateX.value = clamped.x;
+      translateY.value = clamped.y;
     })
     .onEnd(() => {
       console.log('Pan gesture ended - updating position');

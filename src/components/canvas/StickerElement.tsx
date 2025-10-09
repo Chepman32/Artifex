@@ -17,6 +17,7 @@ interface StickerElementProps {
   width?: number;
   height?: number;
   isSelected: boolean;
+  canvasBounds?: { width: number; height: number };
   onSelect: () => void;
   onUpdate: (transform: {
     x: number;
@@ -35,6 +36,7 @@ export const StickerElement: React.FC<StickerElementProps> = ({
   width = 100,
   height = 100,
   isSelected,
+  canvasBounds,
   onSelect,
   onUpdate,
 }) => {
@@ -43,6 +45,9 @@ export const StickerElement: React.FC<StickerElementProps> = ({
     initialY: y,
     initialScale: scale,
     initialRotation: rotation,
+    elementWidth: width,
+    elementHeight: height,
+    canvasBounds,
     onUpdate,
     onSelect,
   });

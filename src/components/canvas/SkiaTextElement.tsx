@@ -26,6 +26,7 @@ interface SkiaTextElementProps {
   textEffect?: 'none' | 'neon' | 'glow' | 'shadow' | 'outline';
   textBackground?: string | null;
   isSelected: boolean;
+  canvasBounds?: { width: number; height: number };
   onSelect: () => void;
   onUpdate: (transform: {
     x: number;
@@ -48,15 +49,23 @@ export const SkiaTextElement: React.FC<SkiaTextElementProps> = ({
   textEffect = 'none',
   textBackground = null,
   isSelected,
+  canvasBounds,
   onSelect,
   onUpdate,
   onEdit,
 }) => {
+  // Estimate text dimensions (rough approximation)
+  const estimatedWidth = text.length * fontSize * 0.6;
+  const estimatedHeight = fontSize * 1.2;
+
   const { gesture, animatedStyle } = useCanvasGestures({
     initialX: x,
     initialY: y,
     initialScale: scale,
     initialRotation: rotation,
+    elementWidth: estimatedWidth,
+    elementHeight: estimatedHeight,
+    canvasBounds,
     onUpdate,
     onSelect,
     onEdit,
