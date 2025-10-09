@@ -100,11 +100,13 @@ export interface Album {
 }
 
 export interface EditorHistory {
-  action: 'add' | 'update' | 'delete' | 'batchAdd';
+  action: 'add' | 'update' | 'delete' | 'batchAdd' | 'filter';
   element?: SerializedElement;
   elements?: SerializedElement[]; // For batch operations
   elementId?: string;
   oldState?: SerializedElement;
   newState?: SerializedElement;
+  oldFilter?: ImageFilter | null;
+  newFilter?: ImageFilter | null;
   timestamp: number;
 }

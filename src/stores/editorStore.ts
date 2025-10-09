@@ -103,6 +103,9 @@ const applyReverseAction = (action: EditorHistory, set: any, get: any) => {
         }
       }
       break;
+    case 'filter':
+      set({ appliedFilter: action.oldFilter ?? null });
+      break;
   }
 };
 
@@ -153,6 +156,9 @@ const applyAction = (action: EditorHistory, set: any, get: any) => {
           set({ canvasElements: newElements });
         }
       }
+      break;
+    case 'filter':
+      set({ appliedFilter: action.newFilter ?? null });
       break;
   }
 };
@@ -362,11 +368,41 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   },
 
   applyFilter: (filter: ImageFilter) => {
-    set({ appliedFilter: filter });
+    const { appliedFilter, history, historyIndex } = get();
+
+    // Add to history
+    const newHistory = history.slice(0, historyIndex + 1);
+    newHistory.push({
+      action: 'filter',
+      oldFilter: appliedFilter,
+      newFilter: filter,
+      timestamp: Date.now(),
+    });
+
+    set({
+      appliedFilter: filter,
+      history: newHistory,
+      historyIndex: newHistory.length - 1,
+    });
   },
 
   removeFilter: () => {
-    set({ appliedFilter: null });
+    const { appliedFilter, history, historyIndex } = get();
+
+    // Add to history
+    const newHistory = history.slice(0, historyIndex + 1);
+    newHistory.push({
+      action: 'filter',
+      oldFilter: appliedFilter,
+      newFilter: null,
+      timestamp: Date.now(),
+    });
+
+    set({
+      appliedFilter: null,
+      history: newHistory,
+      historyIndex: newHistory.length - 1,
+    });
   },
 
   reset: () =>
