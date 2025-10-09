@@ -966,7 +966,14 @@ const EditorScreen: React.FC = () => {
       {/* Sticker Picker Modal */}
       <StickerPickerModal
         visible={stickerModalVisible}
-        onClose={() => setStickerModalVisible(false)}
+        onClose={() => {
+          setStickerModalVisible(false);
+          setActiveToolbar(null);
+          activeToolIndex.value = withSpring(-1, {
+            damping: 15.0,
+            stiffness: 150.0,
+          });
+        }}
         onSelect={handleAddSticker}
       />
 
