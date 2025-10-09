@@ -8,6 +8,7 @@ import {
   TouchableOpacity,
   Modal,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -36,20 +37,26 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({
   height,
   snapPoints = [0.5, 0.9],
 }) => {
-  const translateY = useSharedValue(screenHeight);
-  const backdropOpacity = useSharedValue(0);
+  const insets = useSafeAreaInsets();
 
-  const sheetHeight = height || screenHeight * snapPoints[0];
+  const baseHeight = height || screenHeight * snapPoints[0];
+  const sheetHeight = baseHeight + insets.bottom;
+
+  const translateY = useSharedValue(sheetHeight);
+  const backdropOpacity = useSharedValue(0);
 
   useEffect(() => {
     if (visible) {
-      translateY.value = withSpring(screenHeight - sheetHeight, {
+      translateY.value = withSpring(0, {
         damping: 50,
         stiffness: 400,
       });
       backdropOpacity.value = withSpring(1);
     } else {
-      translateY.value = withSpring(screenHeight);
+      translateY.value = withSpring(sheetHeight, {
+        damping: 45,
+        stiffness: 320,
+      });
       backdropOpacity.value = withSpring(0);
     }
   }, [visible, sheetHeight]);
@@ -60,10 +67,7 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({
     },
     onActive: (event, ctx: any) => {
       const newY = ctx.startY + event.translationY;
-      // Prevent dragging above the sheet
-      if (newY >= screenHeight - sheetHeight) {
-        translateY.value = newY;
-      }
+      translateY.value = Math.max(0, Math.min(newY, sheetHeight));
     },
     onEnd: event => {
       // Close if dragged down beyond threshold or with velocity
@@ -71,14 +75,14 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({
         event.translationY > 100 ||
         (event.translationY > 0 && event.velocityY > 500)
       ) {
-        translateY.value = withSpring(screenHeight, {
+        translateY.value = withSpring(sheetHeight, {
           velocity: event.velocityY,
         });
         backdropOpacity.value = withSpring(0);
         runOnJS(onClose)();
       } else {
         // Snap back to position
-        translateY.value = withSpring(screenHeight - sheetHeight, {
+        translateY.value = withSpring(0, {
           damping: 50,
           stiffness: 400,
         });
@@ -124,7 +128,14 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({
             </View>
 
             {/* Content */}
-            <View style={styles.content}>{children}</View>
+            <View
+              style={[
+                styles.content,
+                { paddingBottom: Spacing.l + insets.bottom },
+              ]}
+            >
+              {children}
+            </View>
           </Animated.View>
         </PanGestureHandler>
       </View>

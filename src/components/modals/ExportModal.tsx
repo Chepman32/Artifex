@@ -8,6 +8,9 @@ import {
   StyleSheet,
   ActivityIndicator,
   Alert,
+  Linking,
+  Platform,
+  Image,
 } from 'react-native';
 import { BottomSheet } from './BottomSheet';
 import { Colors } from '../../constants/colors';
@@ -18,6 +21,9 @@ import { useEditorStore } from '../../stores/editorStore';
 import { exportCanvasToImage } from '../../utils/imageExporter';
 import { CameraRoll } from '@react-native-camera-roll/camera-roll';
 import { Share } from 'react-native';
+
+const instagramIcon = require('../../assets/icons/instagram.png');
+const xIcon = require('../../assets/icons/x-logo.png');
 
 interface ExportModalProps {
   visible: boolean;
@@ -35,13 +41,25 @@ export const ExportModal: React.FC<ExportModalProps> = ({
   const [isExporting, setIsExporting] = useState(false);
 
   const isProUser = useAppStore(state => state.isProUser);
-  const { canvasElements, sourceImagePath, sourceImageDimensions } =
-    useEditorStore();
+  const {
+    canvasElements,
+    sourceImagePath,
+    sourceImageDimensions,
+    appliedFilter,
+  } = useEditorStore();
 
-  const handleExport = async (action: 'save' | 'share') => {
+  const openCameraRoll = async () => {
+    const iosPhotosUrl = 'photos-redirect://';
+    const androidPhotosUrl = 'content://media/internal/images/media';
+
+    const targetUrl = Platform.OS === 'ios' ? iosPhotosUrl : androidPhotosUrl;
+    await Linking.openURL(targetUrl);
+  };
+
+  const exportImage = async (): Promise<{ filepath: string; mime: string }> => {
     if (!sourceImagePath || !sourceImageDimensions) {
       Alert.alert('Error', 'No image to export');
-      return;
+      throw new Error('Missing source image');
     }
 
     setIsExporting(true);
@@ -57,179 +75,187 @@ export const ExportModal: React.FC<ExportModalProps> = ({
           quality,
           addWatermark: !isProUser,
         },
+        appliedFilter,
       );
 
-      if (action === 'save') {
-        // Save to Photos
-        await CameraRoll.save(filepath, { type: 'photo' });
-        Alert.alert('Success', 'Image saved to Photos');
-      } else {
-        // Share
-        await Share.share({
-          url: `file://${filepath}`,
-          type: selectedFormat === 'png' ? 'image/png' : 'image/jpeg',
-        });
-      }
+      const mime = selectedFormat === 'png' ? 'image/png' : 'image/jpeg';
 
-      onClose();
+      return { filepath, mime };
     } catch (error) {
       console.error('Export error:', error);
       Alert.alert('Error', 'Failed to export image');
+      throw error;
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  const handleSaveToDevice = async () => {
+    let exportResult: { filepath: string; mime: string } | null = null;
+    try {
+      exportResult = await exportImage();
+    } catch {
+      return;
+    }
+
+    try {
+      setIsExporting(true);
+      await CameraRoll.save(exportResult.filepath, { type: 'photo' });
+
+      onClose();
+
+      Alert.alert(
+        'Saved to Photos',
+        'Your image has been saved to the gallery.',
+        [
+          {
+            text: 'OK',
+            style: 'cancel',
+          },
+          {
+            text: 'View in gallery',
+            onPress: () => {
+              openCameraRoll().catch(err =>
+                console.warn('Failed to open gallery:', err),
+              );
+            },
+          },
+        ],
+      );
+    } catch (error) {
+      console.error('Save error:', error);
+      Alert.alert('Error', 'Failed to save image to Photos');
+      // exportImage already displayed an alert, so nothing extra here
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  const handleShareToInstagram = async (): Promise<void> => {
+    let exportResult: { filepath: string; mime: string } | null = null;
+    try {
+      exportResult = await exportImage();
+    } catch {
+      return;
+    }
+
+    try {
+      setIsExporting(true);
+
+      const options = {
+        url: `file://${exportResult.filepath}`,
+        type: exportResult.mime,
+      };
+
+      const result = await Share.share(options, {
+        dialogTitle: 'Share on Instagram',
+        subject: 'Instagram',
+      });
+
+      if (result.action === Share.sharedAction) {
+        onClose();
+      }
+    } catch (error) {
+      console.error('Share error (Instagram):', error);
+      Alert.alert('Error', 'Could not share on Instagram.');
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  const handleShareToX = async (): Promise<void> => {
+    let exportResult: { filepath: string; mime: string } | null = null;
+    try {
+      exportResult = await exportImage();
+    } catch {
+      return;
+    }
+
+    try {
+      setIsExporting(true);
+
+      const options = {
+        url: `file://${exportResult.filepath}`,
+        type: exportResult.mime,
+      };
+
+      const result = await Share.share(options, {
+        dialogTitle: 'Share on X',
+        subject: 'X',
+      });
+
+      if (result.action === Share.sharedAction) {
+        onClose();
+      }
+    } catch (error) {
+      console.error('Share error (X):', error);
+      Alert.alert('Error', 'Could not share on X.');
     } finally {
       setIsExporting(false);
     }
   };
 
   return (
-    <BottomSheet visible={visible} onClose={onClose} height={400}>
+    <BottomSheet visible={visible} onClose={onClose} height={380}>
       <View style={styles.container}>
-        <Text style={styles.title}>Export Image</Text>
-
-        {/* Format selector */}
-        <View style={styles.section}>
-          <Text style={styles.sectionLabel}>Format</Text>
-          <View style={styles.formatButtons}>
-            <TouchableOpacity
-              style={[
-                styles.formatButton,
-                selectedFormat === 'png' && styles.formatButtonActive,
-              ]}
-              onPress={() => setSelectedFormat('png')}
-              disabled={isExporting}
-            >
-              <Text
-                style={[
-                  styles.formatButtonText,
-                  selectedFormat === 'png' && styles.formatButtonTextActive,
-                ]}
-              >
-                PNG
-              </Text>
-              <Text
-                style={[
-                  styles.formatDescription,
-                  selectedFormat === 'png' && styles.formatDescriptionActive,
-                ]}
-              >
-                Lossless
-              </Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[
-                styles.formatButton,
-                selectedFormat === 'jpg' && styles.formatButtonActive,
-              ]}
-              onPress={() => setSelectedFormat('jpg')}
-              disabled={isExporting}
-            >
-              <Text
-                style={[
-                  styles.formatButtonText,
-                  selectedFormat === 'jpg' && styles.formatButtonTextActive,
-                ]}
-              >
-                JPG
-              </Text>
-              <Text
-                style={[
-                  styles.formatDescription,
-                  selectedFormat === 'jpg' && styles.formatDescriptionActive,
-                ]}
-              >
-                Smaller file
-              </Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-
-        {/* Quality selector (only for JPG) */}
-        {selectedFormat === 'jpg' && (
-          <View style={styles.section}>
-            <Text style={styles.sectionLabel}>Quality</Text>
-            <View style={styles.qualityButtons}>
-              <TouchableOpacity
-                style={[
-                  styles.qualityButton,
-                  quality === 90 && styles.qualityButtonActive,
-                ]}
-                onPress={() => setQuality(90)}
-                disabled={isExporting}
-              >
-                <Text
-                  style={[
-                    styles.qualityButtonText,
-                    quality === 90 && styles.qualityButtonTextActive,
-                  ]}
-                >
-                  90%
-                </Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={[
-                  styles.qualityButton,
-                  quality === 100 && styles.qualityButtonActive,
-                ]}
-                onPress={() => setQuality(100)}
-                disabled={isExporting}
-              >
-                <Text
-                  style={[
-                    styles.qualityButtonText,
-                    quality === 100 && styles.qualityButtonTextActive,
-                  ]}
-                >
-                  100%
-                </Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        )}
-
-        {/* Watermark notice for free users */}
-        {!isProUser && (
-          <View style={styles.noticeBox}>
-            <Text style={styles.noticeText}>
-              Free tier exports include a small "Made with Artifex" watermark.
-            </Text>
-            <Text style={styles.noticeLink}>Upgrade to Pro to remove →</Text>
-          </View>
-        )}
-
-        {/* Action buttons */}
-        <View style={styles.actions}>
+        {/* Export actions */}
+        <View style={styles.actionList}>
           <TouchableOpacity
-            style={[styles.actionButton, styles.actionButtonSecondary]}
-            onPress={() => handleExport('share')}
+            style={styles.actionButton}
+            onPress={handleSaveToDevice}
             disabled={isExporting}
           >
             {isExporting ? (
               <ActivityIndicator size="small" color={Colors.text.primary} />
             ) : (
-              <Text style={styles.actionButtonText}>Share</Text>
+              <>
+                <View style={styles.iconContainer}>
+                  <Text style={styles.iconText}>💾</Text>
+                </View>
+                <Text style={styles.actionText}>Save on device</Text>
+              </>
             )}
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={[styles.actionButton, styles.actionButtonPrimary]}
-            onPress={() => handleExport('save')}
+            style={styles.actionButton}
+            onPress={handleShareToInstagram}
             disabled={isExporting}
           >
             {isExporting ? (
-              <ActivityIndicator
-                size="small"
-                color={Colors.backgrounds.primary}
-              />
+              <ActivityIndicator size="small" color={Colors.text.primary} />
             ) : (
-              <Text
-                style={[
-                  styles.actionButtonText,
-                  styles.actionButtonTextPrimary,
-                ]}
-              >
-                Save to Photos
-              </Text>
+              <>
+                <View style={styles.iconContainer}>
+                  <Image
+                    source={instagramIcon}
+                    style={styles.socialIcon}
+                    resizeMode="contain"
+                  />
+                </View>
+                <Text style={styles.actionText}>Share on Instagram</Text>
+              </>
+            )}
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.actionButton}
+            onPress={handleShareToX}
+            disabled={isExporting}
+          >
+            {isExporting ? (
+              <ActivityIndicator size="small" color={Colors.text.primary} />
+            ) : (
+              <>
+                <View style={styles.iconContainer}>
+                  <Image
+                    source={xIcon}
+                    style={styles.socialIcon}
+                    resizeMode="contain"
+                  />
+                </View>
+                <Text style={styles.actionText}>Share on X</Text>
+              </>
             )}
           </TouchableOpacity>
         </View>
@@ -242,117 +268,37 @@ const styles = StyleSheet.create({
   container: {
     padding: Spacing.xl,
   },
-  title: {
-    ...Typography.h2,
-    color: Colors.text.primary,
-    marginBottom: Spacing.xl,
-  },
-  section: {
-    marginBottom: Spacing.xl,
-  },
-  sectionLabel: {
-    ...Typography.caption,
-    color: Colors.text.secondary,
-    textTransform: 'uppercase',
-    letterSpacing: 1,
-    marginBottom: Spacing.sm,
-  },
-  formatButtons: {
-    flexDirection: 'row',
-    gap: Spacing.md,
-  },
-  formatButton: {
-    flex: 1,
-    backgroundColor: Colors.backgrounds.secondary,
-    borderRadius: 12,
-    borderWidth: 2,
-    borderColor: 'transparent',
-    padding: Spacing.lg,
-    alignItems: 'center',
-  },
-  formatButtonActive: {
-    borderColor: Colors.accent.gold,
-    backgroundColor: Colors.accent.gold + '10',
-  },
-  formatButtonText: {
-    ...Typography.h3,
-    color: Colors.text.secondary,
-    marginBottom: Spacing.xs,
-  },
-  formatButtonTextActive: {
-    color: Colors.accent.gold,
-  },
-  formatDescription: {
-    ...Typography.caption,
-    color: Colors.text.tertiary,
-  },
-  formatDescriptionActive: {
-    color: Colors.accent.gold + 'AA',
-  },
-  qualityButtons: {
-    flexDirection: 'row',
-    gap: Spacing.md,
-  },
-  qualityButton: {
-    flex: 1,
-    backgroundColor: Colors.backgrounds.secondary,
-    borderRadius: 12,
-    borderWidth: 2,
-    borderColor: 'transparent',
-    padding: Spacing.lg,
-    alignItems: 'center',
-  },
-  qualityButtonActive: {
-    borderColor: Colors.accent.gold,
-    backgroundColor: Colors.accent.gold + '10',
-  },
-  qualityButtonText: {
-    ...Typography.body,
-    color: Colors.text.secondary,
-  },
-  qualityButtonTextActive: {
-    color: Colors.accent.gold,
-  },
-  noticeBox: {
-    backgroundColor: Colors.accent.gold + '15',
-    borderRadius: 12,
-    padding: Spacing.lg,
-    marginBottom: Spacing.xl,
-  },
-  noticeText: {
-    ...Typography.body,
-    color: Colors.text.secondary,
-    marginBottom: Spacing.xs,
-  },
-  noticeLink: {
-    ...Typography.caption,
-    color: Colors.accent.gold,
-    fontWeight: '600',
-  },
-  actions: {
-    flexDirection: 'row',
-    gap: Spacing.md,
+  actionList: {
+    gap: Spacing.lg,
   },
   actionButton: {
-    flex: 1,
-    borderRadius: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.backgrounds.secondary,
+    borderRadius: 16,
     padding: Spacing.lg,
+    paddingVertical: Spacing.xl,
+    gap: Spacing.lg,
+  },
+  iconContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: Colors.backgrounds.primary,
     alignItems: 'center',
     justifyContent: 'center',
-    minHeight: 56,
   },
-  actionButtonSecondary: {
-    backgroundColor: Colors.backgrounds.secondary,
+  iconText: {
+    fontSize: 24,
   },
-  actionButtonPrimary: {
-    backgroundColor: Colors.accent.gold,
+  socialIcon: {
+    width: 28,
+    height: 28,
   },
-  actionButtonText: {
+  actionText: {
     ...Typography.body,
     color: Colors.text.primary,
     fontWeight: '600',
-  },
-  actionButtonTextPrimary: {
-    color: Colors.backgrounds.primary,
+    fontSize: 16,
   },
 });
