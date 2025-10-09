@@ -176,6 +176,8 @@ const SEAL_STAMPS = [
   },
 ];
 
+const selectAllIcon = require('../assets/icons/select all - light theme.png');
+
 const EditorScreen: React.FC = () => {
   const navigation = useNavigation();
   const route = useRoute();
@@ -184,6 +186,7 @@ const EditorScreen: React.FC = () => {
   const {
     canvasElements,
     selectedElementId,
+    selectedElementIds,
     sourceImagePath,
     sourceImageDimensions,
     appliedFilter, // Used in SkiaCanvas via store and filter toolbar
@@ -200,6 +203,7 @@ const EditorScreen: React.FC = () => {
     updateElementWithoutHistory,
     deleteElement,
     selectElement,
+    selectAllElements,
     applyFilter,
     removeFilter,
   } = useEditorStore();
@@ -207,6 +211,14 @@ const EditorScreen: React.FC = () => {
   const [activeToolbar, setActiveToolbar] = useState<
     'watermark' | 'text' | 'sticker' | 'stamps' | 'filter' | null
   >(null);
+  const hasSelection = selectedElementIds.length > 0;
+  const hasSingleSelection = selectedElementIds.length === 1;
+  const isAllSelected =
+    hasSelection && selectedElementIds.length === canvasElements.length;
+  const singleSelectedElementId = hasSingleSelection
+    ? selectedElementIds[0]
+    : null;
+  const sliderVisible = hasSingleSelection || isAllSelected;
 
   // Animated values for toolbar
   const activeToolIndex = useSharedValue(-1); // No tool selected by default
@@ -267,9 +279,27 @@ const EditorScreen: React.FC = () => {
   };
 
   const handleDeleteElement = () => {
-    if (selectedElementId) {
-      deleteElement(selectedElementId);
+    if (!hasSelection) {
+      return;
     }
+
+    const idsToDelete =
+      selectedElementIds.length > 0
+        ? [...selectedElementIds]
+        : selectedElementId
+        ? [selectedElementId]
+        : [];
+
+    idsToDelete.forEach(id => {
+      deleteElement(id);
+    });
+  };
+
+  const handleSelectAll = () => {
+    if (canvasElements.length === 0) {
+      return;
+    }
+    selectAllElements();
   };
 
   const handleToolSelect = (tool: typeof activeToolbar) => {
@@ -327,9 +357,9 @@ const EditorScreen: React.FC = () => {
   const textInputRef = useRef<TextInput>(null);
   const keepKeyboardAliveRef = useRef(false);
 
-  const selectedElement = canvasElements.find(
-    el => el.id === selectedElementId,
-  );
+  const selectedElement = singleSelectedElementId
+    ? canvasElements.find(el => el.id === singleSelectedElementId)
+    : undefined;
   const selectedTextElementId =
     selectedElement && selectedElement.type === 'text'
       ? selectedElement.id
@@ -614,53 +644,131 @@ const EditorScreen: React.FC = () => {
   };
 
   const sizeChangeStateRef = useRef<{
-    elementId: string;
-    initialScale: number;
+    elements: { id: string; initialScale: number }[];
+    referenceScale: number;
   } | null>(null);
 
   // Live preview during drag (no history)
   const handleSizeChange = (newScale: number) => {
-    if (selectedElementId) {
-      // Store initial state on first change
-      if (!sizeChangeStateRef.current) {
-        sizeChangeStateRef.current = {
-          elementId: selectedElementId,
-          initialScale: currentScale,
-        };
-      }
-      updateElementWithoutHistory(selectedElementId, { scale: newScale });
+    if (!sliderVisible) {
+      return;
     }
+
+    // Initialize tracking on first change
+    if (!sizeChangeStateRef.current) {
+      const activeElementIds =
+        hasSingleSelection && singleSelectedElementId
+          ? [singleSelectedElementId]
+          : isAllSelected
+          ? [...selectedElementIds]
+          : [];
+
+      const elements = activeElementIds
+        .map(id => {
+          const element = canvasElements.find(el => el.id === id);
+          if (!element) return null;
+          return {
+            id,
+            initialScale: element.scale ?? 1,
+          };
+        })
+        .filter(Boolean) as { id: string; initialScale: number }[];
+
+      if (elements.length === 0) {
+        return;
+      }
+
+      sizeChangeStateRef.current = {
+        elements,
+        referenceScale: elements[0].initialScale || 1,
+      };
+    }
+
+    const { elements, referenceScale } = sizeChangeStateRef.current!;
+
+    const computeScale = (initialScale: number) => {
+      if (elements.length === 1) {
+        return newScale;
+      }
+      if (referenceScale === 0) {
+        return newScale;
+      }
+      return initialScale * (newScale / referenceScale);
+    };
+
+    elements.forEach(({ id, initialScale }) => {
+      const nextScale = computeScale(initialScale);
+      updateElementWithoutHistory(id, { scale: nextScale });
+    });
   };
 
   // Save to history when drag ends
   const handleSizeChangeEnd = (newScale: number) => {
-    if (selectedElementId && sizeChangeStateRef.current) {
-      const { initialScale } = sizeChangeStateRef.current;
-      // Only create history entry if scale actually changed
-      if (initialScale !== newScale) {
-        // Manually create history entry with correct old state
-        const element = canvasElements.find(el => el.id === selectedElementId);
-        if (element) {
-          const { history, historyIndex } = useEditorStore.getState();
-          const newHistory = history.slice(0, historyIndex + 1);
-          newHistory.push({
-            action: 'update',
-            elementId: selectedElementId,
-            oldState: { ...element, scale: initialScale },
-            newState: { ...element, scale: newScale },
-            timestamp: Date.now(),
-          });
-          useEditorStore.setState({
-            history: newHistory,
-            historyIndex: newHistory.length - 1,
-          });
-        }
-      }
-      sizeChangeStateRef.current = null;
+    const state = sizeChangeStateRef.current;
+    if (!state) {
+      return;
     }
+
+    const { elements, referenceScale } = state;
+
+    const computeScale = (initialScale: number) => {
+      if (elements.length === 1) {
+        return newScale;
+      }
+      if (referenceScale === 0) {
+        return newScale;
+      }
+      return initialScale * (newScale / referenceScale);
+    };
+
+    const editorState = useEditorStore.getState();
+    const { history, historyIndex, canvasElements: latestElements } =
+      editorState;
+    const newHistory = history.slice(0, historyIndex + 1);
+    let historyAdded = false;
+
+    elements.forEach(({ id, initialScale }) => {
+      const element = latestElements.find(el => el.id === id);
+      if (!element) {
+        return;
+      }
+
+      const finalScale = computeScale(initialScale);
+      if (initialScale === finalScale) {
+        return;
+      }
+
+      newHistory.push({
+        action: 'update',
+        elementId: id,
+        oldState: { ...element, scale: initialScale },
+        newState: { ...element, scale: finalScale },
+        timestamp: Date.now(),
+      });
+      historyAdded = true;
+    });
+
+    if (historyAdded) {
+      useEditorStore.setState({
+        history: newHistory,
+        historyIndex: newHistory.length - 1,
+      });
+    }
+
+    sizeChangeStateRef.current = null;
   };
 
-  const currentScale = selectedElement?.scale || 1;
+  const representativeElement = hasSingleSelection
+    ? selectedElement
+    : isAllSelected
+    ? canvasElements[0]
+    : undefined;
+
+  const currentScale = representativeElement?.scale || 1;
+
+  useEffect(() => {
+    sizeChangeStateRef.current = null;
+  }, [sliderVisible, JSON.stringify(selectedElementIds)]);
 
   const calculateCanvasSize = () => {
     if (!sourceImageDimensions) return { width: screenWidth, height: 300 };
@@ -762,8 +870,23 @@ const EditorScreen: React.FC = () => {
             <Text style={styles.historyIcon}>↷</Text>
           </TouchableOpacity>
 
-          {/* Delete button - only visible when element is selected */}
-          {selectedElementId && (
+          <TouchableOpacity
+            style={[
+              styles.historyButton,
+              canvasElements.length === 0 && styles.historyButtonDisabled,
+            ]}
+            onPress={handleSelectAll}
+            disabled={canvasElements.length === 0}
+          >
+            <Image
+              source={selectAllIcon}
+              style={styles.actionIcon}
+              resizeMode="contain"
+            />
+          </TouchableOpacity>
+
+          {/* Delete button - only visible when at least one element is selected */}
+          {hasSelection && (
             <TouchableOpacity
               style={styles.deleteButton}
               onPress={handleDeleteElement}
@@ -827,9 +950,9 @@ const EditorScreen: React.FC = () => {
             </View>
           )}
 
-          {/* Size Slider - appears when element is selected */}
+          {/* Size Slider - appears when a single element or the entire canvas is selected */}
           <SizeSlider
-            visible={!!selectedElementId}
+            visible={sliderVisible}
             initialValue={currentScale}
             onValueChange={handleSizeChange}
             onChangeEnd={handleSizeChangeEnd}
@@ -1054,6 +1177,11 @@ const styles = StyleSheet.create({
   historyIcon: {
     fontSize: 20,
     color: Colors.text.primary,
+  },
+  actionIcon: {
+    width: 20,
+    height: 20,
+    tintColor: Colors.text.primary,
   },
   exportButton: {
     paddingHorizontal: Spacing.m,

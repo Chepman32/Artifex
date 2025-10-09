@@ -12,6 +12,7 @@ import { ProjectDatabase } from '../database/ProjectDatabase';
 interface EditorState {
   canvasElements: CanvasElement[];
   selectedElementId: string | null;
+  selectedElementIds: string[];
   history: EditorHistory[];
   historyIndex: number;
   currentProjectId: string | null;
@@ -30,6 +31,7 @@ interface EditorState {
   deleteElement: (id: string) => void;
   selectElement: (id: string | null) => void;
   deselectElement: () => void;
+  selectAllElements: () => void;
 
   // History management
   undo: () => void;
@@ -69,7 +71,11 @@ const applyReverseAction = (action: EditorHistory, set: any, get: any) => {
         const newElements = canvasElements.filter(
           (el: CanvasElement) => el.id !== action.element!.id,
         );
-        set({ canvasElements: newElements, selectedElementId: null });
+        set({
+          canvasElements: newElements,
+          selectedElementId: null,
+          selectedElementIds: [],
+        });
       }
       break;
     case 'batchAdd':
@@ -78,7 +84,11 @@ const applyReverseAction = (action: EditorHistory, set: any, get: any) => {
         const newElements = canvasElements.filter(
           (el: CanvasElement) => !elementIds.has(el.id),
         );
-        set({ canvasElements: newElements, selectedElementId: null });
+        set({
+          canvasElements: newElements,
+          selectedElementId: null,
+          selectedElementIds: [],
+        });
       }
       break;
     case 'delete':
@@ -122,6 +132,7 @@ const applyAction = (action: EditorHistory, set: any, get: any) => {
         set({
           canvasElements: newElements,
           selectedElementId: action.element.id,
+          selectedElementIds: [action.element.id],
         });
       }
       break;
@@ -131,9 +142,11 @@ const applyAction = (action: EditorHistory, set: any, get: any) => {
           ...canvasElements,
           ...(action.elements as CanvasElement[]),
         ];
+        const lastElement = action.elements[action.elements.length - 1];
         set({
           canvasElements: newElements,
-          selectedElementId: action.elements[action.elements.length - 1].id,
+          selectedElementId: lastElement.id,
+          selectedElementIds: [lastElement.id],
         });
       }
       break;
@@ -142,7 +155,11 @@ const applyAction = (action: EditorHistory, set: any, get: any) => {
         const newElements = canvasElements.filter(
           (el: CanvasElement) => el.id !== action.element!.id,
         );
-        set({ canvasElements: newElements, selectedElementId: null });
+        set({
+          canvasElements: newElements,
+          selectedElementId: null,
+          selectedElementIds: [],
+        });
       }
       break;
     case 'update':
@@ -166,6 +183,7 @@ const applyAction = (action: EditorHistory, set: any, get: any) => {
 export const useEditorStore = create<EditorState>((set, get) => ({
   canvasElements: [],
   selectedElementId: null,
+  selectedElementIds: [],
   history: [],
   historyIndex: -1,
   currentProjectId: null,
@@ -188,6 +206,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     set({
       canvasElements: newElements,
       selectedElementId: element.id,
+      selectedElementIds: [element.id],
       history: newHistory,
       historyIndex: newHistory.length - 1,
     });
@@ -210,6 +229,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     set({
       canvasElements: newElements,
       selectedElementId: elements[elements.length - 1].id,
+      selectedElementIds: [elements[elements.length - 1].id],
       history: newHistory,
       historyIndex: newHistory.length - 1,
     });
@@ -271,13 +291,37 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     set({
       canvasElements: newElements,
       selectedElementId: null,
+      selectedElementIds: [],
       history: newHistory,
       historyIndex: newHistory.length - 1,
     });
   },
 
-  selectElement: id => set({ selectedElementId: id }),
-  deselectElement: () => set({ selectedElementId: null }),
+  selectElement: id =>
+    set({
+      selectedElementId: id,
+      selectedElementIds: id ? [id] : [],
+    }),
+  deselectElement: () =>
+    set({
+      selectedElementId: null,
+      selectedElementIds: [],
+    }),
+  selectAllElements: () => {
+    const { canvasElements } = get();
+    if (canvasElements.length === 0) {
+      set({
+        selectedElementId: null,
+        selectedElementIds: [],
+      });
+      return;
+    }
+
+    set({
+      selectedElementId: null,
+      selectedElementIds: canvasElements.map(element => element.id),
+    });
+  },
 
   undo: () => {
     const { history, historyIndex } = get();
@@ -311,6 +355,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       set({
         canvasElements: project.elements as CanvasElement[],
         selectedElementId: null,
+        selectedElementIds: [],
         history: [],
         historyIndex: -1,
         currentProjectId: projectId,
@@ -362,6 +407,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       sourceImageDimensions: dimensions,
       canvasElements: [],
       selectedElementId: null,
+      selectedElementIds: [],
       history: [],
       historyIndex: -1,
     });
@@ -409,6 +455,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     set({
       canvasElements: [],
       selectedElementId: null,
+      selectedElementIds: [],
       history: [],
       historyIndex: -1,
       currentProjectId: null,

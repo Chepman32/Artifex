@@ -1,6 +1,6 @@
 // Main interactive canvas component using Skia for high-performance rendering
 
-import React, { useCallback } from 'react';
+import React, { useCallback, useMemo } from 'react';
 import { View, StyleSheet, Dimensions, Image } from 'react-native';
 import {
   Canvas,
@@ -109,12 +109,16 @@ export const SkiaCanvas: React.FC<SkiaCanvasProps> = ({
 }) => {
   const {
     canvasElements,
-    selectedElementId,
+    selectedElementIds,
     appliedFilter,
     selectElement,
     updateElement,
     deselectElement,
   } = useEditorStore();
+  const selectedIds = useMemo(
+    () => new Set(selectedElementIds),
+    [selectedElementIds],
+  );
 
   // Load source image for Skia rendering
   const sourceImage = useImage(sourceImageUri);
@@ -247,7 +251,7 @@ export const SkiaCanvas: React.FC<SkiaCanvasProps> = ({
                   color={element.color}
                   textEffect={element.textEffect}
                   textBackground={element.textBackground}
-                  isSelected={element.id === selectedElementId}
+                  isSelected={selectedIds.has(element.id)}
                   canvasBounds={{ width: canvasWidth, height: canvasHeight }}
                   onSelect={() => handleElementSelect(element.id)}
                   onUpdate={transform =>
@@ -272,7 +276,7 @@ export const SkiaCanvas: React.FC<SkiaCanvasProps> = ({
                   rotation={element.rotation}
                   width={element.width}
                   height={element.height}
-                  isSelected={element.id === selectedElementId}
+                  isSelected={selectedIds.has(element.id)}
                   canvasBounds={{ width: canvasWidth, height: canvasHeight }}
                   onSelect={() => handleElementSelect(element.id)}
                   onUpdate={transform =>
@@ -295,7 +299,7 @@ export const SkiaCanvas: React.FC<SkiaCanvasProps> = ({
                   rotation={element.rotation}
                   width={element.width}
                   height={element.height}
-                  isSelected={element.id === selectedElementId}
+                  isSelected={selectedIds.has(element.id)}
                   onSelect={() => handleElementSelect(element.id)}
                   onUpdate={transform =>
                     handleElementUpdate(element.id, transform)

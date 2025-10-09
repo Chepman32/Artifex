@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { StyleSheet, Image } from 'react-native';
-import Animated from 'react-native-reanimated';
+import Animated, { useAnimatedStyle } from 'react-native-reanimated';
 import { GestureDetector } from 'react-native-gesture-handler';
 import { useCanvasGestures } from '../../hooks/useCanvasGestures';
 import { Colors } from '../../constants/colors';
@@ -40,7 +40,7 @@ export const StickerElement: React.FC<StickerElementProps> = ({
   onSelect,
   onUpdate,
 }) => {
-  const { gesture, animatedStyle } = useCanvasGestures({
+  const { gesture, animatedStyle, scaleValue } = useCanvasGestures({
     initialX: x,
     initialY: y,
     initialScale: scale,
@@ -52,6 +52,14 @@ export const StickerElement: React.FC<StickerElementProps> = ({
     onSelect,
   });
 
+  const selectionBorderStyle = useAnimatedStyle(() => {
+    const currentScale = scaleValue.value || 1;
+    const normalizedScale = Math.max(currentScale, 0.001);
+    return {
+      borderWidth: 2 / normalizedScale,
+    };
+  });
+
   return (
     <GestureDetector gesture={gesture}>
       <Animated.View
@@ -60,7 +68,11 @@ export const StickerElement: React.FC<StickerElementProps> = ({
         <Image source={{ uri }} style={styles.image} resizeMode="contain" />
 
         {/* Selection indicators */}
-        {isSelected && <Animated.View style={styles.selectionBorder} />}
+        {isSelected && (
+          <Animated.View
+            style={[styles.selectionBorder, selectionBorderStyle]}
+          />
+        )}
       </Animated.View>
     </GestureDetector>
   );
@@ -78,7 +90,6 @@ const styles = StyleSheet.create({
   },
   selectionBorder: {
     ...StyleSheet.absoluteFillObject,
-    borderWidth: 2,
     borderColor: Colors.accent.primary,
     borderStyle: 'dashed',
     borderRadius: 4,

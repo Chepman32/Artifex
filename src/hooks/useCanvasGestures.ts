@@ -250,6 +250,7 @@ export const useCanvasGestures = ({
     setScale,
     setRotation,
     reset,
+    scaleValue: scale,
     // Current values (for reading)
     getTransform: () => ({
       x: translateX.value,
