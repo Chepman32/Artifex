@@ -504,10 +504,25 @@ const EditorScreen: React.FC = () => {
     keepKeyboardAliveRef.current = true;
   };
 
-  const handleAddSticker = (uri: string, width: number, height: number) => {
+  const handleAddSticker = (
+    source: string | any,
+    width: number,
+    height: number,
+  ) => {
     const canvasSize = calculateCanvasSize();
+
+    // Handle both URI strings and require() results
+    let stickerUri: string;
+    if (typeof source === 'string') {
+      stickerUri = source;
+    } else {
+      // Convert require object to URI string
+      const resolvedAsset = Image.resolveAssetSource(source);
+      stickerUri = resolvedAsset.uri;
+    }
+
     const element = createStickerElement(
-      uri,
+      stickerUri,
       canvasSize.width / 2 - width / 2,
       canvasSize.height / 2 - height / 2,
       width,

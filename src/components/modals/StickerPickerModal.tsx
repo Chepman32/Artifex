@@ -1,6 +1,6 @@
 // Sticker picker modal with free and pro assets
 
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -9,33 +9,38 @@ import {
   FlatList,
   Image,
   Dimensions,
+  ScrollView,
 } from 'react-native';
 import { BottomSheet } from './BottomSheet';
 import { Colors } from '../../constants/colors';
 import { Typography } from '../../constants/typography';
 import { Spacing } from '../../constants/spacing';
+import { STICKERS, STICKER_CATEGORIES } from '../../constants/assets';
 import { useAppStore } from '../../stores/appStore';
 import { useNavigation } from '@react-navigation/native';
 
-const { width: screenWidth } = Dimensions.get('window');
-const GRID_COLUMNS = 4;
+const { width: screenWidth, height: initialScreenHeight } =
+  Dimensions.get('window');
+const GRID_COLUMNS = 3;
+const GRID_GAP = Spacing.xs;
 const STICKER_SIZE =
-  (screenWidth - Spacing.m * 2 - Spacing.s * 3) / GRID_COLUMNS;
+  (screenWidth - Spacing.m * 2 - GRID_GAP * (GRID_COLUMNS - 1)) /
+  GRID_COLUMNS;
 
 interface Sticker {
   id: string;
   name: string;
   uri?: string;
+  file?: any;
   category: string;
   isPro: boolean;
   width?: number;
   height?: number;
 }
 
-import { STICKERS, STICKER_CATEGORIES } from '../../constants/assets';
-
 // Combine free and pro stickers
 const ALL_STICKERS = [...STICKERS.free, ...STICKERS.pro];
+type StickerCategory = (typeof STICKER_CATEGORIES)[number];
 
 interface StickerPickerModalProps {
   visible: boolean;
@@ -51,6 +56,11 @@ export const StickerPickerModal: React.FC<StickerPickerModalProps> = ({
   const navigation = useNavigation();
   const isProUser = useAppStore(state => state.isProUser);
   const [selectedCategory, setSelectedCategory] = useState('all');
+
+  const modalHeight = useMemo(() => {
+    // Let the sheet cover most of the screen while leaving breathing room at the top
+    return Math.min(initialScreenHeight * 0.9, initialScreenHeight - 80);
+  }, []);
 
   const filteredStickers = ALL_STICKERS.filter(sticker => {
     if (selectedCategory === 'all') {
@@ -69,20 +79,21 @@ export const StickerPickerModal: React.FC<StickerPickerModalProps> = ({
       return;
     }
 
-    // Select the sticker
-    onSelect(sticker.uri || '', sticker.width || 100, sticker.height || 100);
+    // Select the sticker - use file if available, otherwise uri
+    const stickerSource = sticker.file || sticker.uri || '';
+    onSelect(stickerSource, sticker.width || 100, sticker.height || 100);
     onClose();
   };
 
-  const renderCategory = (category: string) => {
-    const isSelected = selectedCategory === category;
-    const label = category.charAt(0).toUpperCase() + category.slice(1);
+  const renderCategory = (category: StickerCategory) => {
+    const isSelected = selectedCategory === category.id;
 
     return (
       <TouchableOpacity
-        key={category}
+        key={category.id}
         style={[styles.categoryPill, isSelected && styles.categoryPillSelected]}
-        onPress={() => setSelectedCategory(category)}
+        onPress={() => setSelectedCategory(category.id)}
+        activeOpacity={0.8}
       >
         <Text
           style={[
@@ -90,7 +101,7 @@ export const StickerPickerModal: React.FC<StickerPickerModalProps> = ({
             isSelected && styles.categoryTextSelected,
           ]}
         >
-          {label}
+          {category.label}
         </Text>
       </TouchableOpacity>
     );
@@ -107,7 +118,7 @@ export const StickerPickerModal: React.FC<StickerPickerModalProps> = ({
       >
         <View style={styles.stickerContainer}>
           <Image
-            source={{ uri: item.uri }}
+            source={item.file ? item.file : { uri: item.uri }}
             style={[styles.stickerImage, isLocked && styles.stickerImageLocked]}
             resizeMode="contain"
           />
@@ -125,14 +136,19 @@ export const StickerPickerModal: React.FC<StickerPickerModalProps> = ({
   };
 
   return (
-    <BottomSheet visible={visible} onClose={onClose} snapPoints={[0.7, 0.9]}>
+    <BottomSheet visible={visible} onClose={onClose} height={modalHeight}>
       <View style={styles.container}>
         <Text style={styles.title}>Stickers</Text>
 
         {/* Category Filter */}
-        <View style={styles.categoriesContainer}>
-          {STICKER_CATEGORIES.map(category => renderCategory(category.id))}
-        </View>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={styles.categoriesScroll}
+          contentContainerStyle={styles.categoriesContainer}
+        >
+          {STICKER_CATEGORIES.map(category => renderCategory(category))}
+        </ScrollView>
 
         {/* Sticker Grid */}
         <FlatList
@@ -181,28 +197,36 @@ const styles = StyleSheet.create({
     color: Colors.text.primary,
     marginBottom: Spacing.m,
   },
-  categoriesContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: Spacing.xs,
+  categoriesScroll: {
     marginBottom: Spacing.m,
   },
+  categoriesContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingRight: Spacing.l,
+  },
   categoryPill: {
-    paddingHorizontal: Spacing.m,
-    paddingVertical: Spacing.xs,
+    paddingHorizontal: Spacing.l,
+    paddingVertical: Spacing.s,
     backgroundColor: Colors.backgrounds.tertiary,
-    borderRadius: 16,
+    borderRadius: 999,
     borderWidth: 2,
     borderColor: 'transparent',
+    marginRight: Spacing.s,
+    marginVertical: Spacing.xs,
+    minHeight: 44,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   categoryPillSelected: {
     backgroundColor: Colors.backgrounds.primary,
     borderColor: Colors.accent.primary,
   },
   categoryText: {
-    ...Typography.body.small,
+    ...Typography.body.regular,
     color: Colors.text.secondary,
-    fontWeight: '500',
+    fontWeight: '600',
+    lineHeight: 22,
   },
   categoryTextSelected: {
     color: Colors.accent.primary,
@@ -214,7 +238,7 @@ const styles = StyleSheet.create({
   stickerItem: {
     width: STICKER_SIZE,
     height: STICKER_SIZE,
-    padding: Spacing.xs / 2,
+    padding: GRID_GAP / 2,
   },
   stickerContainer: {
     flex: 1,
