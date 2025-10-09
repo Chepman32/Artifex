@@ -100,8 +100,9 @@ export interface Album {
 }
 
 export interface EditorHistory {
-  action: 'add' | 'update' | 'delete';
+  action: 'add' | 'update' | 'delete' | 'batchAdd';
   element?: SerializedElement;
+  elements?: SerializedElement[]; // For batch operations
   elementId?: string;
   oldState?: SerializedElement;
   newState?: SerializedElement;

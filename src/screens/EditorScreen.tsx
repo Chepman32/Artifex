@@ -195,7 +195,9 @@ const EditorScreen: React.FC = () => {
     initializeProject,
     saveProject,
     addElement,
+    addElements,
     updateElement,
+    updateElementWithoutHistory,
     deleteElement,
     selectElement,
     applyFilter,
@@ -586,21 +588,60 @@ const EditorScreen: React.FC = () => {
       settings,
     );
 
-    // Convert to canvas elements and add them
+    // Convert to canvas elements and add them as a batch
     const watermarkElements =
       WatermarkManager.toCanvasElements(watermarkInstances);
-    watermarkElements.forEach(element => {
-      addElement(element);
-    });
+    addElements(watermarkElements);
 
     console.log(
       `Applied ${preset.name} preset with ${watermarkElements.length} watermarks`,
     );
   };
 
+  const sizeChangeStateRef = useRef<{
+    elementId: string;
+    initialScale: number;
+  } | null>(null);
+
+  // Live preview during drag (no history)
   const handleSizeChange = (newScale: number) => {
     if (selectedElementId) {
-      updateElement(selectedElementId, { scale: newScale });
+      // Store initial state on first change
+      if (!sizeChangeStateRef.current) {
+        sizeChangeStateRef.current = {
+          elementId: selectedElementId,
+          initialScale: currentScale,
+        };
+      }
+      updateElementWithoutHistory(selectedElementId, { scale: newScale });
+    }
+  };
+
+  // Save to history when drag ends
+  const handleSizeChangeEnd = (newScale: number) => {
+    if (selectedElementId && sizeChangeStateRef.current) {
+      const { initialScale } = sizeChangeStateRef.current;
+      // Only create history entry if scale actually changed
+      if (initialScale !== newScale) {
+        // Manually create history entry with correct old state
+        const element = canvasElements.find(el => el.id === selectedElementId);
+        if (element) {
+          const { history, historyIndex } = useEditorStore.getState();
+          const newHistory = history.slice(0, historyIndex + 1);
+          newHistory.push({
+            action: 'update',
+            elementId: selectedElementId,
+            oldState: { ...element, scale: initialScale },
+            newState: { ...element, scale: newScale },
+            timestamp: Date.now(),
+          });
+          useEditorStore.setState({
+            history: newHistory,
+            historyIndex: newHistory.length - 1,
+          });
+        }
+      }
+      sizeChangeStateRef.current = null;
     }
   };
 
@@ -776,6 +817,7 @@ const EditorScreen: React.FC = () => {
             visible={!!selectedElementId}
             initialValue={currentScale}
             onValueChange={handleSizeChange}
+            onChangeEnd={handleSizeChangeEnd}
             position={{
               x: -canvasSize.width / 2.3,
               y: -canvasSize.height / 7,

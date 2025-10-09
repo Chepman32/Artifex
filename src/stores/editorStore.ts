@@ -21,7 +21,12 @@ interface EditorState {
 
   // Element manipulation
   addElement: (element: CanvasElement) => void;
+  addElements: (elements: CanvasElement[]) => void;
   updateElement: (id: string, updates: Partial<CanvasElement>) => void;
+  updateElementWithoutHistory: (
+    id: string,
+    updates: Partial<CanvasElement>,
+  ) => void;
   deleteElement: (id: string) => void;
   selectElement: (id: string | null) => void;
   deselectElement: () => void;
@@ -67,6 +72,15 @@ const applyReverseAction = (action: EditorHistory, set: any, get: any) => {
         set({ canvasElements: newElements, selectedElementId: null });
       }
       break;
+    case 'batchAdd':
+      if (action.elements) {
+        const elementIds = new Set(action.elements.map(el => el.id));
+        const newElements = canvasElements.filter(
+          (el: CanvasElement) => !elementIds.has(el.id),
+        );
+        set({ canvasElements: newElements, selectedElementId: null });
+      }
+      break;
     case 'delete':
       if (action.element) {
         const newElements = [
@@ -105,6 +119,18 @@ const applyAction = (action: EditorHistory, set: any, get: any) => {
         set({
           canvasElements: newElements,
           selectedElementId: action.element.id,
+        });
+      }
+      break;
+    case 'batchAdd':
+      if (action.elements) {
+        const newElements = [
+          ...canvasElements,
+          ...(action.elements as CanvasElement[]),
+        ];
+        set({
+          canvasElements: newElements,
+          selectedElementId: action.elements[action.elements.length - 1].id,
         });
       }
       break;
@@ -161,6 +187,28 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     });
   },
 
+  addElements: elements => {
+    if (elements.length === 0) return;
+
+    const { canvasElements, history, historyIndex } = get();
+    const newElements = [...canvasElements, ...elements];
+
+    // Add all elements as a single batch history entry
+    const newHistory = history.slice(0, historyIndex + 1);
+    newHistory.push({
+      action: 'batchAdd',
+      elements: elements,
+      timestamp: Date.now(),
+    });
+
+    set({
+      canvasElements: newElements,
+      selectedElementId: elements[elements.length - 1].id,
+      history: newHistory,
+      historyIndex: newHistory.length - 1,
+    });
+  },
+
   updateElement: (id, updates) => {
     const { canvasElements, history, historyIndex } = get();
     const index = canvasElements.findIndex(el => el.id === id);
@@ -186,6 +234,17 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       history: newHistory,
       historyIndex: newHistory.length - 1,
     });
+  },
+
+  updateElementWithoutHistory: (id, updates) => {
+    const { canvasElements } = get();
+    const index = canvasElements.findIndex(el => el.id === id);
+    if (index === -1) return;
+
+    const newElements = [...canvasElements];
+    newElements[index] = { ...newElements[index], ...updates };
+
+    set({ canvasElements: newElements });
   },
 
   deleteElement: id => {

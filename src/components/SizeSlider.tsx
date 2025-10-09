@@ -16,6 +16,7 @@ interface SizeSliderProps {
   visible: boolean;
   initialValue: number; // 0.5 to 3.0
   onValueChange: (value: number) => void;
+  onChangeEnd?: (value: number) => void; // Called when gesture ends
   position: { x: number; y: number }; // Position relative to canvas
 }
 
@@ -29,6 +30,7 @@ export const SizeSlider: React.FC<SizeSliderProps> = ({
   visible,
   initialValue,
   onValueChange,
+  onChangeEnd,
   position,
 }) => {
   const translateY = useSharedValue(0);
@@ -71,10 +73,15 @@ export const SizeSlider: React.FC<SizeSliderProps> = ({
       const newScale = MIN_SCALE + normalizedPos * (MAX_SCALE - MIN_SCALE);
       scale.value = newScale;
 
+      // Call onValueChange for live preview
       runOnJS(onValueChange)(newScale);
     })
     .onEnd(() => {
       runOnJS(haptics.light)();
+      // Call onChangeEnd to save to history
+      if (onChangeEnd) {
+        runOnJS(onChangeEnd)(scale.value);
+      }
     });
 
   const containerStyle = useAnimatedStyle(() => ({
