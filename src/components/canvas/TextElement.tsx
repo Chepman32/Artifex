@@ -1,7 +1,7 @@
 // Interactive text element on canvas
 
 import React from 'react';
-import { StyleSheet } from 'react-native';
+import { StyleSheet, TextStyle } from 'react-native';
 import Animated from 'react-native-reanimated';
 import { GestureDetector } from 'react-native-gesture-handler';
 import { useCanvasGestures } from '../../hooks/useCanvasGestures';
@@ -59,11 +59,15 @@ export const TextElement: React.FC<TextElementProps> = ({
 
   // Render text with effects using multiple layers
   const renderTextWithEffect = () => {
-    const baseStyle = {
+    const baseStyle: TextStyle = {
       fontSize,
-      fontFamily,
       color,
     };
+
+    if (fontFamily && fontFamily !== 'System') {
+      baseStyle.fontFamily = fontFamily;
+      baseStyle.fontWeight = 'normal' as const;
+    }
 
     switch (textEffect) {
       case 'neon':

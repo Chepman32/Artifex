@@ -36,6 +36,8 @@ import {
   createTextElement,
   createStickerElement,
 } from '../utils/canvasElements';
+import { WatermarkManager } from '../utils/watermarkManager';
+import { WatermarkPreset } from '../types/watermark';
 import { Colors } from '../constants/colors';
 import { Typography } from '../constants/typography';
 import { Spacing } from '../constants/spacing';
@@ -47,6 +49,13 @@ interface EditorRouteParams {
   imageUri?: string;
   imageDimensions?: { width: number; height: number };
 }
+
+type TextStylingOverrides = {
+  fontFamily?: string;
+  color?: string;
+  textEffect?: 'none' | 'neon' | 'glow' | 'shadow' | 'outline';
+  textBackground?: string | null;
+};
 
 // Filters data
 const FILTERS = [
@@ -316,6 +325,14 @@ const EditorScreen: React.FC = () => {
   const textInputRef = useRef<TextInput>(null);
   const keepKeyboardAliveRef = useRef(false);
 
+  const selectedElement = canvasElements.find(
+    el => el.id === selectedElementId,
+  );
+  const selectedTextElementId =
+    selectedElement && selectedElement.type === 'text'
+      ? selectedElement.id
+      : null;
+
   // Text styling state
   const [textFont, setTextFont] = useState('System');
   const [textColor, setTextColor] = useState('#FFFFFF');
@@ -337,23 +354,37 @@ const EditorScreen: React.FC = () => {
   );
 
   // Update text styling in real-time
-  const updateLiveTextStyling = useCallback(() => {
-    if (editingTextId) {
-      updateElement(editingTextId, {
-        fontFamily: textFont,
-        color: textColor,
-        textEffect: textEffect,
-        textBackground: textBackground,
+  const updateLiveTextStyling = useCallback(
+    (overrides: TextStylingOverrides = {}) => {
+      const targetId = editingTextId ?? selectedTextElementId;
+      if (!targetId) {
+        return;
+      }
+
+      const nextBackground = Object.prototype.hasOwnProperty.call(
+        overrides,
+        'textBackground',
+      )
+        ? overrides.textBackground ?? null
+        : textBackground;
+
+      updateElement(targetId, {
+        fontFamily: overrides.fontFamily ?? textFont,
+        color: overrides.color ?? textColor,
+        textEffect: overrides.textEffect ?? textEffect,
+        textBackground: nextBackground,
       });
-    }
-  }, [
-    editingTextId,
-    textFont,
-    textColor,
-    textEffect,
-    textBackground,
-    updateElement,
-  ]);
+    },
+    [
+      editingTextId,
+      selectedTextElementId,
+      textFont,
+      textColor,
+      textEffect,
+      textBackground,
+      updateElement,
+    ],
+  );
 
   // Update text in real-time when value changes
   useEffect(() => {
@@ -361,21 +392,6 @@ const EditorScreen: React.FC = () => {
       updateLiveText(canvasTextValue);
     }
   }, [canvasTextValue, showCanvasTextInput, editingTextId, updateLiveText]);
-
-  // Update styling in real-time when any style changes
-  useEffect(() => {
-    if (showCanvasTextInput && editingTextId) {
-      updateLiveTextStyling();
-    }
-  }, [
-    textFont,
-    textColor,
-    textEffect,
-    textBackground,
-    showCanvasTextInput,
-    editingTextId,
-    updateLiveTextStyling,
-  ]);
 
   // Keep keyboard open when text input is active
   useEffect(() => {
@@ -549,31 +565,37 @@ const EditorScreen: React.FC = () => {
     });
   };
 
-  const handleAddWatermark = (uri: string, width: number, height: number) => {
+  const handleApplyWatermarkPreset = (
+    preset: WatermarkPreset,
+    text: string,
+    settings: { opacity: number; scale: number; rotation: number },
+  ) => {
     const canvasSize = calculateCanvasSize();
-    // Handle custom text watermarks
-    if (uri.startsWith('text:')) {
-      const text = uri.replace('text:', '');
-      const element = createTextElement(
-        text,
-        'System',
-        16,
-        '#FFFFFF',
-        canvasSize.width - 220,
-        canvasSize.height - 60,
-      );
+
+    // Generate watermark instances from preset
+    let watermarkInstances = WatermarkManager.applyPreset(
+      preset,
+      canvasSize,
+      text,
+      'text',
+    );
+
+    // Apply global settings
+    watermarkInstances = WatermarkManager.applyGlobalSettings(
+      watermarkInstances,
+      settings,
+    );
+
+    // Convert to canvas elements and add them
+    const watermarkElements =
+      WatermarkManager.toCanvasElements(watermarkInstances);
+    watermarkElements.forEach(element => {
       addElement(element);
-    } else {
-      // Handle template watermarks
-      const element = createStickerElement(
-        uri,
-        canvasSize.width - width - 20,
-        canvasSize.height - height - 20,
-        width,
-        height,
-      );
-      addElement(element);
-    }
+    });
+
+    console.log(
+      `Applied ${preset.name} preset with ${watermarkElements.length} watermarks`,
+    );
   };
 
   const handleSizeChange = (newScale: number) => {
@@ -582,10 +604,6 @@ const EditorScreen: React.FC = () => {
     }
   };
 
-  // Get selected element for slider
-  const selectedElement = canvasElements.find(
-    el => el.id === selectedElementId,
-  );
   const currentScale = selectedElement?.scale || 1;
 
   const calculateCanvasSize = () => {
@@ -771,35 +789,47 @@ const EditorScreen: React.FC = () => {
             onFontSelect={font => {
               console.log('Font selected:', font);
               setTextFont(font);
-              // Refocus text input after selection
-              setTimeout(() => {
-                console.log('Refocusing after font selection');
-                textInputRef.current?.focus();
-              }, 100);
+              updateLiveTextStyling({ fontFamily: font });
+              if (showCanvasTextInput) {
+                // Refocus text input after selection when actively editing
+                setTimeout(() => {
+                  console.log('Refocusing after font selection');
+                  textInputRef.current?.focus();
+                }, 100);
+              }
             }}
             onColorSelect={color => {
               console.log('Color selected:', color);
               setTextColor(color);
-              // Refocus text input after selection
-              setTimeout(() => {
-                textInputRef.current?.focus();
-              }, 50);
+              updateLiveTextStyling({ color });
+              if (showCanvasTextInput) {
+                // Refocus text input after selection when actively editing
+                setTimeout(() => {
+                  textInputRef.current?.focus();
+                }, 50);
+              }
             }}
             onEffectSelect={effect => {
               console.log('Effect selected:', effect);
               setTextEffect(effect as any);
-              // Refocus text input after selection
-              setTimeout(() => {
-                textInputRef.current?.focus();
-              }, 50);
+              updateLiveTextStyling({ textEffect: effect as any });
+              if (showCanvasTextInput) {
+                // Refocus text input after selection when actively editing
+                setTimeout(() => {
+                  textInputRef.current?.focus();
+                }, 50);
+              }
             }}
             onBackgroundSelect={bg => {
               console.log('Background selected:', bg);
               setTextBackground(bg);
-              // Refocus text input after selection
-              setTimeout(() => {
-                textInputRef.current?.focus();
-              }, 50);
+              updateLiveTextStyling({ textBackground: bg });
+              if (showCanvasTextInput) {
+                // Refocus text input after selection when actively editing
+                setTimeout(() => {
+                  textInputRef.current?.focus();
+                }, 50);
+              }
             }}
             selectedFont={textFont}
             selectedColor={textColor}
@@ -887,7 +917,7 @@ const EditorScreen: React.FC = () => {
       <WatermarkToolModal
         visible={watermarkModalVisible}
         onClose={() => setWatermarkModalVisible(false)}
-        onSelect={handleAddWatermark}
+        onApplyPreset={handleApplyWatermarkPreset}
       />
 
       {/* Export Modal */}

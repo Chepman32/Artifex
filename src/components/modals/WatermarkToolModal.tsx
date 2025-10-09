@@ -1,300 +1,434 @@
-// Watermark tool modal with template gallery and custom text watermark creator
+// Watermark tool modal with preset configurations
 
 import React, { useState } from 'react';
 import {
   View,
   Text,
-  TouchableOpacity,
   StyleSheet,
+  TouchableOpacity,
   FlatList,
   TextInput,
-  Image,
   Dimensions,
+  ScrollView,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BottomSheet } from './BottomSheet';
 import { Colors } from '../../constants/colors';
 import { Typography } from '../../constants/typography';
 import { Spacing } from '../../constants/spacing';
-import { useAppStore } from '../../stores/appStore';
-import { useNavigation } from '@react-navigation/native';
+import {
+  WATERMARK_PRESETS,
+  PRESET_CATEGORIES,
+} from '../../constants/watermarkPresets';
+import { WatermarkPreset } from '../../types/watermark';
 
 const { width: screenWidth } = Dimensions.get('window');
+const GRID_COLUMNS = 2;
+const PRESET_WIDTH = (screenWidth - Spacing.m * 2 - Spacing.m) / GRID_COLUMNS;
 
 interface WatermarkToolModalProps {
   visible: boolean;
   onClose: () => void;
-  onSelect: (watermarkUri: string, width: number, height: number) => void;
+  onApplyPreset: (
+    preset: WatermarkPreset,
+    text: string,
+    settings: { opacity: number; scale: number; rotation: number },
+  ) => void;
 }
-
-type WatermarkTemplate = {
-  id: string;
-  uri: string;
-  thumbnail: string;
-  width: number;
-  height: number;
-  isPro: boolean;
-  category: 'signature' | 'logo' | 'badge' | 'stamp';
-};
-
-type TabType = 'templates' | 'custom';
-
-// Mock watermark templates - replace with actual assets
-const WATERMARK_TEMPLATES: WatermarkTemplate[] = [
-  // Free templates
-  { id: 'w1', uri: 'watermark1', thumbnail: 'watermark1_thumb', width: 200, height: 60, isPro: false, category: 'signature' },
-  { id: 'w2', uri: 'watermark2', thumbnail: 'watermark2_thumb', width: 180, height: 180, isPro: false, category: 'logo' },
-  { id: 'w3', uri: 'watermark3', thumbnail: 'watermark3_thumb', width: 150, height: 50, isPro: false, category: 'signature' },
-  { id: 'w4', uri: 'watermark4', thumbnail: 'watermark4_thumb', width: 160, height: 160, isPro: false, category: 'badge' },
-  { id: 'w5', uri: 'watermark5', thumbnail: 'watermark5_thumb', width: 200, height: 70, isPro: false, category: 'signature' },
-  { id: 'w6', uri: 'watermark6', thumbnail: 'watermark6_thumb', width: 140, height: 140, isPro: false, category: 'stamp' },
-  { id: 'w7', uri: 'watermark7', thumbnail: 'watermark7_thumb', width: 190, height: 65, isPro: false, category: 'signature' },
-  { id: 'w8', uri: 'watermark8', thumbnail: 'watermark8_thumb', width: 170, height: 170, isPro: false, category: 'logo' },
-  { id: 'w9', uri: 'watermark9', thumbnail: 'watermark9_thumb', width: 180, height: 60, isPro: false, category: 'signature' },
-  { id: 'w10', uri: 'watermark10', thumbnail: 'watermark10_thumb', width: 150, height: 150, isPro: false, category: 'badge' },
-
-  // Pro templates
-  { id: 'w11', uri: 'watermark11', thumbnail: 'watermark11_thumb', width: 220, height: 70, isPro: true, category: 'signature' },
-  { id: 'w12', uri: 'watermark12', thumbnail: 'watermark12_thumb', width: 200, height: 200, isPro: true, category: 'logo' },
-  { id: 'w13', uri: 'watermark13', thumbnail: 'watermark13_thumb', width: 190, height: 65, isPro: true, category: 'signature' },
-  { id: 'w14', uri: 'watermark14', thumbnail: 'watermark14_thumb', width: 180, height: 180, isPro: true, category: 'badge' },
-  { id: 'w15', uri: 'watermark15', thumbnail: 'watermark15_thumb', width: 210, height: 75, isPro: true, category: 'signature' },
-  { id: 'w16', uri: 'watermark16', thumbnail: 'watermark16_thumb', width: 160, height: 160, isPro: true, category: 'stamp' },
-  { id: 'w17', uri: 'watermark17', thumbnail: 'watermark17_thumb', width: 200, height: 70, isPro: true, category: 'signature' },
-  { id: 'w18', uri: 'watermark18', thumbnail: 'watermark18_thumb', width: 190, height: 190, isPro: true, category: 'logo' },
-  { id: 'w19', uri: 'watermark19', thumbnail: 'watermark19_thumb', width: 185, height: 65, isPro: true, category: 'signature' },
-  { id: 'w20', uri: 'watermark20', thumbnail: 'watermark20_thumb', width: 170, height: 170, isPro: true, category: 'badge' },
-];
-
-const CATEGORIES: { id: string; label: string }[] = [
-  { id: 'all', label: 'All' },
-  { id: 'signature', label: 'Signature' },
-  { id: 'logo', label: 'Logo' },
-  { id: 'badge', label: 'Badge' },
-  { id: 'stamp', label: 'Stamp' },
-];
 
 export const WatermarkToolModal: React.FC<WatermarkToolModalProps> = ({
   visible,
   onClose,
-  onSelect,
+  onApplyPreset,
 }) => {
-  const [selectedTab, setSelectedTab] = useState<TabType>('templates');
+  const insets = useSafeAreaInsets();
   const [selectedCategory, setSelectedCategory] = useState('all');
-  const [customText, setCustomText] = useState('');
-  const [customOpacity, setCustomOpacity] = useState(0.5);
+  const [watermarkText, setWatermarkText] = useState('© Your Brand');
+  const [selectedPresetId, setSelectedPresetId] = useState<string | null>(null);
+  const [showCustomization, setShowCustomization] = useState(false);
 
-  const isProUser = useAppStore(state => state.isProUser);
-  const navigation = useNavigation();
+  const bottomSafePadding = Math.max(insets.bottom, Spacing.s);
 
-  const filteredTemplates = WATERMARK_TEMPLATES.filter(
-    template =>
-      selectedCategory === 'all' || template.category === selectedCategory,
-  );
+  // Global adjustment values
+  const [globalOpacity, setGlobalOpacity] = useState(1);
+  const [globalScale, setGlobalScale] = useState(1);
+  const [globalRotation, setGlobalRotation] = useState(0);
 
-  const handleTemplatePress = (template: WatermarkTemplate) => {
-    if (template.isPro && !isProUser) {
-      navigation.navigate('Paywall' as never);
-      return;
-    }
+  const filteredPresets = WATERMARK_PRESETS.filter(preset => {
+    if (selectedCategory === 'all') return true;
+    return preset.category === selectedCategory;
+  });
 
-    onSelect(template.uri, template.width, template.height);
-    onClose();
+  const handlePresetPress = (preset: WatermarkPreset) => {
+    setSelectedPresetId(preset.id);
+    setShowCustomization(true);
   };
 
-  const handleAddCustomWatermark = () => {
-    if (customText.trim()) {
-      // Custom text watermark will be created as a text element
-      // For now, pass the text as URI (will be handled differently in canvas)
-      onSelect(`text:${customText}`, 200, 40);
+  const handleApply = () => {
+    const preset = WATERMARK_PRESETS.find(p => p.id === selectedPresetId);
+    if (preset && watermarkText.trim()) {
+      onApplyPreset(preset, watermarkText, {
+        opacity: globalOpacity,
+        scale: globalScale,
+        rotation: globalRotation,
+      });
       onClose();
+      // Reset customization
+      setShowCustomization(false);
+      setGlobalOpacity(1);
+      setGlobalScale(1);
+      setGlobalRotation(0);
     }
   };
 
-  const renderTemplateItem = ({ item }: { item: WatermarkTemplate }) => {
-    const isLocked = item.isPro && !isProUser;
+  const renderCategory = (category: {
+    id: string;
+    name: string;
+    icon: string;
+  }) => {
+    const isSelected = selectedCategory === category.id;
 
     return (
       <TouchableOpacity
-        style={styles.templateItem}
-        onPress={() => handleTemplatePress(item)}
-        activeOpacity={0.7}>
-        <View style={styles.templateImageContainer}>
-          {/* Placeholder - replace with actual image */}
-          <View style={styles.templateImagePlaceholder}>
-            <Text style={styles.templatePlaceholderText}>WM</Text>
+        key={category.id}
+        style={[styles.categoryPill, isSelected && styles.categoryPillSelected]}
+        onPress={() => setSelectedCategory(category.id)}
+      >
+        <Text style={styles.categoryIcon}>{category.icon}</Text>
+        <Text
+          style={[
+            styles.categoryText,
+            isSelected && styles.categoryTextSelected,
+          ]}
+        >
+          {category.name}
+        </Text>
+      </TouchableOpacity>
+    );
+  };
+
+  const renderPreset = ({ item }: { item: WatermarkPreset }) => {
+    const isSelected = selectedPresetId === item.id;
+
+    return (
+      <TouchableOpacity
+        style={[styles.presetItem, isSelected && styles.presetItemSelected]}
+        onPress={() => handlePresetPress(item)}
+        activeOpacity={0.7}
+      >
+        <View style={styles.presetPreview}>
+          {/* Visual representation of pattern */}
+          <View style={styles.previewPattern}>
+            {item.pattern === 'grid' && (
+              <>
+                <View
+                  style={[styles.previewDot, { top: '20%', left: '20%' }]}
+                />
+                <View
+                  style={[styles.previewDot, { top: '20%', right: '20%' }]}
+                />
+                <View
+                  style={[styles.previewDot, { bottom: '20%', left: '20%' }]}
+                />
+                <View
+                  style={[styles.previewDot, { bottom: '20%', right: '20%' }]}
+                />
+                <View
+                  style={[styles.previewDot, { top: '50%', left: '50%' }]}
+                />
+              </>
+            )}
+            {item.pattern === 'corners' && (
+              <>
+                <View style={[styles.previewDot, { top: 8, left: 8 }]} />
+                <View style={[styles.previewDot, { top: 8, right: 8 }]} />
+                <View style={[styles.previewDot, { bottom: 8, left: 8 }]} />
+                <View style={[styles.previewDot, { bottom: 8, right: 8 }]} />
+              </>
+            )}
+            {item.pattern === 'diagonal' && (
+              <>
+                <View
+                  style={[styles.previewDot, { top: '10%', left: '10%' }]}
+                />
+                <View
+                  style={[styles.previewDot, { top: '35%', left: '35%' }]}
+                />
+                <View
+                  style={[styles.previewDot, { top: '60%', left: '60%' }]}
+                />
+                <View
+                  style={[styles.previewDot, { bottom: '10%', right: '10%' }]}
+                />
+              </>
+            )}
+            {item.pattern === 'scattered' && (
+              <>
+                <View
+                  style={[styles.previewDot, { top: '15%', left: '25%' }]}
+                />
+                <View
+                  style={[styles.previewDot, { top: '40%', right: '30%' }]}
+                />
+                <View
+                  style={[styles.previewDot, { bottom: '25%', left: '35%' }]}
+                />
+                <View
+                  style={[styles.previewDot, { top: '65%', right: '20%' }]}
+                />
+              </>
+            )}
+            {(item.pattern === 'center' || item.pattern === 'single') && (
+              <View style={[styles.previewDot, { top: '50%', left: '50%' }]} />
+            )}
+            {item.pattern === 'edges' && (
+              <>
+                <View style={[styles.previewDot, { top: 8, left: '30%' }]} />
+                <View style={[styles.previewDot, { top: 8, right: '30%' }]} />
+                <View style={[styles.previewDot, { bottom: 8, left: '30%' }]} />
+                <View
+                  style={[styles.previewDot, { bottom: 8, right: '30%' }]}
+                />
+                <View style={[styles.previewDot, { top: '30%', left: 8 }]} />
+                <View style={[styles.previewDot, { top: '30%', right: 8 }]} />
+              </>
+            )}
           </View>
-
-          {/* Locked overlay for Pro items */}
-          {isLocked && (
-            <View style={styles.lockedOverlay}>
-              <View style={styles.lockIcon}>
-                <Text style={styles.lockIconText}>🔒</Text>
-              </View>
-            </View>
-          )}
-
-          {/* Pro badge */}
-          {item.isPro && (
-            <View style={styles.proBadge}>
-              <Text style={styles.proBadgeText}>PRO</Text>
-            </View>
-          )}
+        </View>
+        <View style={styles.presetInfo}>
+          <Text style={styles.presetName}>{item.name}</Text>
+          <Text style={styles.presetDescription}>{item.description}</Text>
+          <View style={styles.presetMeta}>
+            <Text style={styles.presetMetaText}>{item.config.count} marks</Text>
+            <Text style={styles.presetMetaText}>•</Text>
+            <Text style={styles.presetMetaText}>{item.density}</Text>
+          </View>
         </View>
       </TouchableOpacity>
     );
   };
 
   return (
-    <BottomSheet visible={visible} onClose={onClose} height={600}>
+    <BottomSheet visible={visible} onClose={onClose} snapPoints={[0.85, 0.95]}>
       <View style={styles.container}>
-        <Text style={styles.title}>Add Watermark</Text>
+        <Text style={styles.title}>💧 Watermark Tool</Text>
 
-        {/* Tab selector */}
-        <View style={styles.tabs}>
-          <TouchableOpacity
-            style={[
-              styles.tab,
-              selectedTab === 'templates' && styles.tabActive,
-            ]}
-            onPress={() => setSelectedTab('templates')}>
-            <Text
-              style={[
-                styles.tabText,
-                selectedTab === 'templates' && styles.tabTextActive,
-              ]}>
-              Templates
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[
-              styles.tab,
-              selectedTab === 'custom' && styles.tabActive,
-            ]}
-            onPress={() => setSelectedTab('custom')}>
-            <Text
-              style={[
-                styles.tabText,
-                selectedTab === 'custom' && styles.tabTextActive,
-              ]}>
-              Custom Text
-            </Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* Templates tab */}
-        {selectedTab === 'templates' && (
+        {!showCustomization ? (
           <>
-            {/* Category pills */}
-            <View style={styles.categoryContainer}>
-              <FlatList
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                data={CATEGORIES}
-                keyExtractor={item => item.id}
-                renderItem={({ item }) => (
-                  <TouchableOpacity
-                    style={[
-                      styles.categoryPill,
-                      selectedCategory === item.id && styles.categoryPillActive,
-                    ]}
-                    onPress={() => setSelectedCategory(item.id)}>
-                    <Text
-                      style={[
-                        styles.categoryPillText,
-                        selectedCategory === item.id &&
-                          styles.categoryPillTextActive,
-                      ]}>
-                      {item.label}
-                    </Text>
-                  </TouchableOpacity>
-                )}
-                contentContainerStyle={styles.categoryList}
+            {/* Watermark Text Input */}
+            <View style={styles.textInputContainer}>
+              <Text style={styles.inputLabel}>Watermark Text</Text>
+              <TextInput
+                style={styles.textInput}
+                value={watermarkText}
+                onChangeText={setWatermarkText}
+                placeholder="Enter your watermark text"
+                placeholderTextColor={Colors.text.tertiary}
               />
             </View>
 
-            {/* Templates grid */}
-            <FlatList
-              data={filteredTemplates}
-              keyExtractor={item => item.id}
-              numColumns={3}
-              renderItem={renderTemplateItem}
-              contentContainerStyle={styles.templateGrid}
-              showsVerticalScrollIndicator={false}
-            />
+            {/* Category Filter */}
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              style={styles.categoriesScroll}
+              contentContainerStyle={styles.categoriesContainer}
+            >
+              {PRESET_CATEGORIES.map(category => renderCategory(category))}
+            </ScrollView>
 
-            {/* Pro CTA */}
-            {!isProUser && (
-              <TouchableOpacity
-                style={styles.proCtaButton}
-                onPress={() => navigation.navigate('Paywall' as never)}>
-                <Text style={styles.proCtaText}>
-                  Unlock 30+ Premium Watermarks
-                </Text>
-                <Text style={styles.proCtaArrow}>→</Text>
-              </TouchableOpacity>
+            {/* Preset Grid */}
+            <View style={{ flex: 1 }}>
+              <FlatList
+                data={filteredPresets}
+                renderItem={renderPreset}
+                keyExtractor={item => item.id}
+                numColumns={GRID_COLUMNS}
+                contentContainerStyle={styles.grid}
+                showsVerticalScrollIndicator={false}
+                columnWrapperStyle={styles.columnWrapper}
+              />
+            </View>
+
+            {/* Apply Button - shown when preset is selected */}
+            {selectedPresetId && (
+              <View
+                style={[
+                  styles.quickApplyContainer,
+                  { paddingBottom: bottomSafePadding },
+                ]}
+              >
+                <TouchableOpacity
+                  style={[
+                    styles.quickApplyButton,
+                    !watermarkText.trim() && styles.applyButtonDisabled,
+                  ]}
+                  onPress={handleApply}
+                  disabled={!watermarkText.trim()}
+                >
+                  <Text style={styles.applyButtonText}>Apply Watermark</Text>
+                </TouchableOpacity>
+              </View>
             )}
           </>
-        )}
-
-        {/* Custom text tab */}
-        {selectedTab === 'custom' && (
-          <View style={styles.customContainer}>
-            <Text style={styles.sectionLabel}>Watermark Text</Text>
-            <TextInput
-              style={styles.textInput}
-              placeholder="Enter your watermark text..."
-              placeholderTextColor={Colors.text.tertiary}
-              value={customText}
-              onChangeText={setCustomText}
-              multiline={false}
-            />
-
-            <Text style={styles.sectionLabel}>Opacity</Text>
-            <View style={styles.opacityButtons}>
-              {[0.3, 0.5, 0.7, 1.0].map(opacity => (
-                <TouchableOpacity
-                  key={opacity}
-                  style={[
-                    styles.opacityButton,
-                    customOpacity === opacity && styles.opacityButtonActive,
-                  ]}
-                  onPress={() => setCustomOpacity(opacity)}>
-                  <Text
-                    style={[
-                      styles.opacityButtonText,
-                      customOpacity === opacity && styles.opacityButtonTextActive,
-                    ]}>
-                    {Math.round(opacity * 100)}%
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-
-            {/* Preview */}
-            <View style={styles.previewContainer}>
-              <Text style={styles.previewLabel}>Preview</Text>
-              <View style={styles.previewBox}>
-                <Text
-                  style={[
-                    styles.previewText,
-                    { opacity: customOpacity },
-                  ]}>
-                  {customText || 'Your watermark'}
-                </Text>
-              </View>
-            </View>
-
+        ) : (
+          <>
+            {/* Customization Panel */}
             <TouchableOpacity
-              style={[
-                styles.addButton,
-                !customText.trim() && styles.addButtonDisabled,
-              ]}
-              onPress={handleAddCustomWatermark}
-              disabled={!customText.trim()}>
-              <Text style={styles.addButtonText}>Add Watermark</Text>
+              style={styles.backButton}
+              onPress={() => setShowCustomization(false)}
+            >
+              <Text style={styles.backButtonText}>‹ Back to Presets</Text>
             </TouchableOpacity>
-          </View>
+
+            <View style={styles.customizationContent}>
+              <ScrollView
+                style={styles.customizationPanel}
+                contentContainerStyle={[
+                  styles.customizationScrollContent,
+                  { paddingBottom: bottomSafePadding + Spacing.l },
+                ]}
+                showsVerticalScrollIndicator={false}
+              >
+                <Text style={styles.sectionTitle}>Global Adjustments</Text>
+
+                {/* Opacity Slider */}
+                <View style={styles.sliderContainer}>
+                  <Text style={styles.sliderLabel}>Opacity</Text>
+                  <View style={styles.sliderRow}>
+                    <Text style={styles.sliderValue}>
+                      {Math.round(globalOpacity * 100)}%
+                    </Text>
+                    <View style={styles.sliderTrack}>
+                      <View
+                        style={[
+                          styles.sliderFill,
+                          { width: `${globalOpacity * 100}%` },
+                        ]}
+                      />
+                    </View>
+                  </View>
+                  <View style={styles.sliderButtons}>
+                    <TouchableOpacity
+                      style={styles.sliderButton}
+                      onPress={() =>
+                        setGlobalOpacity(Math.max(0.1, globalOpacity - 0.1))
+                      }
+                    >
+                      <Text style={styles.sliderButtonText}>-</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={styles.sliderButton}
+                      onPress={() =>
+                        setGlobalOpacity(Math.min(1, globalOpacity + 0.1))
+                      }
+                    >
+                      <Text style={styles.sliderButtonText}>+</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+
+                {/* Scale Slider */}
+                <View style={styles.sliderContainer}>
+                  <Text style={styles.sliderLabel}>Size</Text>
+                  <View style={styles.sliderRow}>
+                    <Text style={styles.sliderValue}>
+                      {Math.round(globalScale * 100)}%
+                    </Text>
+                    <View style={styles.sliderTrack}>
+                      <View
+                        style={[
+                          styles.sliderFill,
+                          { width: `${(globalScale / 2) * 100}%` },
+                        ]}
+                      />
+                    </View>
+                  </View>
+                  <View style={styles.sliderButtons}>
+                    <TouchableOpacity
+                      style={styles.sliderButton}
+                      onPress={() =>
+                        setGlobalScale(Math.max(0.5, globalScale - 0.1))
+                      }
+                    >
+                      <Text style={styles.sliderButtonText}>-</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={styles.sliderButton}
+                      onPress={() =>
+                        setGlobalScale(Math.min(2, globalScale + 0.1))
+                      }
+                    >
+                      <Text style={styles.sliderButtonText}>+</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+
+                {/* Rotation Slider */}
+                <View style={styles.sliderContainer}>
+                  <Text style={styles.sliderLabel}>Rotation</Text>
+                  <View style={styles.sliderRow}>
+                    <Text style={styles.sliderValue}>{globalRotation}°</Text>
+                    <View style={styles.sliderTrack}>
+                      <View
+                        style={[
+                          styles.sliderFill,
+                          { width: `${((globalRotation + 45) / 90) * 100}%` },
+                        ]}
+                      />
+                    </View>
+                  </View>
+                  <View style={styles.sliderButtons}>
+                    <TouchableOpacity
+                      style={styles.sliderButton}
+                      onPress={() =>
+                        setGlobalRotation(Math.max(-45, globalRotation - 5))
+                      }
+                    >
+                      <Text style={styles.sliderButtonText}>-</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={styles.sliderButton}
+                      onPress={() =>
+                        setGlobalRotation(Math.min(45, globalRotation + 5))
+                      }
+                    >
+                      <Text style={styles.sliderButtonText}>+</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+
+                <TouchableOpacity
+                  style={[
+                    styles.applyButton,
+                    styles.confirmButton,
+                    !watermarkText.trim() && styles.applyButtonDisabled,
+                  ]}
+                  onPress={handleApply}
+                  disabled={!watermarkText.trim()}
+                >
+                  <Text style={styles.applyButtonText}>Confirm Adjustments</Text>
+                </TouchableOpacity>
+
+                {/* Preview Info */}
+                <View style={styles.previewInfo}>
+                  <Text style={styles.previewInfoTitle}>Selected Preset</Text>
+                  <Text style={styles.previewInfoText}>
+                    {
+                      WATERMARK_PRESETS.find(p => p.id === selectedPresetId)
+                        ?.name
+                    }
+                  </Text>
+                  <Text style={styles.previewInfoDescription}>
+                    {
+                      WATERMARK_PRESETS.find(p => p.id === selectedPresetId)
+                        ?.description
+                    }
+                  </Text>
+                </View>
+              </ScrollView>
+            </View>
+          </>
         )}
       </View>
     </BottomSheet>
@@ -303,223 +437,246 @@ export const WatermarkToolModal: React.FC<WatermarkToolModalProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    padding: Spacing.xl,
     flex: 1,
   },
   title: {
-    ...Typography.h2,
+    ...Typography.display.h3,
     color: Colors.text.primary,
-    marginBottom: Spacing.lg,
+    marginBottom: Spacing.m,
   },
-  tabs: {
-    flexDirection: 'row',
-    gap: Spacing.sm,
-    marginBottom: Spacing.lg,
+  textInputContainer: {
+    marginBottom: Spacing.m,
   },
-  tab: {
-    flex: 1,
-    paddingVertical: Spacing.md,
-    alignItems: 'center',
-    borderRadius: 8,
-    backgroundColor: Colors.backgrounds.secondary,
-  },
-  tabActive: {
-    backgroundColor: Colors.accent.gold + '15',
-  },
-  tabText: {
-    ...Typography.body,
+  inputLabel: {
+    ...Typography.body.small,
     color: Colors.text.secondary,
-  },
-  tabTextActive: {
-    color: Colors.accent.gold,
+    marginBottom: Spacing.xs,
     fontWeight: '600',
-  },
-  categoryContainer: {
-    marginBottom: Spacing.lg,
-  },
-  categoryList: {
-    gap: Spacing.sm,
-  },
-  categoryPill: {
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.sm,
-    borderRadius: 20,
-    backgroundColor: Colors.backgrounds.secondary,
-    borderWidth: 1,
-    borderColor: 'transparent',
-  },
-  categoryPillActive: {
-    backgroundColor: Colors.accent.gold + '15',
-    borderColor: Colors.accent.gold,
-  },
-  categoryPillText: {
-    ...Typography.body,
-    color: Colors.text.secondary,
-    fontSize: 14,
-  },
-  categoryPillTextActive: {
-    color: Colors.accent.gold,
-    fontWeight: '600',
-  },
-  templateGrid: {
-    paddingBottom: Spacing.xl,
-  },
-  templateItem: {
-    width: (screenWidth - Spacing.xl * 2 - Spacing.md * 2) / 3,
-    aspectRatio: 1,
-    marginRight: Spacing.md,
-    marginBottom: Spacing.md,
-  },
-  templateImageContainer: {
-    flex: 1,
-    borderRadius: 12,
-    overflow: 'hidden',
-    backgroundColor: Colors.backgrounds.secondary,
-    position: 'relative',
-  },
-  templateImagePlaceholder: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: Colors.backgrounds.secondary,
-  },
-  templatePlaceholderText: {
-    ...Typography.caption,
-    color: Colors.text.tertiary,
-    fontSize: 12,
-  },
-  lockedOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0, 0, 0, 0.6)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  lockIcon: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: Colors.backgrounds.primary,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  lockIconText: {
-    fontSize: 16,
-  },
-  proBadge: {
-    position: 'absolute',
-    top: 6,
-    right: 6,
-    backgroundColor: Colors.accent.gold,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 4,
-  },
-  proBadgeText: {
-    ...Typography.caption,
-    color: Colors.backgrounds.primary,
-    fontSize: 9,
-    fontWeight: '700',
-  },
-  proCtaButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: Colors.accent.gold + '15',
-    borderRadius: 12,
-    paddingVertical: Spacing.lg,
-    paddingHorizontal: Spacing.xl,
-    borderWidth: 1,
-    borderColor: Colors.accent.gold,
-  },
-  proCtaText: {
-    ...Typography.body,
-    color: Colors.accent.gold,
-    fontWeight: '600',
-    marginRight: Spacing.sm,
-  },
-  proCtaArrow: {
-    fontSize: 18,
-    color: Colors.accent.gold,
-  },
-  customContainer: {
-    flex: 1,
-  },
-  sectionLabel: {
-    ...Typography.caption,
-    color: Colors.text.secondary,
-    textTransform: 'uppercase',
-    letterSpacing: 1,
-    marginBottom: Spacing.sm,
-    marginTop: Spacing.md,
   },
   textInput: {
-    backgroundColor: Colors.backgrounds.secondary,
+    backgroundColor: Colors.backgrounds.tertiary,
     borderRadius: 12,
-    padding: Spacing.lg,
-    ...Typography.body,
+    padding: Spacing.m,
+    ...Typography.body.regular,
     color: Colors.text.primary,
-    minHeight: 56,
-  },
-  opacityButtons: {
-    flexDirection: 'row',
-    gap: Spacing.sm,
-  },
-  opacityButton: {
-    flex: 1,
-    backgroundColor: Colors.backgrounds.secondary,
-    borderRadius: 8,
-    paddingVertical: Spacing.md,
-    alignItems: 'center',
     borderWidth: 2,
     borderColor: 'transparent',
   },
-  opacityButtonActive: {
-    borderColor: Colors.accent.gold,
-    backgroundColor: Colors.accent.gold + '10',
+  categoriesScroll: {
+    marginBottom: Spacing.m,
   },
-  opacityButtonText: {
-    ...Typography.body,
-    color: Colors.text.secondary,
+  categoriesContainer: {
+    paddingRight: Spacing.m,
   },
-  opacityButtonTextActive: {
-    color: Colors.accent.gold,
-    fontWeight: '600',
-  },
-  previewContainer: {
-    marginTop: Spacing.xl,
-  },
-  previewLabel: {
-    ...Typography.caption,
-    color: Colors.text.secondary,
-    textTransform: 'uppercase',
-    letterSpacing: 1,
-    marginBottom: Spacing.sm,
-  },
-  previewBox: {
-    backgroundColor: Colors.backgrounds.secondary,
-    borderRadius: 12,
-    padding: Spacing.xl,
+  categoryPill: {
     alignItems: 'center',
     justifyContent: 'center',
-    minHeight: 100,
+    paddingHorizontal: Spacing.s,
+    paddingVertical: Spacing.m,
+    backgroundColor: Colors.backgrounds.tertiary,
+    borderRadius: 24,
+    borderWidth: 2,
+    borderColor: 'transparent',
+    marginRight: Spacing.s,
+    minHeight: 88,
+    minWidth: 96,
   },
-  previewText: {
-    ...Typography.h3,
-    color: Colors.text.primary,
+  categoryPillSelected: {
+    backgroundColor: Colors.backgrounds.primary,
+    borderColor: Colors.accent.primary,
   },
-  addButton: {
-    backgroundColor: Colors.accent.gold,
-    borderRadius: 12,
-    paddingVertical: Spacing.lg,
-    alignItems: 'center',
-    marginTop: Spacing.xl,
+  categoryIcon: {
+    fontSize: 20,
+    marginBottom: Spacing.xs,
   },
-  addButtonDisabled: {
-    opacity: 0.4,
+  categoryText: {
+    ...Typography.body.small,
+    color: Colors.text.secondary,
+    fontWeight: '500',
+    textAlign: 'center',
   },
-  addButtonText: {
-    ...Typography.body,
-    color: Colors.backgrounds.primary,
+  categoryTextSelected: {
+    color: Colors.accent.primary,
     fontWeight: '600',
+  },
+  grid: {
+    paddingBottom: Spacing.l,
+  },
+  columnWrapper: {
+    justifyContent: 'space-between',
+    marginBottom: Spacing.m,
+  },
+  presetItem: {
+    width: PRESET_WIDTH,
+    backgroundColor: Colors.backgrounds.tertiary,
+    borderRadius: 12,
+    overflow: 'hidden',
+    borderWidth: 2,
+    borderColor: 'transparent',
+  },
+  presetItemSelected: {
+    borderColor: Colors.accent.primary,
+  },
+  presetPreview: {
+    height: 100,
+    backgroundColor: Colors.backgrounds.secondary,
+    position: 'relative',
+  },
+  previewPattern: {
+    flex: 1,
+    position: 'relative',
+  },
+  previewDot: {
+    position: 'absolute',
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: Colors.accent.primary,
+    opacity: 0.6,
+  },
+  presetInfo: {
+    padding: Spacing.m,
+  },
+  presetName: {
+    ...Typography.body.regular,
+    color: Colors.text.primary,
+    fontWeight: '600',
+    marginBottom: Spacing.xs / 2,
+  },
+  presetDescription: {
+    ...Typography.body.small,
+    color: Colors.text.secondary,
+    marginBottom: Spacing.xs,
+  },
+  presetMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs / 2,
+  },
+  presetMetaText: {
+    ...Typography.body.small,
+    color: Colors.text.tertiary,
+    fontSize: 11,
+  },
+  backButton: {
+    marginBottom: Spacing.m,
+  },
+  backButtonText: {
+    ...Typography.body.regular,
+    color: Colors.accent.primary,
+    fontWeight: '600',
+  },
+  customizationPanel: {
+    flex: 1,
+  },
+  customizationContent: {
+    flex: 1,
+  },
+  customizationScrollContent: {
+    paddingBottom: Spacing.l,
+  },
+  sectionTitle: {
+    ...Typography.body.regular,
+    color: Colors.text.primary,
+    fontWeight: '600',
+    marginBottom: Spacing.m,
+  },
+  sliderContainer: {
+    marginBottom: Spacing.l,
+  },
+  sliderLabel: {
+    ...Typography.body.small,
+    color: Colors.text.secondary,
+    marginBottom: Spacing.xs,
+    fontWeight: '600',
+  },
+  sliderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: Spacing.xs,
+  },
+  sliderValue: {
+    ...Typography.body.small,
+    color: Colors.text.primary,
+    width: 50,
+    fontWeight: '600',
+  },
+  sliderTrack: {
+    flex: 1,
+    height: 6,
+    backgroundColor: Colors.backgrounds.tertiary,
+    borderRadius: 3,
+    overflow: 'hidden',
+  },
+  sliderFill: {
+    height: '100%',
+    backgroundColor: Colors.accent.primary,
+  },
+  sliderButtons: {
+    flexDirection: 'row',
+    gap: Spacing.xs,
+  },
+  sliderButton: {
+    width: 44,
+    height: 44,
+    backgroundColor: Colors.backgrounds.tertiary,
+    borderRadius: 22,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  sliderButtonText: {
+    ...Typography.body.regular,
+    color: Colors.text.primary,
+    fontSize: 20,
+    fontWeight: '600',
+  },
+  previewInfo: {
+    backgroundColor: Colors.backgrounds.tertiary,
+    borderRadius: 12,
+    padding: Spacing.m,
+    marginTop: Spacing.m,
+  },
+  previewInfoTitle: {
+    ...Typography.body.small,
+    color: Colors.text.secondary,
+    marginBottom: Spacing.xs / 2,
+    fontWeight: '600',
+  },
+  previewInfoText: {
+    ...Typography.body.regular,
+    color: Colors.text.primary,
+    fontWeight: '600',
+    marginBottom: Spacing.xs / 2,
+  },
+  previewInfoDescription: {
+    ...Typography.body.small,
+    color: Colors.text.secondary,
+  },
+  applyButton: {
+    backgroundColor: Colors.accent.primary,
+    borderRadius: 12,
+    padding: Spacing.m,
+    alignItems: 'center',
+    marginTop: Spacing.m,
+  },
+  confirmButton: {
+    marginTop: Spacing.l,
+  },
+  applyButtonDisabled: {
+    opacity: 0.5,
+  },
+  applyButtonText: {
+    ...Typography.ui.button,
+    color: Colors.backgrounds.primary,
+  },
+  quickApplyContainer: {
+    paddingTop: Spacing.m,
+  },
+  quickApplyButton: {
+    backgroundColor: Colors.accent.primary,
+    borderRadius: 12,
+    padding: Spacing.m,
+    alignItems: 'center',
+    marginBottom: Spacing.s,
   },
 });
