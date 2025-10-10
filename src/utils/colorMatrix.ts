@@ -271,10 +271,11 @@ const instagramMatrices: Partial<Record<ImageFilter['type'], Matrix>> = {
     channelOffsetMatrix(0.02, -0.01, -0.02),
   ),
   lofi: composeMatrices(
-    saturationMatrix(1.5),
-    contrastMatrix(1.4),
-    brightnessMatrix(-0.02),
-    rgbScaleMatrix(1.12, 1.07, 1.0),
+    saturationMatrix(1.7),
+    contrastMatrix(1.55),
+    brightnessMatrix(-0.05),
+    rgbScaleMatrix(1.18, 1.1, 1.02),
+    channelOffsetMatrix(0.02, -0.01, -0.03),
   ),
   mayfair: composeMatrices(
     saturationMatrix(1.2),

@@ -268,3 +268,4 @@ TODO: add feeling/resizing button ![alt text](image.png)
 TODO: watermark modal's slider gestures
 TODO: fix - watermarks are not visible on the exported image
 TODO: fix - the exported image with sepia filter is broken
+TODO: fix - Myafair and Rise filters have wrong effect

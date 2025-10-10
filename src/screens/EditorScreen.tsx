@@ -218,6 +218,8 @@ const EditorScreen: React.FC = () => {
 
   // Animated values for toolbar
   const activeToolIndex = useSharedValue(-1); // No tool selected by default
+  const filterToolbarHeight = useSharedValue(48); // Default toolbar height
+  const filterListOpacity = useSharedValue(0); // Filter list opacity
   const [showCanvasTextInput, setShowCanvasTextInput] = useState(false);
   const [stickerModalVisible, setStickerModalVisible] = useState(false);
   const [stampsModalVisible, setStampsModalVisible] = useState(false);
@@ -317,6 +319,27 @@ const EditorScreen: React.FC = () => {
       stiffness: 150.0,
     });
 
+    // Animate filter toolbar height and opacity
+    if (tool === 'filter') {
+      filterToolbarHeight.value = withSpring(120, {
+        damping: 20.0,
+        stiffness: 180.0,
+      });
+      filterListOpacity.value = withSpring(1, {
+        damping: 20.0,
+        stiffness: 180.0,
+      });
+    } else {
+      filterToolbarHeight.value = withSpring(48, {
+        damping: 20.0,
+        stiffness: 180.0,
+      });
+      filterListOpacity.value = withSpring(0, {
+        damping: 20.0,
+        stiffness: 180.0,
+      });
+    }
+
     // Add element to canvas based on tool type
     switch (tool) {
       case 'watermark':
@@ -342,6 +365,14 @@ const EditorScreen: React.FC = () => {
     activeToolIndex.value = withSpring(-1, {
       damping: 15.0,
       stiffness: 150.0,
+    });
+    filterToolbarHeight.value = withSpring(48, {
+      damping: 20.0,
+      stiffness: 180.0,
+    });
+    filterListOpacity.value = withSpring(0, {
+      damping: 20.0,
+      stiffness: 180.0,
     });
   }
 
@@ -606,9 +637,7 @@ const EditorScreen: React.FC = () => {
     console.log('Filter selected:', filterId);
 
     const isFilterAlreadyActive =
-      filterId === 'none'
-        ? !appliedFilter
-        : appliedFilter?.id === filterId;
+      filterId === 'none' ? !appliedFilter : appliedFilter?.id === filterId;
 
     if (isFilterAlreadyActive) {
       closeFilterToolbar();
@@ -877,6 +906,20 @@ const EditorScreen: React.FC = () => {
     };
   });
 
+  // Animated style for the toolbar
+  const toolbarAnimatedStyle = useAnimatedStyle(() => {
+    return {
+      height: filterToolbarHeight.value,
+    };
+  });
+
+  // Animated style for the filter list
+  const filterListAnimatedStyle = useAnimatedStyle(() => {
+    return {
+      opacity: filterListOpacity.value,
+    };
+  });
+
   const renderToolIcon = (
     tool: typeof activeToolbar,
     iconSource: any,
@@ -1082,29 +1125,26 @@ const EditorScreen: React.FC = () => {
         )}
 
         {/* Tool Toolbar - will be pushed above keyboard by KeyboardAvoidingView */}
-        <View
-          style={[
-            styles.toolbar,
-            activeToolbar === 'filter' && styles.filterToolbar,
-          ]}
-        >
+        <Animated.View style={[styles.toolbar, toolbarAnimatedStyle]}>
           {activeToolbar === 'filter' ? (
             // Filters horizontal scrolling toolbar
-            <FlatList
-              data={FILTERS}
-              horizontal
-              keyExtractor={item => item.id}
-              renderItem={renderFilterItem}
-              extraData={appliedFilter?.id}
-              showsHorizontalScrollIndicator={false}
-              showsVerticalScrollIndicator={false}
-              contentContainerStyle={styles.filtersScrollContainer}
-              style={styles.filtersScrollView}
-              overScrollMode="never"
-              directionalLockEnabled
-              alwaysBounceVertical={false}
-              bounces={false}
-            />
+            <Animated.View style={[{ flex: 1 }, filterListAnimatedStyle]}>
+              <FlatList
+                data={FILTERS}
+                horizontal
+                keyExtractor={item => item.id}
+                renderItem={renderFilterItem}
+                extraData={appliedFilter?.id}
+                showsHorizontalScrollIndicator={false}
+                showsVerticalScrollIndicator={false}
+                contentContainerStyle={styles.filtersScrollContainer}
+                style={styles.filtersScrollView}
+                overScrollMode="never"
+                directionalLockEnabled
+                alwaysBounceVertical={false}
+                bounces={false}
+              />
+            </Animated.View>
           ) : (
             // Regular tool icons
             <>
@@ -1140,7 +1180,7 @@ const EditorScreen: React.FC = () => {
               <Animated.View style={[styles.activeIndicator, indicatorStyle]} />
             </>
           )}
-        </View>
+        </Animated.View>
       </KeyboardAvoidingView>
 
       {/* Sticker Picker Modal */}
