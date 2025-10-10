@@ -202,7 +202,7 @@ const styles = StyleSheet.create({
   },
   categoryPill: {
     paddingHorizontal: Spacing.l,
-    paddingVertical: Spacing.s,
+    paddingVertical: Spacing.xs,
     backgroundColor: Colors.backgrounds.tertiary,
     borderRadius: 999,
     borderWidth: 2,
@@ -221,7 +221,11 @@ const styles = StyleSheet.create({
     ...Typography.body.regular,
     color: Colors.text.secondary,
     fontWeight: '600',
-    lineHeight: 22,
+    lineHeight: Typography.body.regular.lineHeight,
+    textAlign: 'center',
+    flexShrink: 0,
+    paddingTop: 2,
+    paddingBottom: 2,
   },
   categoryTextSelected: {
     color: Colors.accent.primary,

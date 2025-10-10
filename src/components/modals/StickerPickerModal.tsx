@@ -24,8 +24,7 @@ const { width: screenWidth, height: initialScreenHeight } =
 const GRID_COLUMNS = 3;
 const GRID_GAP = Spacing.xs;
 const STICKER_SIZE =
-  (screenWidth - Spacing.m * 2 - GRID_GAP * (GRID_COLUMNS - 1)) /
-  GRID_COLUMNS;
+  (screenWidth - Spacing.m * 2 - GRID_GAP * (GRID_COLUMNS - 1)) / GRID_COLUMNS;
 
 interface Sticker {
   id: string;
@@ -204,10 +203,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingRight: Spacing.l,
+    paddingLeft: Spacing.xs,
   },
   categoryPill: {
-    paddingHorizontal: Spacing.l,
-    paddingVertical: Spacing.s,
+    paddingHorizontal: Spacing.m,
+    paddingVertical: Spacing.xs,
     backgroundColor: Colors.backgrounds.tertiary,
     borderRadius: 999,
     borderWidth: 2,
@@ -217,6 +217,7 @@ const styles = StyleSheet.create({
     minHeight: 44,
     justifyContent: 'center',
     alignItems: 'center',
+    minWidth: 60,
   },
   categoryPillSelected: {
     backgroundColor: Colors.backgrounds.primary,
@@ -226,7 +227,11 @@ const styles = StyleSheet.create({
     ...Typography.body.regular,
     color: Colors.text.secondary,
     fontWeight: '600',
-    lineHeight: 22,
+    lineHeight: Typography.body.regular.lineHeight,
+    textAlign: 'center',
+    flexShrink: 0,
+    paddingTop: 2,
+    paddingBottom: 2,
   },
   categoryTextSelected: {
     color: Colors.accent.primary,
