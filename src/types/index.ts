@@ -103,12 +103,12 @@ export interface Album {
 }
 
 export interface EditorHistory {
-  action: 'add' | 'update' | 'delete' | 'batchAdd' | 'filter';
+  action: 'add' | 'update' | 'delete' | 'batchAdd' | 'filter' | 'reorder';
   element?: SerializedElement;
   elements?: SerializedElement[]; // For batch operations
   elementId?: string;
-  oldState?: SerializedElement;
-  newState?: SerializedElement;
+  oldState?: any; // Can be SerializedElement or { canvasElements: CanvasElement[] }
+  newState?: any; // Can be SerializedElement or { canvasElements: CanvasElement[] }
   oldFilter?: ImageFilter | null;
   newFilter?: ImageFilter | null;
   timestamp: number;

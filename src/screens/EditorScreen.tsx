@@ -29,13 +29,11 @@ import { SkiaCanvas } from '../components/SkiaCanvas';
 import { StickerPickerModal } from '../components/modals/StickerPickerModal';
 import { ExportModal } from '../components/modals/ExportModal';
 import { WatermarkToolModal } from '../components/modals/WatermarkToolModal';
+import { LayersModal } from '../components/modals/LayersModal';
 
 import { SizeSlider } from '../components/SizeSlider';
-import { TextToolbar } from '../components/TextToolbar';
-import {
-  createTextElement,
-  createStickerElement,
-} from '../utils/canvasElements';
+import { createStickerElement } from '../utils/canvasElements';
+import { rasterizeTextElementToWatermark } from '../utils/textRasterizer';
 import { WatermarkManager } from '../utils/watermarkManager';
 import { WatermarkPreset } from '../types/watermark';
 import { Colors } from '../constants/colors';
@@ -209,7 +207,7 @@ const EditorScreen: React.FC = () => {
   } = useEditorStore();
 
   const [activeToolbar, setActiveToolbar] = useState<
-    'watermark' | 'text' | 'sticker' | 'stamps' | 'filter' | null
+    'watermark' | 'sticker' | 'stamps' | 'filter' | 'layers' | null
   >(null);
   const hasSelection = selectedElementIds.length > 0;
   const hasSingleSelection = selectedElementIds.length === 1;
@@ -225,6 +223,7 @@ const EditorScreen: React.FC = () => {
   const [showCanvasTextInput, setShowCanvasTextInput] = useState(false);
   const [stickerModalVisible, setStickerModalVisible] = useState(false);
   const [watermarkModalVisible, setWatermarkModalVisible] = useState(false);
+  const [layersModalVisible, setLayersModalVisible] = useState(false);
 
   const [exportModalVisible, setExportModalVisible] = useState(false);
 
@@ -307,7 +306,7 @@ const EditorScreen: React.FC = () => {
 
     // Update animated indicator position
     const toolIndex = tool
-      ? ['watermark', 'text', 'sticker', 'stamps', 'filter'].indexOf(tool)
+      ? ['watermark', 'sticker', 'stamps', 'filter', 'layers'].indexOf(tool)
       : -1;
     activeToolIndex.value = withSpring(toolIndex, {
       damping: 15.0,
@@ -316,26 +315,6 @@ const EditorScreen: React.FC = () => {
 
     // Add element to canvas based on tool type
     switch (tool) {
-      case 'text':
-        // Create a live text element immediately
-        const canvasSize = calculateCanvasSize();
-        const newTextElement = createTextElement(
-          ' ', // Start with space to make element visible
-          textFont,
-          24,
-          textColor,
-          canvasSize.width / 2 - 100,
-          canvasSize.height / 2 - 12,
-          textEffect,
-          textBackground,
-        );
-        addElement(newTextElement);
-        selectElement(newTextElement.id); // Select the element so it's visible
-        setEditingTextId(newTextElement.id);
-        setCanvasTextValue('');
-        setShowCanvasTextInput(true);
-        keepKeyboardAliveRef.current = true;
-        break;
       case 'watermark':
         setWatermarkModalVisible(true);
         break;
@@ -347,6 +326,9 @@ const EditorScreen: React.FC = () => {
         break;
       case 'filter':
         // Filter tool shows horizontal scrolling toolbar - no modal needed
+        break;
+      case 'layers':
+        setLayersModalVisible(true);
         break;
     }
   };
@@ -612,7 +594,7 @@ const EditorScreen: React.FC = () => {
     });
   };
 
-  const handleApplyWatermarkPreset = (
+  const handleApplyWatermarkPreset = async (
     preset: WatermarkPreset,
     text: string,
     settings: { opacity: number; scale: number; rotation: number },
@@ -633,12 +615,23 @@ const EditorScreen: React.FC = () => {
       settings,
     );
 
-    // Convert to canvas elements and add them as a batch
+    // Convert to canvas elements
     const watermarkElements = WatermarkManager.toCanvasElements(
       watermarkInstances,
       canvasSize,
     );
-    addElements(watermarkElements);
+
+    // Rasterize text-based watermark elements to image-based 'watermark' elements
+    const rasterized = await Promise.all(
+      watermarkElements.map(async el => {
+        if (el.type === 'text') {
+          return rasterizeTextElementToWatermark(el);
+        }
+        return el;
+      }),
+    );
+
+    addElements(rasterized);
 
     console.log(
       `Applied ${preset.name} preset with ${watermarkElements.length} watermarks`,
@@ -724,8 +717,11 @@ const EditorScreen: React.FC = () => {
     };
 
     const editorState = useEditorStore.getState();
-    const { history, historyIndex, canvasElements: latestElements } =
-      editorState;
+    const {
+      history,
+      historyIndex,
+      canvasElements: latestElements,
+    } = editorState;
     const newHistory = history.slice(0, historyIndex + 1);
     let historyAdded = false;
 
@@ -804,12 +800,20 @@ const EditorScreen: React.FC = () => {
 
   // Animated style for the active indicator
   const indicatorStyle = useAnimatedStyle(() => {
+    const positions = [0, 1, 2, 3, 4].map(
+      i => (screenWidth / 5) * i + screenWidth / 10 - 14,
+    );
     const translateX = interpolate(
       activeToolIndex.value,
       [-1, 0, 1, 2, 3, 4],
-      [-100, 0, 1, 2, 3, 4].map((i, index) =>
-        index === 0 ? -100 : (screenWidth / 5) * i + screenWidth / 10 - 14,
-      ), // Hide indicator when no tool selected (-1), center each tool otherwise
+      [
+        -100,
+        positions[0],
+        positions[1],
+        positions[2],
+        positions[3],
+        positions[4],
+      ],
     );
     return {
       transform: [{ translateX }],
@@ -1075,10 +1079,10 @@ const EditorScreen: React.FC = () => {
             <>
               <View style={styles.toolContainer}>
                 {renderToolIcon('watermark', '💧', 'Watermark')}
-                {renderToolIcon('text', 'T', 'Text')}
                 {renderToolIcon('sticker', '🎨', 'Sticker')}
                 {renderToolIcon('stamps', '🔖', 'Stamps')}
                 {renderToolIcon('filter', '🖼️', 'Filter')}
+                {renderToolIcon('layers', '📚', 'Layers')}
               </View>
 
               {/* Active indicator */}
@@ -1114,6 +1118,19 @@ const EditorScreen: React.FC = () => {
           });
         }}
         onApplyPreset={handleApplyWatermarkPreset}
+      />
+
+      {/* Layers Modal */}
+      <LayersModal
+        visible={layersModalVisible}
+        onClose={() => {
+          setLayersModalVisible(false);
+          setActiveToolbar(null);
+          activeToolIndex.value = withSpring(-1, {
+            damping: 15.0,
+            stiffness: 150.0,
+          });
+        }}
       />
 
       {/* Export Modal */}
@@ -1249,7 +1266,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 4,
     paddingHorizontal: Spacing.xs,
-    minWidth: 60,
+    minWidth: 50,
   },
   toolButtonActive: {
     // Active state styling will be handled by indicator

@@ -119,14 +119,30 @@ export const exportCanvasToImage = async (
     drawSourceImage(canvas, sourceImage, width, height, filter);
 
     if (typeof __DEV__ !== 'undefined' && __DEV__) {
-      const elementSummary = canvasElements.reduce(
-        (acc, element) => {
-          acc[element.type] = (acc[element.type] || 0) + 1;
-          return acc;
-        },
-        {} as Record<string, number>,
-      );
+      const elementSummary = canvasElements.reduce((acc, element) => {
+        acc[element.type] = (acc[element.type] || 0) + 1;
+        return acc;
+      }, {} as Record<string, number>);
       console.log('Export debug - element counts', elementSummary);
+
+      // Debug watermark elements specifically
+      const watermarkElements = canvasElements.filter(
+        el => el.type === 'watermark',
+      );
+      if (watermarkElements.length > 0) {
+        console.log(
+          'Export debug - watermark elements:',
+          watermarkElements.map(el => ({
+            id: el.id,
+            type: el.type,
+            opacity: el.opacity,
+            assetPath: el.assetPath,
+            width: el.width,
+            height: el.height,
+            position: el.position,
+          })),
+        );
+      }
     }
 
     for (const element of canvasElements) {
@@ -599,9 +615,7 @@ const drawGlow = (
   const paint = Skia.Paint();
   paint.setAntiAlias(true);
   paint.setColor(Skia.Color(color));
-  paint.setAlphaf(
-    Math.max(0, Math.min(options.opacity * baseOpacity, 1)),
-  );
+  paint.setAlphaf(Math.max(0, Math.min(options.opacity * baseOpacity, 1)));
 
   const maskFilter = Skia.MaskFilter.MakeBlur(
     Skia.BlurStyle.Normal,
@@ -665,12 +679,39 @@ const drawImageElement = async (
   size: ElementSize,
 ): Promise<void> => {
   if (!element.assetPath) {
+    if (typeof __DEV__ !== 'undefined' && __DEV__) {
+      console.log(
+        'Export debug - skipping element (no assetPath):',
+        element.id,
+        element.type,
+      );
+    }
     return;
   }
 
   const image = await getImageFromCache(element.assetPath);
   if (!image) {
+    if (typeof __DEV__ !== 'undefined' && __DEV__) {
+      console.log(
+        'Export debug - failed to load image:',
+        element.id,
+        element.assetPath,
+      );
+    }
     return;
+  }
+
+  if (
+    typeof __DEV__ !== 'undefined' &&
+    __DEV__ &&
+    element.type === 'watermark'
+  ) {
+    console.log('Export debug - drawing watermark:', {
+      id: element.id,
+      opacity: element.opacity,
+      size,
+      assetPath: element.assetPath,
+    });
   }
 
   const paint = Skia.Paint();

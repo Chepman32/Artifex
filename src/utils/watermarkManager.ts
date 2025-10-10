@@ -393,7 +393,7 @@ export class WatermarkManager {
 
       return {
         id: wm.id,
-        type: wm.type === 'text' ? 'text' : 'sticker',
+        type: wm.type === 'text' ? 'text' : 'watermark',
         position,
         scale: 1,
         rotation: (wm.rotation * Math.PI) / 180, // Convert to radians

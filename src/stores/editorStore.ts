@@ -52,6 +52,10 @@ interface EditorState {
   }) => Promise<void>;
   exportProject: (options: ExportOptions) => Promise<string>;
 
+  // Layer management
+  moveElementUp: (id: string) => void;
+  moveElementDown: (id: string) => void;
+
   // Initialize new project
   initializeProject: (
     imageUri: string,
@@ -120,6 +124,11 @@ const applyReverseAction = (action: EditorHistory, set: any, get: any) => {
     case 'filter':
       set({ appliedFilter: action.oldFilter ?? null });
       break;
+    case 'reorder':
+      if (action.oldState && action.oldState.canvasElements) {
+        set({ canvasElements: action.oldState.canvasElements });
+      }
+      break;
   }
 };
 
@@ -180,6 +189,11 @@ const applyAction = (action: EditorHistory, set: any, get: any) => {
       break;
     case 'filter':
       set({ appliedFilter: action.newFilter ?? null });
+      break;
+    case 'reorder':
+      if (action.newState && action.newState.canvasElements) {
+        set({ canvasElements: action.newState.canvasElements });
+      }
       break;
   }
 };
@@ -326,6 +340,60 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       selectedElementId: null,
       selectedElementIds: canvasElements.map(element => element.id),
     });
+  },
+
+  moveElementUp: (id: string) => {
+    const { canvasElements, history, historyIndex } = get();
+    const currentIndex = canvasElements.findIndex(el => el.id === id);
+
+    if (currentIndex < canvasElements.length - 1) {
+      const oldElements = [...canvasElements];
+      const newElements = [...canvasElements];
+      const element = newElements.splice(currentIndex, 1)[0];
+      newElements.splice(currentIndex + 1, 0, element);
+
+      // Add to history
+      const newHistory = history.slice(0, historyIndex + 1);
+      newHistory.push({
+        action: 'reorder' as any,
+        oldState: { canvasElements: oldElements } as any,
+        newState: { canvasElements: newElements } as any,
+        timestamp: Date.now(),
+      });
+
+      set({
+        canvasElements: newElements,
+        history: newHistory,
+        historyIndex: newHistory.length - 1,
+      });
+    }
+  },
+
+  moveElementDown: (id: string) => {
+    const { canvasElements, history, historyIndex } = get();
+    const currentIndex = canvasElements.findIndex(el => el.id === id);
+
+    if (currentIndex > 0) {
+      const oldElements = [...canvasElements];
+      const newElements = [...canvasElements];
+      const element = newElements.splice(currentIndex, 1)[0];
+      newElements.splice(currentIndex - 1, 0, element);
+
+      // Add to history
+      const newHistory = history.slice(0, historyIndex + 1);
+      newHistory.push({
+        action: 'reorder' as any,
+        oldState: { canvasElements: oldElements } as any,
+        newState: { canvasElements: newElements } as any,
+        timestamp: Date.now(),
+      });
+
+      set({
+        canvasElements: newElements,
+        history: newHistory,
+        historyIndex: newHistory.length - 1,
+      });
+    }
   },
 
   undo: () => {
