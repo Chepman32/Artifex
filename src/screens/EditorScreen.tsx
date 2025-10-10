@@ -60,12 +60,42 @@ type TextStylingOverrides = {
 
 // Filters data
 const FILTERS = [
-  { id: 'none', name: 'Original', emoji: '📷', color: '#666666' },
-  { id: 'bw', name: 'B&W', emoji: '⚫', color: '#888888' },
-  { id: 'sepia', name: 'Sepia', emoji: '🟤', color: '#D2B48C' },
-  { id: 'vintage', name: 'Vintage', emoji: '📸', color: '#F4A460' },
-  { id: 'cool', name: 'Cool', emoji: '🧊', color: '#87CEEB' },
-  { id: 'warm', name: 'Warm', emoji: '🔥', color: '#FFB347' },
+  {
+    id: 'none',
+    name: 'Original',
+    icon: require('../assets/icons/filters/original.png'),
+    color: '#666666',
+  },
+  {
+    id: 'bw',
+    name: 'B&W',
+    icon: require('../assets/icons/filters/bw.png'),
+    color: '#888888',
+  },
+  {
+    id: 'sepia',
+    name: 'Sepia',
+    icon: require('../assets/icons/filters/sepia.png'),
+    color: '#D2B48C',
+  },
+  {
+    id: 'vintage',
+    name: 'Vintage',
+    icon: require('../assets/icons/filters/vintage.png'),
+    color: '#F4A460',
+  },
+  {
+    id: 'cool',
+    name: 'Cool',
+    icon: require('../assets/icons/filters/cool.png'),
+    color: '#87CEEB',
+  },
+  {
+    id: 'warm',
+    name: 'Warm',
+    icon: require('../assets/icons/filters/warm.png'),
+    color: '#FFB347',
+  },
 ];
 
 const selectAllIcon = require('../assets/icons/select all - light theme.png');
@@ -938,7 +968,12 @@ const EditorScreen: React.FC = () => {
         )}
 
         {/* Tool Toolbar - will be pushed above keyboard by KeyboardAvoidingView */}
-        <View style={styles.toolbar}>
+        <View
+          style={[
+            styles.toolbar,
+            activeToolbar === 'filter' && styles.filterToolbar,
+          ]}
+        >
           {activeToolbar === 'filter' ? (
             // Filters horizontal scrolling toolbar
             <ScrollView
@@ -957,14 +992,11 @@ const EditorScreen: React.FC = () => {
                   ]}
                   onPress={() => handleFilterSelect(filter.id)}
                 >
-                  <View
-                    style={[
-                      styles.filterPreview,
-                      { backgroundColor: filter.color },
-                    ]}
-                  >
-                    <Text style={styles.filterEmoji}>{filter.emoji}</Text>
-                  </View>
+                  <Image
+                    source={filter.icon}
+                    style={styles.filterIcon}
+                    resizeMode="contain"
+                  />
                   <Text style={styles.filterName}>{filter.name}</Text>
                 </TouchableOpacity>
               ))}
@@ -1186,6 +1218,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.m,
     justifyContent: 'center',
   },
+  filterToolbar: {
+    height: 120,
+    paddingVertical: Spacing.s,
+    justifyContent: 'flex-start',
+  },
   toolContainer: {
     flexDirection: 'row',
     justifyContent: 'space-around',
@@ -1222,34 +1259,36 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   filtersScrollContainer: {
-    paddingHorizontal: Spacing.s,
+    paddingHorizontal: Spacing.m,
     alignItems: 'center',
-    minHeight: 48,
+    minHeight: 100,
+    justifyContent: 'center',
   },
   filterButton: {
     alignItems: 'center',
-    marginHorizontal: Spacing.xs,
-    padding: Spacing.xs,
+    justifyContent: 'center',
+    marginHorizontal: Spacing.s,
+    paddingVertical: Spacing.s,
+    paddingHorizontal: Spacing.s,
+    minWidth: 70,
   },
   filterButtonActive: {
     backgroundColor: 'rgba(255, 255, 255, 0.1)',
     borderRadius: 8,
   },
-  filterPreview: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 4,
-  },
-  filterEmoji: {
-    fontSize: 16,
+
+  filterIcon: {
+    width: 64,
+    height: 64,
+    marginBottom: 6,
+    borderRadius: 12,
   },
   filterName: {
     ...Typography.body.caption,
-    color: Colors.text.secondary,
-    fontSize: 10,
+    color: Colors.text.primary,
+    fontSize: 13,
+    textAlign: 'center',
+    marginTop: 6,
   },
 });
 
