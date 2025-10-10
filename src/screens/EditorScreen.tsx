@@ -12,7 +12,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   Image,
-  ScrollView,
+  FlatList,
   Keyboard,
 } from 'react-native';
 
@@ -96,9 +96,83 @@ const FILTERS = [
     icon: require('../assets/icons/filters/warm.png'),
     color: '#FFB347',
   },
+  {
+    id: 'juno',
+    name: 'Juno',
+    icon: require('../assets/icons/filters/original.png'),
+    color: '#FF6B9D',
+  },
+  {
+    id: 'gingham',
+    name: 'Gingham',
+    icon: require('../assets/icons/filters/original.png'),
+    color: '#B4E7CE',
+  },
+  {
+    id: 'clarendon',
+    name: 'Clarendon',
+    icon: require('../assets/icons/filters/original.png'),
+    color: '#FFD700',
+  },
+  {
+    id: 'lark',
+    name: 'Lark',
+    icon: require('../assets/icons/filters/original.png'),
+    color: '#A8D8EA',
+  },
+  {
+    id: 'ludwig',
+    name: 'Ludwig',
+    icon: require('../assets/icons/filters/original.png'),
+    color: '#FFA07A',
+  },
+  {
+    id: 'xproii',
+    name: 'X-Pro II',
+    icon: require('../assets/icons/filters/original.png'),
+    color: '#8B4513',
+  },
+  {
+    id: 'lofi',
+    name: 'Lo-Fi',
+    icon: require('../assets/icons/filters/original.png'),
+    color: '#696969',
+  },
+  {
+    id: 'mayfair',
+    name: 'Mayfair',
+    icon: require('../assets/icons/filters/original.png'),
+    color: '#FFB6C1',
+  },
+  {
+    id: 'sierra',
+    name: 'Sierra',
+    icon: require('../assets/icons/filters/original.png'),
+    color: '#DDA15E',
+  },
+  {
+    id: 'tattoo',
+    name: 'Tattoo',
+    icon: require('../assets/icons/filters/original.png'),
+    color: '#4A4A4A',
+  },
+  {
+    id: 'inkwell',
+    name: 'Inkwell',
+    icon: require('../assets/icons/filters/bw.png'),
+    color: '#000000',
+  },
+  {
+    id: 'rise',
+    name: 'Rise',
+    icon: require('../assets/icons/filters/original.png'),
+    color: '#FFE4B5',
+  },
 ];
 
 const selectAllIcon = require('../assets/icons/select all - light theme.png');
+
+type FilterOption = (typeof FILTERS)[number];
 
 const EditorScreen: React.FC = () => {
   const navigation = useNavigation();
@@ -227,6 +301,11 @@ const EditorScreen: React.FC = () => {
   };
 
   const handleToolSelect = (tool: typeof activeToolbar) => {
+    if (tool === 'filter' && activeToolbar === 'filter') {
+      closeFilterToolbar();
+      return;
+    }
+
     setActiveToolbar(tool);
 
     // Update animated indicator position
@@ -257,6 +336,14 @@ const EditorScreen: React.FC = () => {
         break;
     }
   };
+
+  function closeFilterToolbar() {
+    setActiveToolbar(null);
+    activeToolIndex.value = withSpring(-1, {
+      damping: 15.0,
+      stiffness: 150.0,
+    });
+  }
 
   const [canvasTextValue, setCanvasTextValue] = useState('');
   const [editingTextId, setEditingTextId] = useState<string | null>(null);
@@ -412,6 +499,10 @@ const EditorScreen: React.FC = () => {
     } else {
       Keyboard.dismiss();
     }
+
+    if (activeToolbar === 'filter') {
+      closeFilterToolbar();
+    }
   };
 
   const handleTextElementEdit = (elementId: string, currentText: string) => {
@@ -514,26 +605,49 @@ const EditorScreen: React.FC = () => {
   const handleFilterSelect = (filterId: string) => {
     console.log('Filter selected:', filterId);
 
+    const isFilterAlreadyActive =
+      filterId === 'none'
+        ? !appliedFilter
+        : appliedFilter?.id === filterId;
+
+    if (isFilterAlreadyActive) {
+      closeFilterToolbar();
+      return;
+    }
+
     if (filterId === 'none') {
       removeFilter();
       console.log('Filter removed');
-    } else {
-      const filter = {
-        id: filterId,
-        name: filterId,
-        intensity: 1,
-        type: filterId as any,
-      };
-      applyFilter(filter);
-      console.log('Filter applied:', filter);
+      return;
     }
 
-    // Deactivate filter tool after applying
-    setActiveToolbar(null);
-    activeToolIndex.value = withSpring(-1, {
-      damping: 15.0,
-      stiffness: 150.0,
-    });
+    const filter = {
+      id: filterId,
+      name: filterId,
+      intensity: 1,
+      type: filterId as any,
+    };
+    applyFilter(filter);
+    console.log('Filter applied:', filter);
+  };
+
+  const renderFilterItem = ({ item }: { item: FilterOption }) => {
+    const isActive = appliedFilter?.id === item.id;
+
+    return (
+      <TouchableOpacity
+        style={[styles.filterButton, isActive && styles.filterButtonActive]}
+        onPress={() => handleFilterSelect(item.id)}
+        activeOpacity={0.7}
+      >
+        <Image
+          source={item.icon}
+          style={styles.filterIcon}
+          resizeMode="contain"
+        />
+        <Text style={styles.filterName}>{item.name}</Text>
+      </TouchableOpacity>
+    );
   };
 
   const handleApplyWatermarkPreset = async (
@@ -976,31 +1090,21 @@ const EditorScreen: React.FC = () => {
         >
           {activeToolbar === 'filter' ? (
             // Filters horizontal scrolling toolbar
-            <ScrollView
+            <FlatList
+              data={FILTERS}
               horizontal
+              keyExtractor={item => item.id}
+              renderItem={renderFilterItem}
+              extraData={appliedFilter?.id}
               showsHorizontalScrollIndicator={false}
+              showsVerticalScrollIndicator={false}
               contentContainerStyle={styles.filtersScrollContainer}
               style={styles.filtersScrollView}
-            >
-              {FILTERS.map(filter => (
-                <TouchableOpacity
-                  key={filter.id}
-                  style={[
-                    styles.filterButton,
-                    appliedFilter?.id === filter.id &&
-                      styles.filterButtonActive,
-                  ]}
-                  onPress={() => handleFilterSelect(filter.id)}
-                >
-                  <Image
-                    source={filter.icon}
-                    style={styles.filterIcon}
-                    resizeMode="contain"
-                  />
-                  <Text style={styles.filterName}>{filter.name}</Text>
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
+              overScrollMode="never"
+              directionalLockEnabled
+              alwaysBounceVertical={false}
+              bounces={false}
+            />
           ) : (
             // Regular tool icons
             <>
@@ -1261,7 +1365,7 @@ const styles = StyleSheet.create({
   filtersScrollContainer: {
     paddingHorizontal: Spacing.m,
     alignItems: 'center',
-    minHeight: 100,
+    height: 100,
     justifyContent: 'center',
   },
   filterButton: {

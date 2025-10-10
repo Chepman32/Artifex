@@ -70,7 +70,19 @@ export interface ImageFilter {
     | 'landscape'
     | 'neon'
     | 'cyberpunk'
-    | 'retro';
+    | 'retro'
+    | 'juno'
+    | 'gingham'
+    | 'clarendon'
+    | 'lark'
+    | 'ludwig'
+    | 'xproii'
+    | 'lofi'
+    | 'mayfair'
+    | 'sierra'
+    | 'tattoo'
+    | 'inkwell'
+    | 'rise';
 }
 
 export interface UserPreferences {

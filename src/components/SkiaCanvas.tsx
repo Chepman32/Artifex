@@ -2,7 +2,12 @@
 
 import React, { useCallback, useMemo } from 'react';
 import { View, StyleSheet, Dimensions, Image } from 'react-native';
-import { Canvas, Image as SkiaImage, useImage, ColorMatrix } from '@shopify/react-native-skia';
+import {
+  Canvas,
+  Image as SkiaImage,
+  useImage,
+  ColorMatrix,
+} from '@shopify/react-native-skia';
 import { GestureDetector, Gesture } from 'react-native-gesture-handler';
 import { runOnJS } from 'react-native-reanimated';
 import { useEditorStore } from '../stores/editorStore';
@@ -40,6 +45,66 @@ const getImageOverlayStyle = (filter: any) => {
       return {
         backgroundColor: `rgba(255, 179, 71, 0.35)`,
         mixBlendMode: 'multiply' as any,
+      };
+    case 'juno':
+      return {
+        backgroundColor: `rgba(255, 107, 157, 0.25)`,
+        mixBlendMode: 'screen' as any,
+      };
+    case 'gingham':
+      return {
+        backgroundColor: `rgba(180, 231, 206, 0.3)`,
+        mixBlendMode: 'lighten' as any,
+      };
+    case 'clarendon':
+      return {
+        backgroundColor: `rgba(255, 215, 0, 0.2)`,
+        mixBlendMode: 'overlay' as any,
+      };
+    case 'lark':
+      return {
+        backgroundColor: `rgba(168, 216, 234, 0.3)`,
+        mixBlendMode: 'lighten' as any,
+      };
+    case 'ludwig':
+      return {
+        backgroundColor: `rgba(255, 160, 122, 0.3)`,
+        mixBlendMode: 'multiply' as any,
+      };
+    case 'xproii':
+      return {
+        backgroundColor: `rgba(139, 69, 19, 0.4)`,
+        mixBlendMode: 'overlay' as any,
+      };
+    case 'lofi':
+      return {
+        backgroundColor: `rgba(105, 105, 105, 0.3)`,
+        mixBlendMode: 'overlay' as any,
+      };
+    case 'mayfair':
+      return {
+        backgroundColor: `rgba(255, 182, 193, 0.3)`,
+        mixBlendMode: 'screen' as any,
+      };
+    case 'sierra':
+      return {
+        backgroundColor: `rgba(221, 161, 94, 0.25)`,
+        mixBlendMode: 'multiply' as any,
+      };
+    case 'tattoo':
+      return {
+        backgroundColor: `rgba(74, 74, 74, 0.3)`,
+        mixBlendMode: 'overlay' as any,
+      };
+    case 'inkwell':
+      return {
+        backgroundColor: `rgba(0, 0, 0, 0.9)`,
+        mixBlendMode: 'color' as any,
+      };
+    case 'rise':
+      return {
+        backgroundColor: `rgba(255, 228, 181, 0.3)`,
+        mixBlendMode: 'screen' as any,
       };
     default:
       return {};
@@ -114,7 +179,9 @@ export const SkiaCanvas: React.FC<SkiaCanvasProps> = ({
   );
 
   // Get color matrix for current filter
-  const colorMatrix = appliedFilter ? getFilterColorMatrix(appliedFilter) : null;
+  const colorMatrix = appliedFilter
+    ? getFilterColorMatrix(appliedFilter)
+    : null;
 
   return (
     <View
