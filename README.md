@@ -269,3 +269,6 @@ TODO: watermark modal's slider gestures
 TODO: fix - watermarks are not visible on the exported image
 TODO: fix - the exported image with sepia filter is broken
 TODO: fix - Myafair and Rise filters have wrong effect
+TODO: add opacity slider for watermarks
+Make the Stamps and Stickers assets categorized
+TODO: fix - Lo-Fi filter effect should be stronger
