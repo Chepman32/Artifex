@@ -1204,7 +1204,6 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     opacity: 0.8,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
   },
   toolIconActive: {
     opacity: 1,
