@@ -15,6 +15,12 @@ import {
   ScrollView,
   Keyboard,
 } from 'react-native';
+
+// Import toolbar icons
+import watermarkIcon from '../assets/icons/toolbar/watermark.png';
+import stickerIcon from '../assets/icons/toolbar/sticker.png';
+import layersIcon from '../assets/icons/toolbar/layers.png';
+import filtersIcon from '../assets/icons/toolbar/filters.png';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -823,7 +829,7 @@ const EditorScreen: React.FC = () => {
 
   const renderToolIcon = (
     tool: typeof activeToolbar,
-    icon: string,
+    iconSource: any,
     _label: string,
   ) => (
     <TouchableOpacity
@@ -833,14 +839,14 @@ const EditorScreen: React.FC = () => {
       ]}
       onPress={() => handleToolSelect(tool)}
     >
-      <Text
+      <Image
+        source={iconSource}
         style={[
           styles.toolIcon,
           activeToolbar === tool && styles.toolIconActive,
         ]}
-      >
-        {icon}
-      </Text>
+        resizeMode="contain"
+      />
     </TouchableOpacity>
   );
 
@@ -1078,11 +1084,11 @@ const EditorScreen: React.FC = () => {
             // Regular tool icons
             <>
               <View style={styles.toolContainer}>
-                {renderToolIcon('watermark', '💧', 'Watermark')}
-                {renderToolIcon('sticker', '🎨', 'Sticker')}
-                {renderToolIcon('stamps', '🔖', 'Stamps')}
-                {renderToolIcon('filter', '🖼️', 'Filter')}
-                {renderToolIcon('layers', '📚', 'Layers')}
+                {renderToolIcon('watermark', watermarkIcon, 'Watermark')}
+                {renderToolIcon('sticker', stickerIcon, 'Sticker')}
+                {renderToolIcon('stamps', stickerIcon, 'Stamps')}
+                {renderToolIcon('filter', filtersIcon, 'Filter')}
+                {renderToolIcon('layers', layersIcon, 'Layers')}
               </View>
 
               {/* Active indicator */}
@@ -1272,8 +1278,10 @@ const styles = StyleSheet.create({
     // Active state styling will be handled by indicator
   },
   toolIcon: {
-    fontSize: 24,
+    width: 24,
+    height: 24,
     opacity: 0.6,
+    tintColor: '#FFFFFF',
   },
   toolIconActive: {
     opacity: 1,
