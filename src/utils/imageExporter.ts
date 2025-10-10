@@ -4,6 +4,7 @@ import { Skia, type SkCanvas, type SkImage } from '@shopify/react-native-skia';
 import { Platform } from 'react-native';
 import RNFS from 'react-native-fs';
 import { CanvasElement, ImageFilter } from '../types';
+import { getFilterColorMatrix } from './colorMatrix';
 
 export interface ExportOptions {
   format: 'png' | 'jpg';
@@ -358,7 +359,7 @@ const drawSourceImage = (
   const paint = Skia.Paint();
   paint.setAntiAlias(true);
 
-  const colorMatrix = getColorMatrix(filter);
+  const colorMatrix = getFilterColorMatrix(filter);
   if (colorMatrix) {
     const colorFilter = Skia.ColorFilter.MakeMatrix(colorMatrix);
     if (colorFilter) {
@@ -751,40 +752,4 @@ const drawWatermark = (
   const x = canvasWidth - textWidth - paddingX;
   const baseline = canvasHeight - paddingY - metrics.descent;
   canvas.drawText(ARTIFEX_WATERMARK_TEXT, x, baseline, paint, font);
-};
-
-const getColorMatrix = (filter?: ImageFilter | null): number[] | null => {
-  if (!filter || filter.type === 'none') {
-    return null;
-  }
-
-  switch (filter.type) {
-    case 'bw':
-      return [
-        0.35, 0.7, 0.15, 0, -10, 0.35, 0.7, 0.15, 0, -10, 0.35, 0.7, 0.15, 0,
-        -10, 0, 0, 0, 1, 0,
-      ];
-    case 'sepia':
-      return [
-        0.393, 0.769, 0.189, 0, 0, 0.349, 0.686, 0.168, 0, 0, 0.272, 0.534,
-        0.131, 0, 0, 0, 0, 0, 1, 0,
-      ];
-    case 'vintage':
-      return [
-        0.5, 0.95, 0.25, 0, 0, 0.43, 0.85, 0.22, 0, 0, 0.33, 0.68, 0.17, 0, 0,
-        0, 0, 0, 1, 0,
-      ];
-    case 'cool':
-      return [
-        0.7, 0, 0.2, 0, -10, 0, 1.1, 0.15, 0, 0, 0.25, 0.2, 1.5, 0, 30, 0, 0, 0,
-        1, 0,
-      ];
-    case 'warm':
-      return [
-        1.3, 0.15, 0, 0, 20, 0.1, 1.15, 0, 0, 10, 0, 0, 0.8, 0, 0, 0, 0, 0, 1,
-        0,
-      ];
-    default:
-      return null;
-  }
 };

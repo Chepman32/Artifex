@@ -2,65 +2,19 @@
 
 import React, { useCallback, useMemo } from 'react';
 import { View, StyleSheet, Dimensions, Image } from 'react-native';
-import {
-  Canvas,
-  Image as SkiaImage,
-  useImage,
-  ColorMatrix,
-} from '@shopify/react-native-skia';
+import { Canvas, Image as SkiaImage, useImage, ColorMatrix } from '@shopify/react-native-skia';
 import { GestureDetector, Gesture } from 'react-native-gesture-handler';
 import { runOnJS } from 'react-native-reanimated';
 import { useEditorStore } from '../stores/editorStore';
 import { TextElement } from './canvas/TextElement';
 import { StickerElement } from './canvas/StickerElement';
 import { Colors } from '../constants/colors';
+import { getFilterColorMatrix } from '../utils/colorMatrix';
 
 const { width: screenWidth } = Dimensions.get('window');
 
-// Get color matrix for filters
-const getColorMatrix = (filter: any) => {
-  const intensity = filter.intensity || 1;
-
-  switch (filter.type) {
-    case 'bw':
-      // Very strong grayscale matrix with enhanced contrast
-      return [
-        0.35, 0.7, 0.15, 0, -10, 0.35, 0.7, 0.15, 0, -10, 0.35, 0.7, 0.15, 0,
-        -10, 0, 0, 0, 1, 0,
-      ];
-    case 'sepia':
-      // Strong sepia matrix
-      return [
-        0.393, 0.769, 0.189, 0, 0, 0.349, 0.686, 0.168, 0, 0, 0.272, 0.534,
-        0.131, 0, 0, 0, 0, 0, 1, 0,
-      ];
-    case 'vintage':
-      // Strong vintage sepia-toned old photograph look
-      return [
-        0.5, 0.95, 0.25, 0, 0, 0.43, 0.85, 0.22, 0, 0, 0.33, 0.68, 0.17, 0, 0,
-        0, 0, 0, 1, 0,
-      ];
-    case 'cool':
-      // Very strong cool blue tone - icy effect
-      return [
-        0.7, 0, 0.2, 0, -10, 0, 1.1, 0.15, 0, 0, 0.25, 0.2, 1.5, 0, 30, 0, 0, 0,
-        1, 0,
-      ];
-    case 'warm':
-      // Strong warm orange tone
-      return [
-        1.3, 0.15, 0, 0, 20, 0.1, 1.15, 0, 0, 10, 0, 0, 0.8, 0, 0, 0, 0, 0, 1,
-        0,
-      ];
-    default:
-      return null;
-  }
-};
-
 // Fallback overlay styles for photo URIs (ph://) that don't support Skia
 const getImageOverlayStyle = (filter: any) => {
-  const intensity = filter.intensity || 1;
-
   switch (filter.type) {
     case 'bw':
       return {
@@ -160,7 +114,7 @@ export const SkiaCanvas: React.FC<SkiaCanvasProps> = ({
   );
 
   // Get color matrix for current filter
-  const colorMatrix = appliedFilter ? getColorMatrix(appliedFilter) : null;
+  const colorMatrix = appliedFilter ? getFilterColorMatrix(appliedFilter) : null;
 
   return (
     <View
