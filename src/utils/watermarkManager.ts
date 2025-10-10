@@ -5,6 +5,7 @@ import {
   WatermarkPreset,
   WatermarkPattern,
 } from '../types/watermark';
+import { CanvasElement } from '../types';
 
 const generateId = (): string => {
   return Date.now().toString(36) + Math.random().toString(36).substr(2);
@@ -361,27 +362,56 @@ export class WatermarkManager {
   /**
    * Convert watermark instances to canvas elements
    */
-  static toCanvasElements(watermarks: WatermarkInstance[]): any[] {
-    return watermarks.map(wm => ({
-      id: wm.id,
-      type: wm.type === 'text' ? 'text' : 'sticker',
-      position: wm.position,
-      scale: 1,
-      rotation: (wm.rotation * Math.PI) / 180, // Convert to radians
-      width: wm.size.width,
-      height: wm.size.height,
-      opacity: wm.opacity, // Include opacity for proper rendering
-      ...(wm.type === 'text'
-        ? {
-            textContent: wm.content,
-            fontFamily: wm.style?.fontFamily || 'System',
-            fontSize: wm.style?.fontSize || 16,
-            color: wm.style?.color || '#FFFFFF',
-            textEffect: wm.style?.textEffect || 'none',
-          }
-        : {
-            assetPath: wm.content,
-          }),
-    }));
+  static toCanvasElements(
+    watermarks: WatermarkInstance[],
+    canvasSize?: CanvasSize,
+  ): CanvasElement[] {
+    const clampPosition = (
+      value: number,
+      size: number,
+      maxDimension?: number,
+    ) => {
+      const min = 0;
+      if (maxDimension === undefined || Number.isNaN(maxDimension)) {
+        return Math.max(value, min);
+      }
+      const max = Math.max(maxDimension - size, min);
+      return Math.min(Math.max(value, min), max);
+    };
+
+    const canvasWidth = canvasSize?.width;
+    const canvasHeight = canvasSize?.height;
+
+    return watermarks.map(wm => {
+      const width = wm.size.width;
+      const height = wm.size.height;
+
+      const position = {
+        x: clampPosition(wm.position.x - width / 2, width, canvasWidth),
+        y: clampPosition(wm.position.y - height / 2, height, canvasHeight),
+      };
+
+      return {
+        id: wm.id,
+        type: wm.type === 'text' ? 'text' : 'sticker',
+        position,
+        scale: 1,
+        rotation: (wm.rotation * Math.PI) / 180, // Convert to radians
+        width,
+        height,
+        opacity: wm.opacity, // Include opacity for proper rendering
+        ...(wm.type === 'text'
+          ? {
+              textContent: wm.content,
+              fontFamily: wm.style?.fontFamily || 'System',
+              fontSize: wm.style?.fontSize || 16,
+              color: wm.style?.color || '#FFFFFF',
+              textEffect: wm.style?.textEffect || 'none',
+            }
+          : {
+              assetPath: wm.content,
+            }),
+      };
+    });
   }
 }

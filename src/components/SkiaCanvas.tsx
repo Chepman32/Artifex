@@ -251,6 +251,7 @@ export const SkiaCanvas: React.FC<SkiaCanvasProps> = ({
                   color={element.color}
                   textEffect={element.textEffect}
                   textBackground={element.textBackground}
+                  opacity={element.opacity}
                   isSelected={selectedIds.has(element.id)}
                   canvasBounds={{ width: canvasWidth, height: canvasHeight }}
                   onSelect={() => handleElementSelect(element.id)}

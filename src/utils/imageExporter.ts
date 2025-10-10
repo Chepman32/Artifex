@@ -28,7 +28,7 @@ const createFont = (size: number, family?: string) => {
   try {
     let typeface: ReturnType<typeof Skia.Typeface.MakeDefault> | null = null;
 
-    if (family && family !== 'System' && Skia.Typeface.MakeDefault) {
+    if (family && family !== 'System') {
       typeface =
         // @ts-expect-error - MakeFromName may not exist on all platforms
         (Skia.Typeface.MakeFromName?.(family) as ReturnType<
@@ -36,17 +36,19 @@ const createFont = (size: number, family?: string) => {
         > | null) ?? null;
     }
 
-    if (!typeface) {
+    if (!typeface && typeof Skia.Typeface.MakeDefault === 'function') {
       typeface = Skia.Typeface.MakeDefault();
     }
 
-    if (!typeface) {
-      console.warn('Skia: Failed to create typeface, skipping font render');
+    const font = Skia.Font(typeface ?? undefined, size);
+    if (!font) {
+      console.warn('Skia: Failed to create font instance');
       return null;
     }
 
-    const font = Skia.Font(typeface, size);
-    font.setEdging(Skia.FontEdging.SubpixelAntialias);
+    if (typeof font.setEdging === 'function') {
+      font.setEdging(Skia.FontEdging.SubpixelAntialias);
+    }
     return font;
   } catch (error) {
     console.warn('Skia: Failed to create font', error);
@@ -115,6 +117,17 @@ export const exportCanvasToImage = async (
     }
 
     drawSourceImage(canvas, sourceImage, width, height, filter);
+
+    if (typeof __DEV__ !== 'undefined' && __DEV__) {
+      const elementSummary = canvasElements.reduce(
+        (acc, element) => {
+          acc[element.type] = (acc[element.type] || 0) + 1;
+          return acc;
+        },
+        {} as Record<string, number>,
+      );
+      console.log('Export debug - element counts', elementSummary);
+    }
 
     for (const element of canvasElements) {
       await drawCanvasElement(canvas, element, canvasScale);
@@ -345,28 +358,43 @@ const drawCanvasElement = async (
   element: CanvasElement,
   scale: CanvasScale,
 ): Promise<void> => {
+  const drawTextWithTransform = async () => {
+    const layout = measureTextLayout(element, scale);
+    if (!layout) {
+      console.warn(
+        'Export: skipped text element - failed to measure layout',
+        element.id,
+        element.textContent,
+      );
+      return;
+    }
+    await withElementTransform(
+      canvas,
+      element,
+      {
+        width: layout.totalWidth,
+        height: layout.totalHeight,
+      },
+      scale,
+      async () => {
+        drawTextElement(canvas, element, layout);
+      },
+    );
+  };
+
   switch (element.type) {
     case 'text': {
-      const layout = measureTextLayout(element, scale);
-      if (!layout) {
-        return;
-      }
-      await withElementTransform(
-        canvas,
-        element,
-        {
-          width: layout.totalWidth,
-          height: layout.totalHeight,
-        },
-        scale,
-        async () => {
-          drawTextElement(canvas, element, layout);
-        },
-      );
+      await drawTextWithTransform();
       break;
     }
+    case 'watermark': {
+      if (!element.assetPath && element.textContent) {
+        await drawTextWithTransform();
+        break;
+      }
+      // Fall through to image-based handling when assetPath is present
+    }
     case 'sticker':
-    case 'watermark':
     case 'stamp': {
       if (!element.assetPath) {
         return;
@@ -473,11 +501,13 @@ const drawTextElement = (
 ) => {
   const { text, font, fontSize, totalWidth, totalHeight } = layout;
   const baseColor = element.color || '#FFFFFF';
+  const opacity = Math.max(0, Math.min(element.opacity ?? 1, 1));
 
   if (element.textBackground) {
     const backgroundPaint = Skia.Paint();
     backgroundPaint.setAntiAlias(true);
     backgroundPaint.setColor(Skia.Color(element.textBackground));
+    backgroundPaint.setAlphaf(opacity);
     canvas.drawRoundRect(
       Skia.XYWHRect(0, 0, totalWidth, totalHeight),
       fontSize * 0.25,
@@ -486,11 +516,12 @@ const drawTextElement = (
     );
   }
 
-  drawTextEffects(canvas, element, layout, baseColor, font);
+  drawTextEffects(canvas, element, layout, baseColor, font, opacity);
 
   const textPaint = Skia.Paint();
   textPaint.setAntiAlias(true);
   textPaint.setColor(Skia.Color(baseColor));
+  textPaint.setAlphaf(opacity);
   canvas.drawText(
     text,
     layout.paddingX,
@@ -506,32 +537,49 @@ const drawTextEffects = (
   layout: TextLayout,
   baseColor: string,
   font: ReturnType<typeof Skia.Font>,
+  opacity: number,
 ) => {
   const textX = layout.paddingX;
   const textY = layout.paddedBaseline;
 
   switch (element.textEffect) {
     case 'neon':
-      drawGlow(canvas, layout.text, textX, textY, font, baseColor, {
+      drawGlow(canvas, layout.text, textX, textY, font, baseColor, opacity, {
         radius: layout.fontSize * 0.65,
         opacity: 0.35,
       });
-      drawGlow(canvas, layout.text, textX, textY, font, baseColor, {
+      drawGlow(canvas, layout.text, textX, textY, font, baseColor, opacity, {
         radius: layout.fontSize * 0.35,
         opacity: 0.55,
       });
       break;
     case 'glow':
-      drawGlow(canvas, layout.text, textX, textY, font, baseColor, {
+      drawGlow(canvas, layout.text, textX, textY, font, baseColor, opacity, {
         radius: layout.fontSize * 0.45,
         opacity: 0.4,
       });
       break;
     case 'shadow':
-      drawShadow(canvas, layout.text, textX, textY, font, layout.fontSize);
+      drawShadow(
+        canvas,
+        layout.text,
+        textX,
+        textY,
+        font,
+        layout.fontSize,
+        opacity,
+      );
       break;
     case 'outline':
-      drawOutline(canvas, layout.text, textX, textY, font, layout.fontSize);
+      drawOutline(
+        canvas,
+        layout.text,
+        textX,
+        textY,
+        font,
+        layout.fontSize,
+        opacity,
+      );
       break;
     default:
       break;
@@ -545,12 +593,15 @@ const drawGlow = (
   y: number,
   font: ReturnType<typeof Skia.Font>,
   color: string,
+  baseOpacity: number,
   options: { radius: number; opacity: number },
 ) => {
   const paint = Skia.Paint();
   paint.setAntiAlias(true);
   paint.setColor(Skia.Color(color));
-  paint.setAlphaf(Math.max(0, Math.min(options.opacity, 1)));
+  paint.setAlphaf(
+    Math.max(0, Math.min(options.opacity * baseOpacity, 1)),
+  );
 
   const maskFilter = Skia.MaskFilter.MakeBlur(
     Skia.BlurStyle.Normal,
@@ -571,12 +622,13 @@ const drawShadow = (
   y: number,
   font: ReturnType<typeof Skia.Font>,
   fontSize: number,
+  baseOpacity: number,
 ) => {
   const offset = Math.max(fontSize * 0.15, 2);
   const paint = Skia.Paint();
   paint.setAntiAlias(true);
   paint.setColor(Skia.Color('#000000'));
-  paint.setAlphaf(0.6);
+  paint.setAlphaf(0.6 * baseOpacity);
   canvas.drawText(text, x + offset, y + offset, paint, font);
 };
 
@@ -587,11 +639,12 @@ const drawOutline = (
   y: number,
   font: ReturnType<typeof Skia.Font>,
   fontSize: number,
+  baseOpacity: number,
 ) => {
   const paint = Skia.Paint();
   paint.setAntiAlias(true);
   paint.setColor(Skia.Color('#000000'));
-  paint.setAlphaf(0.85);
+  paint.setAlphaf(0.85 * baseOpacity);
 
   const offsets = [-1, 0, 1];
   const distance = Math.max(fontSize * 0.08, 1);

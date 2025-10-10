@@ -634,8 +634,10 @@ const EditorScreen: React.FC = () => {
     );
 
     // Convert to canvas elements and add them as a batch
-    const watermarkElements =
-      WatermarkManager.toCanvasElements(watermarkInstances);
+    const watermarkElements = WatermarkManager.toCanvasElements(
+      watermarkInstances,
+      canvasSize,
+    );
     addElements(watermarkElements);
 
     console.log(

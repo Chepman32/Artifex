@@ -20,6 +20,7 @@ interface TextElementProps {
   color?: string;
   textEffect?: 'none' | 'neon' | 'glow' | 'shadow' | 'outline';
   textBackground?: string | null;
+  opacity?: number;
   isSelected: boolean;
   canvasBounds?: { width: number; height: number };
   onSelect: () => void;
@@ -43,6 +44,7 @@ export const TextElement: React.FC<TextElementProps> = ({
   color = Colors.text.primary,
   textEffect = 'none',
   textBackground = null,
+  opacity = 1,
   isSelected,
   canvasBounds,
   onSelect,
@@ -219,7 +221,13 @@ export const TextElement: React.FC<TextElementProps> = ({
 
   return (
     <GestureDetector gesture={gesture}>
-      <Animated.View style={[styles.container, animatedStyle]}>
+      <Animated.View
+        style={[
+          styles.container,
+          animatedStyle,
+          { opacity: Math.max(0, Math.min(opacity, 1)) },
+        ]}
+      >
         {textBackground && (
           <Animated.View
             style={[
