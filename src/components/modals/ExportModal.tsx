@@ -28,6 +28,7 @@ const xIcon = require('../../assets/icons/x-logo.png');
 interface ExportModalProps {
   visible: boolean;
   onClose: () => void;
+  canvasDimensions: { width: number; height: number };
 }
 
 type ExportFormat = 'png' | 'jpg';
@@ -35,6 +36,7 @@ type ExportFormat = 'png' | 'jpg';
 export const ExportModal: React.FC<ExportModalProps> = ({
   visible,
   onClose,
+  canvasDimensions,
 }) => {
   const [selectedFormat, setSelectedFormat] = useState<ExportFormat>('png');
   const [quality, setQuality] = useState<number>(100);
@@ -45,6 +47,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({
     canvasElements,
     sourceImagePath,
     sourceImageDimensions,
+    canvasSize: storedCanvasSize,
     appliedFilter,
   } = useEditorStore();
 
@@ -56,7 +59,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({
     await Linking.openURL(targetUrl);
   };
 
-  const exportImage = async (): Promise<{ filepath: string; mime: string }> => {
+  const exportImage = async () => {
     if (!sourceImagePath || !sourceImageDimensions) {
       Alert.alert('Error', 'No image to export');
       throw new Error('Missing source image');
@@ -66,7 +69,8 @@ export const ExportModal: React.FC<ExportModalProps> = ({
 
     try {
       // Export canvas to image file
-      const filepath = await exportCanvasToImage(
+      // Use stored canvas size if available, otherwise use current canvas dimensions
+      const result = await exportCanvasToImage(
         sourceImagePath,
         sourceImageDimensions,
         canvasElements,
@@ -74,13 +78,12 @@ export const ExportModal: React.FC<ExportModalProps> = ({
           format: selectedFormat,
           quality,
           addWatermark: !isProUser,
+          canvasSize: storedCanvasSize || canvasDimensions,
         },
         appliedFilter,
       );
 
-      const mime = selectedFormat === 'png' ? 'image/png' : 'image/jpeg';
-
-      return { filepath, mime };
+      return result;
     } catch (error) {
       console.error('Export error:', error);
       Alert.alert('Error', 'Failed to export image');
@@ -91,7 +94,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({
   };
 
   const handleSaveToDevice = async () => {
-    let exportResult: { filepath: string; mime: string } | null = null;
+    let exportResult: Awaited<ReturnType<typeof exportImage>> | null = null;
     try {
       exportResult = await exportImage();
     } catch {
@@ -132,7 +135,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({
   };
 
   const handleShareToInstagram = async (): Promise<void> => {
-    let exportResult: { filepath: string; mime: string } | null = null;
+    let exportResult: Awaited<ReturnType<typeof exportImage>> | null = null;
     try {
       exportResult = await exportImage();
     } catch {
@@ -164,7 +167,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({
   };
 
   const handleShareToX = async (): Promise<void> => {
-    let exportResult: { filepath: string; mime: string } | null = null;
+    let exportResult: Awaited<ReturnType<typeof exportImage>> | null = null;
     try {
       exportResult = await exportImage();
     } catch {

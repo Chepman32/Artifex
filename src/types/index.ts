@@ -4,6 +4,7 @@ export interface Project {
   id: string;
   sourceImagePath: string;
   sourceImageDimensions: { width: number; height: number };
+  canvasSize?: { width: number; height: number }; // Canvas size when elements were created
   thumbnailPath: string;
   elements: SerializedElement[];
   createdAt: Date;
@@ -39,6 +40,7 @@ export interface CanvasElement {
   rotation: number; // radians for Reanimated
   width?: number;
   height?: number;
+  opacity?: number; // 0-1, for watermarks and other elements
 
   // Type-specific properties
   textContent?: string;
@@ -83,6 +85,7 @@ export interface ExportOptions {
   format: 'png' | 'jpg';
   quality: number;
   addWatermark: boolean;
+  canvasSize?: { width: number; height: number };
 }
 
 export interface PhotoAsset {

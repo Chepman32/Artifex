@@ -16,6 +16,7 @@ interface StickerElementProps {
   rotation?: number;
   width?: number;
   height?: number;
+  opacity?: number;
   isSelected: boolean;
   canvasBounds?: { width: number; height: number };
   onSelect: () => void;
@@ -35,6 +36,7 @@ export const StickerElement: React.FC<StickerElementProps> = ({
   rotation = 0,
   width = 100,
   height = 100,
+  opacity = 1,
   isSelected,
   canvasBounds,
   onSelect,
@@ -63,7 +65,7 @@ export const StickerElement: React.FC<StickerElementProps> = ({
   return (
     <GestureDetector gesture={gesture}>
       <Animated.View
-        style={[styles.container, { width, height }, animatedStyle]}
+        style={[styles.container, { width, height, opacity }, animatedStyle]}
       >
         <Image source={{ uri }} style={styles.image} resizeMode="contain" />
 

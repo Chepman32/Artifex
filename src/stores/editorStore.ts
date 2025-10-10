@@ -18,6 +18,7 @@ interface EditorState {
   currentProjectId: string | null;
   sourceImagePath: string | null;
   sourceImageDimensions: { width: number; height: number } | null;
+  canvasSize: { width: number; height: number } | null;
   appliedFilter: ImageFilter | null;
 
   // Element manipulation
@@ -45,7 +46,10 @@ interface EditorState {
 
   // Project management
   loadProject: (projectId: string) => Promise<void>;
-  saveProject: () => Promise<void>;
+  saveProject: (canvasSize?: {
+    width: number;
+    height: number;
+  }) => Promise<void>;
   exportProject: (options: ExportOptions) => Promise<string>;
 
   // Initialize new project
@@ -189,6 +193,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   currentProjectId: null,
   sourceImagePath: null,
   sourceImageDimensions: null,
+  canvasSize: null,
   appliedFilter: null,
 
   addElement: element => {
@@ -361,13 +366,14 @@ export const useEditorStore = create<EditorState>((set, get) => ({
         currentProjectId: projectId,
         sourceImagePath: project.sourceImagePath,
         sourceImageDimensions: project.sourceImageDimensions,
+        canvasSize: project.canvasSize || null,
       });
     } catch (error) {
       console.error('Failed to load project:', error);
     }
   },
 
-  saveProject: async () => {
+  saveProject: async (canvasSize?: { width: number; height: number }) => {
     const {
       canvasElements,
       currentProjectId,
@@ -380,6 +386,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       id: currentProjectId,
       sourceImagePath,
       sourceImageDimensions,
+      canvasSize, // Store canvas size for proper export scaling
       thumbnailPath: '', // Will be generated
       elements: canvasElements,
       createdAt: new Date(), // Will be preserved if existing
@@ -405,6 +412,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       currentProjectId: projectId,
       sourceImagePath: imageUri,
       sourceImageDimensions: dimensions,
+      canvasSize: null, // Will be set on first save
       canvasElements: [],
       selectedElementId: null,
       selectedElementIds: [],
@@ -461,6 +469,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       currentProjectId: null,
       sourceImagePath: null,
       sourceImageDimensions: null,
+      canvasSize: null,
       appliedFilter: null,
     }),
 }));

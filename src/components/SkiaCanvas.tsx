@@ -276,6 +276,7 @@ export const SkiaCanvas: React.FC<SkiaCanvasProps> = ({
                   rotation={element.rotation}
                   width={element.width}
                   height={element.height}
+                  opacity={element.opacity}
                   isSelected={selectedIds.has(element.id)}
                   canvasBounds={{ width: canvasWidth, height: canvasHeight }}
                   onSelect={() => handleElementSelect(element.id)}
@@ -299,6 +300,7 @@ export const SkiaCanvas: React.FC<SkiaCanvasProps> = ({
                   rotation={element.rotation}
                   width={element.width}
                   height={element.height}
+                  opacity={element.opacity}
                   isSelected={selectedIds.has(element.id)}
                   onSelect={() => handleElementSelect(element.id)}
                   onUpdate={transform =>

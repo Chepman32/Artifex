@@ -370,6 +370,7 @@ export class WatermarkManager {
       rotation: (wm.rotation * Math.PI) / 180, // Convert to radians
       width: wm.size.width,
       height: wm.size.height,
+      opacity: wm.opacity, // Include opacity for proper rendering
       ...(wm.type === 'text'
         ? {
             textContent: wm.content,

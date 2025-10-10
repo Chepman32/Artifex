@@ -259,7 +259,7 @@ const EditorScreen: React.FC = () => {
           {
             text: 'Save',
             onPress: async () => {
-              await saveProject();
+              await saveProject(canvasSize);
               navigation.goBack();
             },
           },
@@ -1118,6 +1118,7 @@ const EditorScreen: React.FC = () => {
       <ExportModal
         visible={exportModalVisible}
         onClose={() => setExportModalVisible(false)}
+        canvasDimensions={canvasSize}
       />
     </SafeAreaView>
   );

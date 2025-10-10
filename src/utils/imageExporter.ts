@@ -9,6 +9,7 @@ export interface ExportOptions {
   format: 'png' | 'jpg';
   quality: number; // 0-100
   addWatermark: boolean;
+  canvasSize?: { width: number; height: number };
 }
 
 const ARTIFEX_WATERMARK_TEXT = 'Made with Artifex';
@@ -17,6 +18,41 @@ const WATERMARK_OPACITY = 0.6;
 const WATERMARK_PADDING = 12;
 
 const imageCache = new Map<string, SkImage>();
+
+interface CanvasScale {
+  x: number;
+  y: number;
+}
+
+const createFont = (size: number, family?: string) => {
+  try {
+    let typeface: ReturnType<typeof Skia.Typeface.MakeDefault> | null = null;
+
+    if (family && family !== 'System' && Skia.Typeface.MakeDefault) {
+      typeface =
+        // @ts-expect-error - MakeFromName may not exist on all platforms
+        (Skia.Typeface.MakeFromName?.(family) as ReturnType<
+          typeof Skia.Typeface.MakeDefault
+        > | null) ?? null;
+    }
+
+    if (!typeface) {
+      typeface = Skia.Typeface.MakeDefault();
+    }
+
+    if (!typeface) {
+      console.warn('Skia: Failed to create typeface, skipping font render');
+      return null;
+    }
+
+    const font = Skia.Font(typeface, size);
+    font.setEdging(Skia.FontEdging.SubpixelAntialias);
+    return font;
+  } catch (error) {
+    console.warn('Skia: Failed to create font', error);
+    return null;
+  }
+};
 
 interface ElementSize {
   width: number;
@@ -40,15 +76,21 @@ interface TextLayout {
 /**
  * Exports the current canvas to an image file on disk.
  */
+interface ExportResult {
+  filepath: string;
+  format: 'png' | 'jpg';
+  mime: string;
+}
+
 export const exportCanvasToImage = async (
   sourceImagePath: string,
   sourceImageDimensions: { width: number; height: number },
   canvasElements: CanvasElement[],
   options: ExportOptions,
   filter?: ImageFilter | null,
-): Promise<string> => {
+): Promise<ExportResult> => {
   const { width, height } = sourceImageDimensions;
-  const { format, quality, addWatermark } = options;
+  const { format, quality, addWatermark, canvasSize } = options;
 
   try {
     const surface = Skia.Surface.Make(Math.round(width), Math.round(height));
@@ -58,6 +100,11 @@ export const exportCanvasToImage = async (
 
     const canvas = surface.getCanvas();
     canvas.clear(Skia.Color('#00000000'));
+
+    const canvasScale = getCanvasScale(
+      sourceImageDimensions,
+      canvasSize || null,
+    );
 
     const sourceImage = await getImageFromCache(
       sourceImagePath,
@@ -70,24 +117,46 @@ export const exportCanvasToImage = async (
     drawSourceImage(canvas, sourceImage, width, height, filter);
 
     for (const element of canvasElements) {
-      await drawCanvasElement(canvas, element);
+      await drawCanvasElement(canvas, element, canvasScale);
     }
 
     if (addWatermark) {
-      drawWatermark(canvas, width, height);
+      drawWatermark(canvas, width, height, canvasScale);
     }
 
     const snapshot = surface.makeImageSnapshot();
-    const encoded = snapshot.encodeToBase64(
-      format === 'png' ? Skia.ImageFormat.PNG : Skia.ImageFormat.JPEG,
-      format === 'png' ? 100 : quality,
-    );
+    const imageFormatEnum = (Skia as any).ImageFormat;
+    let encoded: string;
 
-    const filename = `artifex_export_${Date.now()}.${format}`;
+    let actualFormat: 'png' | 'jpg' = format;
+
+    if (format === 'png') {
+      if (imageFormatEnum?.PNG) {
+        encoded = snapshot.encodeToBase64(imageFormatEnum.PNG, 100);
+      } else {
+        encoded = snapshot.encodeToBase64();
+      }
+    } else {
+      if (imageFormatEnum?.JPEG) {
+        encoded = snapshot.encodeToBase64(imageFormatEnum.JPEG, quality);
+      } else {
+        console.warn(
+          'Skia.ImageFormat.JPEG unavailable; falling back to PNG encoding.',
+        );
+        encoded = snapshot.encodeToBase64();
+        actualFormat = 'png';
+      }
+    }
+
+    const filename = `artifex_export_${Date.now()}.${actualFormat}`;
     const filepath = `${RNFS.TemporaryDirectoryPath}/${filename}`;
     await RNFS.writeFile(filepath, encoded, 'base64');
 
-    return filepath;
+    return {
+      filepath,
+      format: actualFormat,
+      mime: actualFormat === 'png' ? 'image/png' : 'image/jpeg',
+    };
   } catch (error) {
     console.error('Export error:', error);
     throw new Error('Failed to export image');
@@ -146,7 +215,9 @@ const resolveImageUriToPath = async (
   try {
     if (Platform.OS === 'ios' && uri.startsWith('ph://')) {
       const ext = 'jpg';
-      const dest = `${RNFS.TemporaryDirectoryPath}/artifex_ph_${Date.now()}.${ext}`;
+      const dest = `${
+        RNFS.TemporaryDirectoryPath
+      }/artifex_ph_${Date.now()}.${ext}`;
       await RNFS.copyAssetsFileIOS(
         uri,
         dest,
@@ -161,21 +232,27 @@ const resolveImageUriToPath = async (
     if (Platform.OS === 'android' && uri.startsWith('file:///android_asset/')) {
       const assetPath = uri.replace('file:///android_asset/', '');
       const ext = guessImageExtension(assetPath, 'png');
-      const dest = `${RNFS.CachesDirectoryPath}/artifex_asset_${Date.now()}.${ext}`;
+      const dest = `${
+        RNFS.CachesDirectoryPath
+      }/artifex_asset_${Date.now()}.${ext}`;
       await RNFS.copyFileAssets(assetPath, dest);
       return dest;
     }
 
     if (uri.startsWith('http://') || uri.startsWith('https://')) {
       const ext = guessImageExtension(uri, 'jpg');
-      const dest = `${RNFS.TemporaryDirectoryPath}/artifex_remote_${Date.now()}.${ext}`;
+      const dest = `${
+        RNFS.TemporaryDirectoryPath
+      }/artifex_remote_${Date.now()}.${ext}`;
       const downloadResult = await RNFS.downloadFile({
         fromUrl: uri,
         toFile: dest,
       }).promise;
 
       if (downloadResult.statusCode && downloadResult.statusCode >= 400) {
-        throw new Error(`Download failed with status ${downloadResult.statusCode}`);
+        throw new Error(
+          `Download failed with status ${downloadResult.statusCode}`,
+        );
       }
 
       return dest;
@@ -220,6 +297,26 @@ const loadImage = async (
   }
 };
 
+const getCanvasScale = (
+  sourceDimensions: { width: number; height: number },
+  canvasSize: { width: number; height: number } | null,
+): CanvasScale => {
+  if (!canvasSize || canvasSize.width <= 0 || canvasSize.height <= 0) {
+    console.warn(
+      'getCanvasScale: Invalid canvasSize, returning 1:1 scale. This may cause incorrect export sizing.',
+    );
+    return { x: 1, y: 1 };
+  }
+
+  const scaleX = sourceDimensions.width / canvasSize.width;
+  const scaleY = sourceDimensions.height / canvasSize.height;
+
+  return {
+    x: Number.isFinite(scaleX) && scaleX > 0 ? scaleX : 1,
+    y: Number.isFinite(scaleY) && scaleY > 0 ? scaleY : 1,
+  };
+};
+
 const drawSourceImage = (
   canvas: SkCanvas,
   image: SkImage,
@@ -246,10 +343,11 @@ const drawSourceImage = (
 const drawCanvasElement = async (
   canvas: SkCanvas,
   element: CanvasElement,
+  scale: CanvasScale,
 ): Promise<void> => {
   switch (element.type) {
     case 'text': {
-      const layout = measureTextLayout(element);
+      const layout = measureTextLayout(element, scale);
       if (!layout) {
         return;
       }
@@ -260,6 +358,7 @@ const drawCanvasElement = async (
           width: layout.totalWidth,
           height: layout.totalHeight,
         },
+        scale,
         async () => {
           drawTextElement(canvas, element, layout);
         },
@@ -272,12 +371,13 @@ const drawCanvasElement = async (
       if (!element.assetPath) {
         return;
       }
-      const width = element.width || 100;
-      const height = element.height || 100;
+      const width = (element.width || 100) * scale.x;
+      const height = (element.height || 100) * scale.y;
       await withElementTransform(
         canvas,
         element,
         { width, height },
+        scale,
         async () => {
           await drawImageElement(canvas, element, { width, height });
         },
@@ -293,11 +393,12 @@ const withElementTransform = async (
   canvas: SkCanvas,
   element: CanvasElement,
   size: ElementSize,
+  scale: CanvasScale,
   draw: () => Promise<void>,
 ): Promise<void> => {
   const { position } = element;
-  const x = position?.x ?? 0;
-  const y = position?.y ?? 0;
+  const x = (position?.x ?? 0) * scale.x;
+  const y = (position?.y ?? 0) * scale.y;
   const rotationDegrees = ((element.rotation ?? 0) * 180) / Math.PI;
   const scaleValue = element.scale ?? 1;
   const safeScale = Math.max(scaleValue, 0.0001);
@@ -319,27 +420,33 @@ const withElementTransform = async (
   canvas.restore();
 };
 
-const measureTextLayout = (element: CanvasElement): TextLayout | null => {
+const measureTextLayout = (
+  element: CanvasElement,
+  scale: CanvasScale,
+): TextLayout | null => {
   const text = element.textContent ?? '';
   if (!text) {
     return null;
   }
 
-  const fontSize = element.fontSize ?? 24;
-  const font = Skia.Font(null, fontSize);
-
+  const baseFontSize = element.fontSize ?? 24;
+  const scaledFontSize = baseFontSize * scale.x;
+  const font = createFont(scaledFontSize, element.fontFamily);
+  if (!font) {
+    return null;
+  }
   const measurement = font.measureText(text);
   const metrics = font.getMetrics();
 
-  const textWidth = measurement.width || fontSize;
+  const textWidth = measurement.width || scaledFontSize;
   const textHeight =
     metrics.descent - metrics.ascent > 0
       ? metrics.descent - metrics.ascent
-      : fontSize;
+      : scaledFontSize;
   const baseline = -metrics.ascent;
 
-  const paddingX = Math.max(fontSize * 0.25, 8);
-  const paddingY = Math.max(fontSize * 0.2, 6);
+  const paddingX = Math.max(baseFontSize * 0.25, 8) * scale.x;
+  const paddingY = Math.max(baseFontSize * 0.2, 6) * scale.y;
 
   const totalWidth = textWidth + paddingX * 2;
   const totalHeight = textHeight + paddingY * 2;
@@ -347,7 +454,7 @@ const measureTextLayout = (element: CanvasElement): TextLayout | null => {
   return {
     font,
     text,
-    fontSize,
+    fontSize: scaledFontSize,
     textWidth,
     textHeight,
     totalWidth,
@@ -516,6 +623,11 @@ const drawImageElement = async (
   const paint = Skia.Paint();
   paint.setAntiAlias(true);
 
+  // Apply opacity if specified (for watermarks and other elements)
+  if (element.opacity !== undefined && element.opacity < 1) {
+    paint.setAlphaf(Math.max(0, Math.min(element.opacity, 1)));
+  }
+
   const srcRect = Skia.XYWHRect(0, 0, image.width(), image.height());
   const dstRect = Skia.XYWHRect(0, 0, size.width, size.height);
   canvas.drawImageRect(image, srcRect, dstRect, paint);
@@ -525,8 +637,13 @@ const drawWatermark = (
   canvas: SkCanvas,
   canvasWidth: number,
   canvasHeight: number,
+  scale: CanvasScale,
 ) => {
-  const font = Skia.Font(null, WATERMARK_FONT_SIZE);
+  const scaleFactor = Math.max(scale.x, scale.y);
+  const font = createFont(WATERMARK_FONT_SIZE * scaleFactor);
+  if (!font) {
+    return;
+  }
   const metrics = font.getMetrics();
   const textWidth = font.measureText(ARTIFEX_WATERMARK_TEXT).width;
   const paint = Skia.Paint();
@@ -534,8 +651,11 @@ const drawWatermark = (
   paint.setColor(Skia.Color('#FFFFFF'));
   paint.setAlphaf(WATERMARK_OPACITY);
 
-  const x = canvasWidth - textWidth - WATERMARK_PADDING;
-  const baseline = canvasHeight - WATERMARK_PADDING - metrics.descent;
+  const paddingX = WATERMARK_PADDING * scale.x;
+  const paddingY = WATERMARK_PADDING * scale.y;
+
+  const x = canvasWidth - textWidth - paddingX;
+  const baseline = canvasHeight - paddingY - metrics.descent;
   canvas.drawText(ARTIFEX_WATERMARK_TEXT, x, baseline, paint, font);
 };
 
@@ -557,8 +677,8 @@ const getColorMatrix = (filter?: ImageFilter | null): number[] | null => {
       ];
     case 'vintage':
       return [
-        0.5, 0.95, 0.25, 0, 0, 0.43, 0.85, 0.22, 0, 0, 0.33, 0.68, 0.17, 0, 0, 0,
-        0, 0, 1, 0,
+        0.5, 0.95, 0.25, 0, 0, 0.43, 0.85, 0.22, 0, 0, 0.33, 0.68, 0.17, 0, 0,
+        0, 0, 0, 1, 0,
       ];
     case 'cool':
       return [
