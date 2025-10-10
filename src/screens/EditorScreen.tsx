@@ -16,11 +16,7 @@ import {
   Keyboard,
 } from 'react-native';
 
-// Import toolbar icons
-import watermarkIcon from '../assets/icons/toolbar/watermark.png';
-import stickerIcon from '../assets/icons/toolbar/sticker.png';
-import layersIcon from '../assets/icons/toolbar/layers.png';
-import filtersIcon from '../assets/icons/toolbar/filters.png';
+// Toolbar icons are loaded directly with require() in the render calls
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -33,6 +29,7 @@ import { useEditorStore } from '../stores/editorStore';
 import { SkiaCanvas } from '../components/SkiaCanvas';
 
 import { StickerPickerModal } from '../components/modals/StickerPickerModal';
+import { StampsPickerModal } from '../components/modals/StampsPickerModal';
 import { ExportModal } from '../components/modals/ExportModal';
 import { WatermarkToolModal } from '../components/modals/WatermarkToolModal';
 import { LayersModal } from '../components/modals/LayersModal';
@@ -69,115 +66,6 @@ const FILTERS = [
   { id: 'vintage', name: 'Vintage', emoji: '📸', color: '#F4A460' },
   { id: 'cool', name: 'Cool', emoji: '🧊', color: '#87CEEB' },
   { id: 'warm', name: 'Warm', emoji: '🔥', color: '#FFB347' },
-];
-
-// Seal stamps data
-const SEAL_STAMPS = [
-  {
-    id: 'approved-147677',
-    name: 'Approved',
-    uri: require('../assets/stamps/approved-147677_640.png'),
-  },
-  {
-    id: 'approved-1966719',
-    name: 'Approved Alt',
-    uri: require('../assets/stamps/approved-1966719_640.png'),
-  },
-  {
-    id: 'approved-1966719-1',
-    name: 'Approved Alt 2',
-    uri: require('../assets/stamps/approved-1966719_640 (1).png'),
-  },
-  {
-    id: 'best-seller',
-    name: 'Best Seller',
-    uri: require('../assets/stamps/best-seller-158885_1280.png'),
-  },
-  {
-    id: 'cancelled',
-    name: 'Cancelled',
-    uri: require('../assets/stamps/cancelled-5250908_640.png'),
-  },
-  {
-    id: 'do-not-copy',
-    name: 'Do Not Copy',
-    uri: require('../assets/stamps/do-not-copy-160138_640.png'),
-  },
-  {
-    id: 'draft',
-    name: 'Draft',
-    uri: require('../assets/stamps/draft-160133_640.png'),
-  },
-  {
-    id: 'label',
-    name: 'Label',
-    uri: require('../assets/stamps/label-5419657_640.png'),
-  },
-  {
-    id: 'original',
-    name: 'Original',
-    uri: require('../assets/stamps/original-160130_640.png'),
-  },
-  {
-    id: 'paid-160126',
-    name: 'Paid',
-    uri: require('../assets/stamps/paid-160126_640.png'),
-  },
-  {
-    id: 'paid-5025785',
-    name: 'Paid Alt',
-    uri: require('../assets/stamps/paid-5025785_640.png'),
-  },
-  {
-    id: 'quality-5254406',
-    name: 'Quality',
-    uri: require('../assets/stamps/quality-5254406_640.png'),
-  },
-  {
-    id: 'quality-5254458',
-    name: 'Quality Alt',
-    uri: require('../assets/stamps/quality-5254458_640.png'),
-  },
-  {
-    id: 'real-stamp',
-    name: 'Real Stamp',
-    uri: require('../assets/stamps/real-stamp-7823814_640.png'),
-  },
-  {
-    id: 'received',
-    name: 'Received',
-    uri: require('../assets/stamps/received-160122_640.png'),
-  },
-  {
-    id: 'red',
-    name: 'Red Stamp',
-    uri: require('../assets/stamps/red-42286_640.png'),
-  },
-  {
-    id: 'seal',
-    name: 'Seal',
-    uri: require('../assets/stamps/seal-1771694_640.png'),
-  },
-  {
-    id: 'sold',
-    name: 'Sold',
-    uri: require('../assets/stamps/sold-5250892_640.png'),
-  },
-  {
-    id: 'stamp',
-    name: 'Stamp',
-    uri: require('../assets/stamps/stamp-161691_640.png'),
-  },
-  {
-    id: 'success',
-    name: 'Success',
-    uri: require('../assets/stamps/success-5025797_640.png'),
-  },
-  {
-    id: 'winner',
-    name: 'Winner',
-    uri: require('../assets/stamps/winner-5257940_640.png'),
-  },
 ];
 
 const selectAllIcon = require('../assets/icons/select all - light theme.png');
@@ -228,6 +116,7 @@ const EditorScreen: React.FC = () => {
   const activeToolIndex = useSharedValue(-1); // No tool selected by default
   const [showCanvasTextInput, setShowCanvasTextInput] = useState(false);
   const [stickerModalVisible, setStickerModalVisible] = useState(false);
+  const [stampsModalVisible, setStampsModalVisible] = useState(false);
   const [watermarkModalVisible, setWatermarkModalVisible] = useState(false);
   const [layersModalVisible, setLayersModalVisible] = useState(false);
 
@@ -328,7 +217,7 @@ const EditorScreen: React.FC = () => {
         setStickerModalVisible(true);
         break;
       case 'stamps':
-        // Stamps tool shows horizontal scrolling toolbar - no modal needed
+        setStampsModalVisible(true);
         break;
       case 'filter':
         // Filter tool shows horizontal scrolling toolbar - no modal needed
@@ -573,6 +462,23 @@ const EditorScreen: React.FC = () => {
       damping: 15.0,
       stiffness: 150.0,
     });
+  };
+
+  const handleStampSelect = (
+    stampUri: string,
+    width: number,
+    height: number,
+  ) => {
+    const canvasSize = calculateCanvasSize();
+
+    const element = createStickerElement(
+      stampUri,
+      canvasSize.width / 2 - width / 2,
+      canvasSize.height / 2 - height / 2,
+      width,
+      height,
+    );
+    addElement(element);
   };
 
   const handleFilterSelect = (filterId: string) => {
@@ -846,6 +752,7 @@ const EditorScreen: React.FC = () => {
           activeToolbar === tool && styles.toolIconActive,
         ]}
         resizeMode="contain"
+        fadeDuration={0}
       />
     </TouchableOpacity>
   );
@@ -1032,25 +939,7 @@ const EditorScreen: React.FC = () => {
 
         {/* Tool Toolbar - will be pushed above keyboard by KeyboardAvoidingView */}
         <View style={styles.toolbar}>
-          {activeToolbar === 'stamps' ? (
-            // Stamps horizontal scrolling toolbar
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.stampsScrollContainer}
-              style={styles.stampsScrollView}
-            >
-              {SEAL_STAMPS.map(stamp => (
-                <TouchableOpacity
-                  key={stamp.id}
-                  style={styles.stampButton}
-                  onPress={() => handleAddStamp(stamp.uri)}
-                >
-                  <Image source={stamp.uri} style={styles.stampPreview} />
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
-          ) : activeToolbar === 'filter' ? (
+          {activeToolbar === 'filter' ? (
             // Filters horizontal scrolling toolbar
             <ScrollView
               horizontal
@@ -1084,11 +973,31 @@ const EditorScreen: React.FC = () => {
             // Regular tool icons
             <>
               <View style={styles.toolContainer}>
-                {renderToolIcon('watermark', watermarkIcon, 'Watermark')}
-                {renderToolIcon('sticker', stickerIcon, 'Sticker')}
-                {renderToolIcon('stamps', stickerIcon, 'Stamps')}
-                {renderToolIcon('filter', filtersIcon, 'Filter')}
-                {renderToolIcon('layers', layersIcon, 'Layers')}
+                {renderToolIcon(
+                  'watermark',
+                  require('../assets/icons/toolbar/watermark.png'),
+                  'Watermark',
+                )}
+                {renderToolIcon(
+                  'sticker',
+                  require('../assets/icons/toolbar/sticker.png'),
+                  'Sticker',
+                )}
+                {renderToolIcon(
+                  'stamps',
+                  require('../assets/icons/toolbar/2471542.png'),
+                  'Stamps',
+                )}
+                {renderToolIcon(
+                  'filter',
+                  require('../assets/icons/toolbar/filters.png'),
+                  'Filter',
+                )}
+                {renderToolIcon(
+                  'layers',
+                  require('../assets/icons/toolbar/layers.png'),
+                  'Layers',
+                )}
               </View>
 
               {/* Active indicator */}
@@ -1110,6 +1019,20 @@ const EditorScreen: React.FC = () => {
           });
         }}
         onSelect={handleAddSticker}
+      />
+
+      {/* Stamps Picker Modal */}
+      <StampsPickerModal
+        visible={stampsModalVisible}
+        onClose={() => {
+          setStampsModalVisible(false);
+          setActiveToolbar(null);
+          activeToolIndex.value = withSpring(-1, {
+            damping: 15.0,
+            stiffness: 150.0,
+          });
+        }}
+        onSelect={handleStampSelect}
       />
 
       {/* Watermark Tool Modal */}
@@ -1278,10 +1201,10 @@ const styles = StyleSheet.create({
     // Active state styling will be handled by indicator
   },
   toolIcon: {
-    width: 24,
-    height: 24,
-    opacity: 0.6,
-    tintColor: '#FFFFFF',
+    width: 32,
+    height: 32,
+    opacity: 0.8,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
   },
   toolIconActive: {
     opacity: 1,
@@ -1295,25 +1218,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.accent.primary,
     borderRadius: 1.5,
   },
-  stampsScrollView: {
-    flex: 1,
-  },
-  stampsScrollContainer: {
-    paddingHorizontal: Spacing.s,
-    alignItems: 'center',
-    minHeight: 48,
-  },
-  stampButton: {
-    marginHorizontal: Spacing.xs,
-    padding: Spacing.xs,
-    borderRadius: 8,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-  },
-  stampPreview: {
-    width: 32,
-    height: 32,
-    resizeMode: 'contain',
-  },
+
   filtersScrollView: {
     flex: 1,
   },
