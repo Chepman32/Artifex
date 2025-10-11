@@ -589,32 +589,33 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   modalContent: {
-    width: '80%',
-    maxHeight: '70%',
+    width: '85%',
+    maxHeight: '75%',
     borderRadius: AppDimensions.cornerRadius.large,
     overflow: 'hidden',
   },
   modalTitle: {
-    ...Typography.display.h4,
-    padding: Spacing.m,
+    ...Typography.display.h3,
+    padding: Spacing.l,
     textAlign: 'center',
   },
   modalScroll: {
-    maxHeight: 400,
+    maxHeight: 500,
   },
   modalOption: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: Spacing.m,
-    paddingVertical: Spacing.m,
+    paddingHorizontal: Spacing.l,
+    paddingVertical: Spacing.l,
+    minHeight: 60,
     borderBottomWidth: 1,
   },
   modalOptionText: {
-    ...Typography.body.regular,
+    ...Typography.display.h5,
   },
   checkmark: {
-    fontSize: 20,
+    fontSize: 28,
     fontWeight: 'bold',
   },
 });
