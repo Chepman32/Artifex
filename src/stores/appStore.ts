@@ -27,6 +27,9 @@ export const useAppStore = create<AppState>()(
         autoSaveProjects: true,
         hapticFeedback: true,
         colorScheme: 'auto',
+        theme: 'dark',
+        soundEnabled: true,
+        language: 'en',
       },
 
       setProUser: isPro => set({ isProUser: isPro }),

@@ -91,6 +91,9 @@ export interface UserPreferences {
   autoSaveProjects: boolean;
   hapticFeedback: boolean;
   colorScheme: 'auto' | 'light' | 'dark';
+  theme: 'light' | 'dark' | 'solar' | 'mono';
+  soundEnabled: boolean;
+  language: 'en' | 'ru' | 'es' | 'de' | 'fr' | 'pt' | 'ja' | 'zh' | 'ko' | 'uk';
 }
 
 export interface ExportOptions {

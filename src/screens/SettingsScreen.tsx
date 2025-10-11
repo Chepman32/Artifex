@@ -1,6 +1,6 @@
 // Settings screen
 
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -9,20 +9,45 @@ import {
   ScrollView,
   Switch,
   Alert,
+  Modal,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { useAppStore } from '../stores/appStore';
-import { Colors } from '../constants/colors';
+import { useTheme } from '../hooks/useTheme';
+import { useTranslation } from '../hooks/useTranslation';
 import { Typography } from '../constants/typography';
 import { Spacing, Dimensions as AppDimensions } from '../constants/spacing';
+import { ThemeType } from '../constants/themes';
+import { Language, languageNames } from '../localization';
+import { triggerHaptic } from '../utils/haptics';
 
 const SettingsScreen: React.FC = () => {
   const navigation = useNavigation();
+  const theme = useTheme();
+  const t = useTranslation();
   const { isProUser, preferences, updatePreferences } = useAppStore();
+  const [showThemeModal, setShowThemeModal] = useState(false);
+  const [showLanguageModal, setShowLanguageModal] = useState(false);
 
   const handleClose = () => {
     navigation.goBack();
+  };
+
+  const handleThemeChange = (newTheme: ThemeType) => {
+    if (preferences.hapticFeedback) {
+      triggerHaptic('selection');
+    }
+    updatePreferences({ theme: newTheme });
+    setShowThemeModal(false);
+  };
+
+  const handleLanguageChange = (newLanguage: Language) => {
+    if (preferences.hapticFeedback) {
+      triggerHaptic('selection');
+    }
+    updatePreferences({ language: newLanguage });
+    setShowLanguageModal(false);
   };
 
   const handleRestorePurchases = () => {
@@ -52,7 +77,7 @@ const SettingsScreen: React.FC = () => {
       'Clear Cache',
       'This will remove cached thumbnails and temporary files. Continue?',
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: t.common.cancel, style: 'cancel' },
         { text: 'Clear', onPress: () => Alert.alert('Cache cleared') },
       ],
     );
@@ -63,9 +88,9 @@ const SettingsScreen: React.FC = () => {
       'Delete All Projects',
       'This will permanently delete all projects. This cannot be undone. Continue?',
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: t.common.cancel, style: 'cancel' },
         {
-          text: 'Delete All',
+          text: t.common.delete,
           style: 'destructive',
           onPress: () => Alert.alert('All projects deleted'),
         },
@@ -73,10 +98,32 @@ const SettingsScreen: React.FC = () => {
     );
   };
 
+  const getThemeName = (themeType: ThemeType) => {
+    switch (themeType) {
+      case 'light':
+        return t.settings.themeLight;
+      case 'dark':
+        return t.settings.themeDark;
+      case 'solar':
+        return t.settings.themeSolar;
+      case 'mono':
+        return t.settings.themeMono;
+    }
+  };
+
   const renderSection = (title: string, children: React.ReactNode) => (
     <View style={styles.section}>
-      <Text style={styles.sectionHeader}>{title}</Text>
-      <View style={styles.sectionContent}>{children}</View>
+      <Text style={[styles.sectionHeader, { color: theme.text.tertiary }]}>
+        {title}
+      </Text>
+      <View
+        style={[
+          styles.sectionContent,
+          { backgroundColor: theme.backgrounds.secondary },
+        ]}
+      >
+        {children}
+      </View>
     </View>
   );
 
@@ -88,7 +135,10 @@ const SettingsScreen: React.FC = () => {
     destructive?: boolean,
   ) => (
     <TouchableOpacity
-      style={styles.settingRow}
+      style={[
+        styles.settingRow,
+        { borderBottomColor: theme.backgrounds.tertiary },
+      ]}
       onPress={onPress}
       disabled={!onPress}
     >
@@ -96,25 +146,160 @@ const SettingsScreen: React.FC = () => {
         <Text
           style={[
             styles.settingTitle,
-            destructive && styles.settingTitleDestructive,
+            { color: destructive ? theme.semantic.error : theme.text.primary },
           ]}
         >
           {title}
         </Text>
-        {subtitle && <Text style={styles.settingSubtitle}>{subtitle}</Text>}
+        {subtitle && (
+          <Text
+            style={[styles.settingSubtitle, { color: theme.text.tertiary }]}
+          >
+            {subtitle}
+          </Text>
+        )}
       </View>
       {rightElement && <View style={styles.settingRight}>{rightElement}</View>}
     </TouchableOpacity>
   );
 
+  const renderThemeModal = () => (
+    <Modal
+      visible={showThemeModal}
+      transparent
+      animationType="fade"
+      onRequestClose={() => setShowThemeModal(false)}
+    >
+      <TouchableOpacity
+        style={styles.modalOverlay}
+        activeOpacity={1}
+        onPress={() => setShowThemeModal(false)}
+      >
+        <View
+          style={[
+            styles.modalContent,
+            { backgroundColor: theme.backgrounds.secondary },
+          ]}
+        >
+          <Text style={[styles.modalTitle, { color: theme.text.primary }]}>
+            {t.settings.theme}
+          </Text>
+          {(['light', 'dark', 'solar', 'mono'] as ThemeType[]).map(
+            themeType => (
+              <TouchableOpacity
+                key={themeType}
+                style={[
+                  styles.modalOption,
+                  { borderBottomColor: theme.backgrounds.tertiary },
+                ]}
+                onPress={() => handleThemeChange(themeType)}
+              >
+                <Text
+                  style={[
+                    styles.modalOptionText,
+                    {
+                      color:
+                        preferences.theme === themeType
+                          ? theme.accent.primary
+                          : theme.text.primary,
+                    },
+                  ]}
+                >
+                  {getThemeName(themeType)}
+                </Text>
+                {preferences.theme === themeType && (
+                  <Text
+                    style={[styles.checkmark, { color: theme.accent.primary }]}
+                  >
+                    ✓
+                  </Text>
+                )}
+              </TouchableOpacity>
+            ),
+          )}
+        </View>
+      </TouchableOpacity>
+    </Modal>
+  );
+
+  const renderLanguageModal = () => (
+    <Modal
+      visible={showLanguageModal}
+      transparent
+      animationType="fade"
+      onRequestClose={() => setShowLanguageModal(false)}
+    >
+      <TouchableOpacity
+        style={styles.modalOverlay}
+        activeOpacity={1}
+        onPress={() => setShowLanguageModal(false)}
+      >
+        <View
+          style={[
+            styles.modalContent,
+            { backgroundColor: theme.backgrounds.secondary },
+          ]}
+        >
+          <Text style={[styles.modalTitle, { color: theme.text.primary }]}>
+            {t.settings.language}
+          </Text>
+          <ScrollView style={styles.modalScroll}>
+            {(Object.keys(languageNames) as Language[]).map(lang => (
+              <TouchableOpacity
+                key={lang}
+                style={[
+                  styles.modalOption,
+                  { borderBottomColor: theme.backgrounds.tertiary },
+                ]}
+                onPress={() => handleLanguageChange(lang)}
+              >
+                <Text
+                  style={[
+                    styles.modalOptionText,
+                    {
+                      color:
+                        preferences.language === lang
+                          ? theme.accent.primary
+                          : theme.text.primary,
+                    },
+                  ]}
+                >
+                  {languageNames[lang]}
+                </Text>
+                {preferences.language === lang && (
+                  <Text
+                    style={[styles.checkmark, { color: theme.accent.primary }]}
+                  >
+                    ✓
+                  </Text>
+                )}
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </View>
+      </TouchableOpacity>
+    </Modal>
+  );
+
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: theme.backgrounds.primary }]}
+    >
       {/* Header */}
-      <View style={styles.header}>
+      <View
+        style={[
+          styles.header,
+          { borderBottomColor: theme.backgrounds.tertiary },
+        ]}
+      >
         <TouchableOpacity style={styles.closeButton} onPress={handleClose}>
-          <Text style={styles.closeIcon}>✕</Text>
+          <Text style={[styles.closeIcon, { color: theme.text.secondary }]}>
+            ✕
+          </Text>
         </TouchableOpacity>
-        <Text style={styles.title}>Settings</Text>
+        <Text style={[styles.title, { color: theme.text.primary }]}>
+          {t.settings.title}
+        </Text>
         <View style={styles.headerSpacer} />
       </View>
 
@@ -122,20 +307,87 @@ const SettingsScreen: React.FC = () => {
         style={styles.scrollView}
         showsVerticalScrollIndicator={false}
       >
-        {/* Account Section */}
+        {/* Appearance Section */}
         {renderSection(
-          'Account',
+          t.settings.appearance,
           <>
             {renderSettingRow(
-              'Restore Purchases',
-              'For users who purchased Pro on another device',
+              t.settings.theme,
+              getThemeName(preferences.theme),
+              <Text
+                style={[styles.settingValue, { color: theme.text.secondary }]}
+              >
+                {getThemeName(preferences.theme)}
+              </Text>,
+              () => setShowThemeModal(true),
+            )}
+            {renderSettingRow(
+              t.settings.sound,
+              preferences.soundEnabled
+                ? t.settings.soundOn
+                : t.settings.soundOff,
+              <Switch
+                value={preferences.soundEnabled}
+                onValueChange={value => {
+                  if (preferences.hapticFeedback) {
+                    triggerHaptic('selection');
+                  }
+                  updatePreferences({ soundEnabled: value });
+                }}
+                trackColor={{
+                  false: theme.backgrounds.tertiary,
+                  true: theme.accent.primary,
+                }}
+                thumbColor={theme.text.primary}
+              />,
+            )}
+            {renderSettingRow(
+              t.settings.haptics,
+              preferences.hapticFeedback
+                ? t.settings.hapticsOn
+                : t.settings.hapticsOff,
+              <Switch
+                value={preferences.hapticFeedback}
+                onValueChange={value => {
+                  if (value) {
+                    triggerHaptic('selection');
+                  }
+                  updatePreferences({ hapticFeedback: value });
+                }}
+                trackColor={{
+                  false: theme.backgrounds.tertiary,
+                  true: theme.accent.primary,
+                }}
+                thumbColor={theme.text.primary}
+              />,
+            )}
+            {renderSettingRow(
+              t.settings.language,
+              languageNames[preferences.language],
+              <Text
+                style={[styles.settingValue, { color: theme.text.secondary }]}
+              >
+                {languageNames[preferences.language]}
+              </Text>,
+              () => setShowLanguageModal(true),
+            )}
+          </>,
+        )}
+
+        {/* Account Section */}
+        {renderSection(
+          t.settings.account,
+          <>
+            {renderSettingRow(
+              t.settings.restorePurchases,
+              t.settings.restorePurchasesDesc,
               undefined,
               handleRestorePurchases,
             )}
             {isProUser &&
               renderSettingRow(
-                'Export All Projects',
-                'Batch export all projects to Photos',
+                t.settings.exportAllProjects,
+                t.settings.exportAllProjectsDesc,
                 undefined,
                 handleExportAllProjects,
               )}
@@ -144,111 +396,89 @@ const SettingsScreen: React.FC = () => {
 
         {/* Preferences Section */}
         {renderSection(
-          'Preferences',
+          t.settings.preferences,
           <>
             {renderSettingRow(
-              'Default Export Format',
+              t.settings.defaultExportFormat,
               preferences.defaultExportFormat.toUpperCase(),
-              <Text style={styles.settingValue}>
+              <Text
+                style={[styles.settingValue, { color: theme.text.secondary }]}
+              >
                 {preferences.defaultExportFormat.toUpperCase()}
               </Text>,
             )}
             {renderSettingRow(
-              'Default Export Quality',
+              t.settings.defaultExportQuality,
               `${preferences.defaultExportQuality}%`,
-              <Text style={styles.settingValue}>
+              <Text
+                style={[styles.settingValue, { color: theme.text.secondary }]}
+              >
                 {preferences.defaultExportQuality}%
               </Text>,
             )}
             {renderSettingRow(
-              'Auto-Save Projects',
-              'Automatically save every 30 seconds',
+              t.settings.autoSaveProjects,
+              t.settings.autoSaveProjectsDesc,
               <Switch
                 value={preferences.autoSaveProjects}
-                onValueChange={value =>
-                  updatePreferences({ autoSaveProjects: value })
-                }
-                trackColor={{
-                  false: Colors.backgrounds.tertiary,
-                  true: Colors.accent.primary,
+                onValueChange={value => {
+                  if (preferences.hapticFeedback) {
+                    triggerHaptic('selection');
+                  }
+                  updatePreferences({ autoSaveProjects: value });
                 }}
-                thumbColor={Colors.text.primary}
-              />,
-            )}
-            {renderSettingRow(
-              'Haptic Feedback',
-              'Vibration for interactions',
-              <Switch
-                value={preferences.hapticFeedback}
-                onValueChange={value =>
-                  updatePreferences({ hapticFeedback: value })
-                }
                 trackColor={{
-                  false: Colors.backgrounds.tertiary,
-                  true: Colors.accent.primary,
+                  false: theme.backgrounds.tertiary,
+                  true: theme.accent.primary,
                 }}
-                thumbColor={Colors.text.primary}
+                thumbColor={theme.text.primary}
               />,
-            )}
-          </>,
-        )}
-
-        {/* Appearance Section */}
-        {renderSection(
-          'Appearance',
-          <>
-            {renderSettingRow(
-              'Color Scheme',
-              'Auto follows system settings',
-              <Text style={styles.settingValue}>
-                {preferences.colorScheme === 'auto'
-                  ? 'Auto'
-                  : preferences.colorScheme === 'light'
-                  ? 'Light'
-                  : 'Dark'}
-              </Text>,
             )}
           </>,
         )}
 
         {/* About Section */}
         {renderSection(
-          'About',
+          t.settings.about,
           <>
             {renderSettingRow(
-              'Version',
+              t.settings.version,
               '1.0.0',
-              <Text style={styles.settingValue}>1.0.0</Text>,
+              <Text
+                style={[styles.settingValue, { color: theme.text.secondary }]}
+              >
+                1.0.0
+              </Text>,
             )}
             {renderSettingRow(
-              'Rate Artifex',
-              'Help us improve with your feedback',
+              t.settings.rateApp,
+              t.settings.rateAppDesc,
               undefined,
               handleRateApp,
             )}
             {renderSettingRow(
-              'Contact Support',
-              'Get help or report issues',
+              t.settings.contactSupport,
+              t.settings.contactSupportDesc,
               undefined,
               handleContactSupport,
             )}
             {renderSettingRow(
-              'Privacy Policy',
-              'View our privacy policy',
+              t.settings.privacyPolicy,
+              t.settings.privacyPolicyDesc,
               undefined,
               () =>
                 Alert.alert(
-                  'Privacy Policy',
+                  t.settings.privacyPolicy,
                   'This will open artifex.app/privacy',
                 ),
             )}
             {renderSettingRow(
-              'Terms of Service',
-              'View terms of service',
+              t.settings.termsOfService,
+              t.settings.termsOfServiceDesc,
               undefined,
               () =>
                 Alert.alert(
-                  'Terms of Service',
+                  t.settings.termsOfService,
                   'This will open artifex.app/terms',
                 ),
             )}
@@ -257,17 +487,17 @@ const SettingsScreen: React.FC = () => {
 
         {/* Danger Zone Section */}
         {renderSection(
-          'Danger Zone',
+          t.settings.dangerZone,
           <>
             {renderSettingRow(
-              'Clear Cache',
-              'Remove cached thumbnails and temporary files',
+              t.settings.clearCache,
+              t.settings.clearCacheDesc,
               undefined,
               handleClearCache,
             )}
             {renderSettingRow(
-              'Delete All Projects',
-              'Permanently delete all projects',
+              t.settings.deleteAllProjects,
+              t.settings.deleteAllProjectsDesc,
               undefined,
               handleDeleteAllProjects,
               true,
@@ -275,6 +505,9 @@ const SettingsScreen: React.FC = () => {
           </>,
         )}
       </ScrollView>
+
+      {renderThemeModal()}
+      {renderLanguageModal()}
     </SafeAreaView>
   );
 };
@@ -282,7 +515,6 @@ const SettingsScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.backgrounds.primary,
   },
   header: {
     flexDirection: 'row',
@@ -291,7 +523,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.m,
     height: 56,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.backgrounds.tertiary,
   },
   closeButton: {
     width: 44,
@@ -301,11 +532,9 @@ const styles = StyleSheet.create({
   },
   closeIcon: {
     fontSize: 20,
-    color: Colors.text.secondary,
   },
   title: {
     ...Typography.display.h4,
-    color: Colors.text.primary,
   },
   headerSpacer: {
     width: 44,
@@ -318,14 +547,12 @@ const styles = StyleSheet.create({
   },
   sectionHeader: {
     ...Typography.body.caption,
-    color: Colors.text.tertiary,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
     paddingHorizontal: Spacing.m,
     marginBottom: Spacing.s,
   },
   sectionContent: {
-    backgroundColor: Colors.backgrounds.secondary,
     marginHorizontal: Spacing.m,
     borderRadius: AppDimensions.cornerRadius.medium,
     overflow: 'hidden',
@@ -338,21 +565,15 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.s,
     minHeight: 44,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.backgrounds.tertiary,
   },
   settingLeft: {
     flex: 1,
   },
   settingTitle: {
     ...Typography.body.regular,
-    color: Colors.text.primary,
-  },
-  settingTitleDestructive: {
-    color: Colors.semantic.error,
   },
   settingSubtitle: {
     ...Typography.body.small,
-    color: Colors.text.tertiary,
     marginTop: 2,
   },
   settingRight: {
@@ -360,7 +581,41 @@ const styles = StyleSheet.create({
   },
   settingValue: {
     ...Typography.body.regular,
-    color: Colors.text.secondary,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContent: {
+    width: '80%',
+    maxHeight: '70%',
+    borderRadius: AppDimensions.cornerRadius.large,
+    overflow: 'hidden',
+  },
+  modalTitle: {
+    ...Typography.display.h4,
+    padding: Spacing.m,
+    textAlign: 'center',
+  },
+  modalScroll: {
+    maxHeight: 400,
+  },
+  modalOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: Spacing.m,
+    paddingVertical: Spacing.m,
+    borderBottomWidth: 1,
+  },
+  modalOptionText: {
+    ...Typography.body.regular,
+  },
+  checkmark: {
+    fontSize: 20,
+    fontWeight: 'bold',
   },
 });
 

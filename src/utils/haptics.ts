@@ -22,3 +22,18 @@ export const haptics = {
 
 // Legacy export for backward compatibility
 export const hapticFeedback = haptics;
+
+// Unified trigger function for easier use
+export const triggerHaptic = (
+  type:
+    | 'selection'
+    | 'snap'
+    | 'error'
+    | 'success'
+    | 'warning'
+    | 'light'
+    | 'medium'
+    | 'heavy',
+) => {
+  haptics[type]();
+};
