@@ -1,5 +1,3 @@
-// Paywall screen for Pro upgrade
-
 import React, { useState } from 'react';
 import {
   View,
@@ -8,6 +6,7 @@ import {
   TouchableOpacity,
   ScrollView,
   Alert,
+  Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -15,6 +14,7 @@ import { useAppStore } from '../stores/appStore';
 import { Colors, Gradients } from '../constants/colors';
 import { Typography } from '../constants/typography';
 import { Spacing, Dimensions as AppDimensions } from '../constants/spacing';
+import crown from "../assets/images/crown.png"
 
 const PaywallScreen: React.FC = () => {
   const navigation = useNavigation();
@@ -102,7 +102,7 @@ const PaywallScreen: React.FC = () => {
         {/* Hero Section */}
         <View style={styles.heroSection}>
           <View style={styles.crownContainer}>
-            <Text style={styles.crownIcon}>👑</Text>
+            <Image source={crown} style={styles.crownIcon} />
           </View>
           <Text style={styles.heroTitle}>Artifex Pro</Text>
           <Text style={styles.heroSubtitle}>Unlock the Full Experience</Text>
@@ -216,7 +216,8 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.m,
   },
   crownIcon: {
-    fontSize: 64,
+    width: 64,
+    height: 64,
   },
   heroTitle: {
     ...Typography.display.hero,

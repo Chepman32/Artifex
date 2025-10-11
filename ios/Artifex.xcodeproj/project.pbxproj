@@ -36,7 +36,6 @@
 		2BBAD6A97C174A0193E2B631 /* OFL.txt in Resources */ = {isa = PBXBuildFile; fileRef = 234EA631820C4532A42E59CC /* OFL.txt */; };
 		C952DC32EC01464190D41C19 /* README.txt in Resources */ = {isa = PBXBuildFile; fileRef = 77DF8F0E145441448192C1C4 /* README.txt */; };
 		88CE6848036942E5991FD47F /* LICENSE.txt in Resources */ = {isa = PBXBuildFile; fileRef = 848E3DAAA233408BA25CBFD7 /* LICENSE.txt */; };
-		E5A9296BB91B40A0999166B2 /* README.md in Resources */ = {isa = PBXBuildFile; fileRef = 99E46C5D06004CE6ACFC3DDE /* README.md */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -74,7 +73,6 @@
 		234EA631820C4532A42E59CC /* OFL.txt */ = {isa = PBXFileReference; name = "OFL.txt"; path = "../src/assets/fonts/Archivo_Black/OFL.txt"; sourceTree = "<group>"; fileEncoding = undefined; lastKnownFileType = unknown; explicitFileType = undefined; includeInIndex = 0; };
 		77DF8F0E145441448192C1C4 /* README.txt */ = {isa = PBXFileReference; name = "README.txt"; path = "../src/assets/fonts/Bitcount_Ink/README.txt"; sourceTree = "<group>"; fileEncoding = undefined; lastKnownFileType = unknown; explicitFileType = undefined; includeInIndex = 0; };
 		848E3DAAA233408BA25CBFD7 /* LICENSE.txt */ = {isa = PBXFileReference; name = "LICENSE.txt"; path = "../src/assets/fonts/Homemade_Apple/LICENSE.txt"; sourceTree = "<group>"; fileEncoding = undefined; lastKnownFileType = unknown; explicitFileType = undefined; includeInIndex = 0; };
-		99E46C5D06004CE6ACFC3DDE /* README.md */ = {isa = PBXFileReference; name = "README.md"; path = "../assets/fonts/README.md"; sourceTree = "<group>"; fileEncoding = undefined; lastKnownFileType = unknown; explicitFileType = undefined; includeInIndex = 0; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -176,7 +174,6 @@
 				234EA631820C4532A42E59CC /* OFL.txt */,
 				77DF8F0E145441448192C1C4 /* README.txt */,
 				848E3DAAA233408BA25CBFD7 /* LICENSE.txt */,
-				99E46C5D06004CE6ACFC3DDE /* README.md */,
 			);
 			name = Resources;
 			sourceTree = "<group>";
@@ -269,7 +266,6 @@
 				2BBAD6A97C174A0193E2B631 /* OFL.txt in Resources */,
 				C952DC32EC01464190D41C19 /* README.txt in Resources */,
 				88CE6848036942E5991FD47F /* LICENSE.txt in Resources */,
-				E5A9296BB91B40A0999166B2 /* README.md in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
