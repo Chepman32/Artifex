@@ -6,7 +6,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { useAppStore } from '../stores/appStore';
 
 // Screens
-import SplashScreen from '../screens/SplashScreen';
+import ParticleSplashScreen from '../screens/ParticleSplashScreen';
 import OnboardingScreen from '../screens/OnboardingScreen';
 import HomeScreen from '../screens/HomeScreen';
 import EditorScreen from '../screens/EditorScreen';
@@ -33,13 +33,13 @@ export default function AppNavigator() {
   const [showSplash, setShowSplash] = useState(true);
 
   useEffect(() => {
-    // Splash screen duration matches animation (2.8 seconds)
-    const timer = setTimeout(() => setShowSplash(false), 2800);
+    // Splash screen duration matches animation (1.5 seconds total)
+    const timer = setTimeout(() => setShowSplash(false), 1500);
     return () => clearTimeout(timer);
   }, []);
 
   if (showSplash) {
-    return <SplashScreen />;
+    return <ParticleSplashScreen />;
   }
 
   return (

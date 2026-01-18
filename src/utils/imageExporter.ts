@@ -4,6 +4,7 @@ import { Platform } from 'react-native';
 import RNFS from 'react-native-fs';
 import { CanvasElement, ImageFilter } from '../types';
 import { getFilterColorMatrix } from './colorMatrix';
+import { rasterizeTextElementToWatermark } from './textRasterizer';
 
 // Extend RNFS types for iOS-specific methods
 interface RNFSWithIOS {
@@ -41,79 +42,50 @@ interface ElementSize {
   height: number;
 }
 
+const isValidCanvasSize = (
+  size?: { width: number; height: number } | null,
+): size is { width: number; height: number } => {
+  return (
+    !!size &&
+    Number.isFinite(size.width) &&
+    Number.isFinite(size.height) &&
+    size.width > 0 &&
+    size.height > 0
+  );
+};
 
-// Create a rasterized watermark as a sticker
-const createWatermarkSticker = async (
-  text: string,
-  fontSize: number = 24,
-  color: string = '#FFFFFF',
-  opacity: number = 1.0,
-): Promise<string> => {
+const rasterizeTextForExport = async (
+  element: CanvasElement,
+  targetType: 'sticker' | 'watermark',
+): Promise<CanvasElement | null> => {
+  if (!element.textContent) {
+    return null;
+  }
+
   try {
-    // Create a temporary canvas for text rendering
-    const textWidth = text.length * fontSize * 0.6; // rough estimate
-    const textHeight = fontSize * 1.5;
-    const padding = fontSize * 0.3;
-    
-    const canvasWidth = Math.ceil(textWidth + padding * 2);
-    const canvasHeight = Math.ceil(textHeight + padding * 2);
-    
-    const surface = Skia.Surface.Make(canvasWidth, canvasHeight);
-    if (!surface) {
-      throw new Error('Failed to create watermark surface');
+    const rasterized = await rasterizeTextElementToWatermark({
+      ...element,
+      opacity: 1,
+    });
+
+    if (!rasterized.assetPath) {
+      return null;
     }
-    
-    const canvas = surface.getCanvas();
-    canvas.clear(Skia.Color('transparent'));
-    
-    // Create font
-    const font = Skia.Font(undefined, fontSize);
-    if (!font) {
-      throw new Error('Failed to create font');
-    }
-    
-    // Create paint
-    const paint = Skia.Paint();
-    paint.setAntiAlias(true);
-    paint.setColor(Skia.Color(color));
-    paint.setAlphaf(opacity);
-    
-    // Draw text
-    const x = padding;
-    const y = canvasHeight - padding;
-    
-    try {
-      (canvas as any).drawText(text, x, y, paint, font);
-    } catch {
-      try {
-        (canvas as any).drawText(text, x, y, font, paint);
-      } catch {
-        // If both fail, create a simple rectangle as fallback
-        const rect = Skia.XYWHRect(0, 0, canvasWidth, canvasHeight);
-        canvas.drawRect(rect, paint);
-      }
-    }
-    
-    // Encode to base64
-    const snapshot = surface.makeImageSnapshot();
-    const imageFormatEnum = (Skia as any).ImageFormat;
-    let encoded: string;
-    
-    if (imageFormatEnum?.PNG) {
-      encoded = snapshot.encodeToBase64(imageFormatEnum.PNG, 100);
-    } else {
-      encoded = snapshot.encodeToBase64();
-    }
-    
-    // Save to temp file
-    const filename = `watermark_${Date.now()}.png`;
-    const filepath = `${RNFS.TemporaryDirectoryPath}/${filename}`;
-    await RNFS.writeFile(filepath, encoded, 'base64');
-    
-    return filepath;
+
+    return {
+      ...rasterized,
+      type: targetType,
+      scale: element.scale ?? rasterized.scale ?? 1,
+      rotation: element.rotation ?? rasterized.rotation,
+      opacity: element.opacity ?? 1,
+    };
   } catch (error) {
-    console.error('Failed to create watermark sticker:', error);
-    throw error;
+    console.error(
+      '[imageExporter] Failed to rasterize text element:',
+      element.id,
+      error,
+    );
+    return null;
   }
 };
 
@@ -412,6 +384,7 @@ const drawCanvasElement = async (
 ): Promise<void> => {
   switch (element.type) {
     case 'sticker':
+    case 'stamp':
     case 'watermark': {
       if (!element.assetPath) {
         return;
@@ -453,10 +426,14 @@ export const exportCanvasToImage = async (
     const canvas = surface.getCanvas();
     canvas.clear(Skia.Color('#00000000'));
 
+    const normalizedCanvasSize = isValidCanvasSize(canvasSize)
+      ? canvasSize
+      : null;
     const canvasScale = getCanvasScale(
       sourceImageDimensions,
-      canvasSize || null,
+      normalizedCanvasSize,
     );
+    const exportCanvasSize = normalizedCanvasSize || sourceImageDimensions;
 
     // Load and draw source image
     console.log(`[imageExporter] Loading source image: ${sourceImagePath}`);
@@ -468,68 +445,75 @@ export const exportCanvasToImage = async (
 
     drawSourceImage(canvas, sourceImage, width, height, filter);
 
-    // Convert text watermarks to sticker elements
-    const elementsToRender = [...canvasElements];
-    
-    // Process text watermarks by converting them to rasterized stickers
-    for (const element of canvasElements) {
-      if (element.type === 'watermark' && element.textContent && !element.assetPath) {
-        try {
-          console.log(`[imageExporter] Converting text watermark to sticker: ${element.textContent}`);
-          const watermarkPath = await createWatermarkSticker(
-            element.textContent,
-            element.fontSize || 24,
-            element.color || '#FFFFFF',
-            element.opacity || 1.0
-          );
-          
-          // Replace text watermark with image-based watermark
-          const stickerElement: CanvasElement = {
-            ...element,
-            type: 'watermark',
-            assetPath: watermarkPath,
-            textContent: undefined,
-          };
-          
-          const index = elementsToRender.findIndex(el => el.id === element.id);
-          if (index !== -1) {
-            elementsToRender[index] = stickerElement;
+    const elementsToRender = await Promise.all(
+      canvasElements.map(async element => {
+        if (element.type === 'text') {
+          const rasterized = await rasterizeTextForExport(element, 'sticker');
+          if (rasterized) {
+            return rasterized;
           }
-        } catch (error) {
-          console.error(`[imageExporter] Failed to convert watermark ${element.id}:`, error);
         }
-      }
-    }
 
-    // Add built-in watermark if requested
+        if (
+          element.type === 'watermark' &&
+          element.textContent &&
+          !element.assetPath
+        ) {
+          const rasterized = await rasterizeTextForExport(element, 'watermark');
+          if (rasterized) {
+            return rasterized;
+          }
+        }
+
+        return element;
+      }),
+    );
+
     if (addWatermark) {
       try {
-        console.log(`[imageExporter] Creating built-in watermark sticker`);
-        const watermarkPath = await createWatermarkSticker(
-          STIKARO_WATERMARK_TEXT,
-          WATERMARK_FONT_SIZE,
-          '#FFFFFF',
-          WATERMARK_OPACITY
-        );
-        
-        const builtInWatermark: CanvasElement = {
+        const baseElement: CanvasElement = {
           id: `builtin-watermark-${Date.now()}`,
-          type: 'watermark',
-          assetPath: watermarkPath,
-          position: { 
-            x: width - 200 - WATERMARK_PADDING, 
-            y: height - 30 - WATERMARK_PADDING 
-          },
+          type: 'text',
+          textContent: STIKARO_WATERMARK_TEXT,
+          fontFamily: 'System',
+          fontSize: WATERMARK_FONT_SIZE,
+          color: '#FFFFFF',
+          position: { x: 0, y: 0 },
           scale: 1,
           rotation: 0,
-          width: 200,
-          height: 30,
           opacity: WATERMARK_OPACITY,
         };
-        
-        elementsToRender.push(builtInWatermark);
+
+        const rasterized = await rasterizeTextForExport(
+          baseElement,
+          'watermark',
+        );
+
+        if (rasterized) {
+          const watermarkWidth =
+            rasterized.width ?? WATERMARK_FONT_SIZE * 8;
+          const watermarkHeight =
+            rasterized.height ?? WATERMARK_FONT_SIZE * 2;
+
+          const x = Math.max(
+            exportCanvasSize.width - watermarkWidth - WATERMARK_PADDING,
+            0,
+          );
+          const y = Math.max(
+            exportCanvasSize.height - watermarkHeight - WATERMARK_PADDING,
+            0,
+          );
+
+          elementsToRender.push({
+            ...rasterized,
+            position: { x, y },
+          });
+        }
       } catch (error) {
-        console.error(`[imageExporter] Failed to create built-in watermark:`, error);
+        console.error(
+          '[imageExporter] Failed to create built-in watermark:',
+          error,
+        );
       }
     }
 
