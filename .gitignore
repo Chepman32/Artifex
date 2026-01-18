@@ -2,6 +2,10 @@
 #
 .DS_Store
 
+# fastlane
+fastlane/
+fastlane_example/
+#
 # Xcode
 #
 build/
