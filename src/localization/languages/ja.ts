@@ -8,6 +8,8 @@ export const ja: Translations = {
     close: '閉じる',
     done: '完了',
     back: '戻る',
+    ok: 'OK',
+    error: 'Error',
   },
   settings: {
     title: '設定',
@@ -51,5 +53,18 @@ export const ja: Translations = {
     clearCacheDesc: 'キャッシュされたサムネイルと一時ファイルを削除',
     deleteAllProjects: 'すべてのプロジェクトを削除',
     deleteAllProjectsDesc: 'すべてのプロジェクトを完全に削除',
+  },
+  export: {
+    saveToDevice: 'Save on device',
+    shareOnInstagram: 'Share on Instagram',
+    shareOnX: 'Share on X',
+    savedToPhotos: 'Saved to Photos',
+    savedToPhotosDesc: 'Your image has been saved to gallery.',
+    viewInGallery: 'View in gallery',
+    noImageToExport: 'No image to export',
+    failedToExport: 'Failed to export image',
+    failedToSave: 'Failed to save image to Photos',
+    couldNotShareInstagram: 'Could not share on Instagram.',
+    couldNotShareX: 'Could not share on X.',
   },
 };

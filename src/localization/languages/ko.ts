@@ -8,6 +8,8 @@ export const ko: Translations = {
     close: '닫기',
     done: '완료',
     back: '뒤로',
+    ok: 'OK',
+    error: 'Error',
   },
   settings: {
     title: '설정',
@@ -51,5 +53,18 @@ export const ko: Translations = {
     clearCacheDesc: '캐시된 썸네일 및 임시 파일 제거',
     deleteAllProjects: '모든 프로젝트 삭제',
     deleteAllProjectsDesc: '모든 프로젝트를 영구적으로 삭제',
+  },
+  export: {
+    saveToDevice: 'Save on device',
+    shareOnInstagram: 'Share on Instagram',
+    shareOnX: 'Share on X',
+    savedToPhotos: 'Saved to Photos',
+    savedToPhotosDesc: 'Your image has been saved to gallery.',
+    viewInGallery: 'View in gallery',
+    noImageToExport: 'No image to export',
+    failedToExport: 'Failed to export image',
+    failedToSave: 'Failed to save image to Photos',
+    couldNotShareInstagram: 'Could not share on Instagram.',
+    couldNotShareX: 'Could not share on X.',
   },
 };

@@ -1,16 +1,36 @@
 // Translations for Artifex
 
 export type Language =
-  | 'en'
-  | 'ru'
-  | 'es'
-  | 'de'
-  | 'fr'
-  | 'pt'
-  | 'ja'
-  | 'zh'
-  | 'ko'
-  | 'uk';
+  | 'en'     // English
+  | 'zh'     // Chinese (Simplified)
+  | 'ja'     // Japanese
+  | 'ko'     // Korean
+  | 'de'     // German
+  | 'fr'     // French
+  | 'es'     // Spanish (Mexican)
+  | 'pt'     // Portuguese (Brazilian)
+  | 'ar'     // Arabic
+  | 'ru'     // Russian
+  | 'it'     // Italian
+  | 'nl'     // Dutch
+  | 'tr'     // Turkish
+  | 'th'     // Thai
+  | 'vi'     // Vietnamese
+  | 'id'     // Indonesian
+  | 'pl'     // Polish
+  | 'uk'     // Ukrainian
+  | 'hi'     // Hindi
+  | 'he'     // Hebrew
+  | 'sv'     // Swedish
+  | 'no'     // Norwegian
+  | 'da'     // Danish
+  | 'fi'     // Finnish
+  | 'cs'     // Czech
+  | 'hu'     // Hungarian
+  | 'ro'     // Romanian
+  | 'el'     // Greek
+  | 'ms'     // Malay
+  | 'fil';   // Filipino
 
 export interface Translations {
   common: {
@@ -20,6 +40,8 @@ export interface Translations {
     close: string;
     done: string;
     back: string;
+    ok: string;
+    error: string;
   };
   settings: {
     title: string;
@@ -63,5 +85,18 @@ export interface Translations {
     clearCacheDesc: string;
     deleteAllProjects: string;
     deleteAllProjectsDesc: string;
+  };
+  export: {
+    saveToDevice: string;
+    shareOnInstagram: string;
+    shareOnX: string;
+    savedToPhotos: string;
+    savedToPhotosDesc: string;
+    viewInGallery: string;
+    noImageToExport: string;
+    failedToExport: string;
+    failedToSave: string;
+    couldNotShareInstagram: string;
+    couldNotShareX: string;
   };
 }

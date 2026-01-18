@@ -20,6 +20,7 @@ import { useEditorStore } from '../../stores/editorStore';
 import { exportCanvasToImage } from '../../utils/imageExporter';
 import { CameraRoll } from '@react-native-camera-roll/camera-roll';
 import { Share } from 'react-native';
+import { useTranslation } from '../../hooks/useTranslation';
 
 const instagramIcon = require('../../assets/icons/instagram.png');
 const xIcon = require('../../assets/icons/x-logo.png');
@@ -37,6 +38,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({
   onClose,
   canvasDimensions,
 }) => {
+  const t = useTranslation();
   const [selectedFormat, setSelectedFormat] = useState<ExportFormat>('png');
   const [quality, setQuality] = useState<number>(100);
   const [isExporting, setIsExporting] = useState(false);
@@ -59,7 +61,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({
 
   const exportImage = async () => {
     if (!sourceImagePath || !sourceImageDimensions) {
-      Alert.alert('Error', 'No image to export');
+      Alert.alert(t.common.error, t.export.noImageToExport);
       throw new Error('Missing source image');
     }
 
@@ -84,7 +86,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({
       return result;
     } catch (error) {
       console.error('Export error:', error);
-      Alert.alert('Error', 'Failed to export image');
+      Alert.alert(t.common.error, t.export.failedToExport);
       throw error;
     } finally {
       setIsExporting(false);
@@ -106,15 +108,15 @@ export const ExportModal: React.FC<ExportModalProps> = ({
       onClose();
 
       Alert.alert(
-        'Saved to Photos',
-        'Your image has been saved to the gallery.',
+        t.export.savedToPhotos,
+        t.export.savedToPhotosDesc,
         [
           {
-            text: 'OK',
+            text: t.common.ok,
             style: 'cancel',
           },
           {
-            text: 'View in gallery',
+            text: t.export.viewInGallery,
             onPress: () => {
               openCameraRoll().catch(err =>
                 console.warn('Failed to open gallery:', err),
@@ -125,7 +127,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({
       );
     } catch (error) {
       console.error('Save error:', error);
-      Alert.alert('Error', 'Failed to save image to Photos');
+      Alert.alert(t.common.error, t.export.failedToSave);
       // exportImage already displayed an alert, so nothing extra here
     } finally {
       setIsExporting(false);
@@ -149,7 +151,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({
       };
 
       const result = await Share.share(options, {
-        dialogTitle: 'Share on Instagram',
+        dialogTitle: t.export.shareOnInstagram,
         subject: 'Instagram',
       });
 
@@ -158,7 +160,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({
       }
     } catch (error) {
       console.error('Share error (Instagram):', error);
-      Alert.alert('Error', 'Could not share on Instagram.');
+      Alert.alert(t.common.error, t.export.couldNotShareInstagram);
     } finally {
       setIsExporting(false);
     }
@@ -181,7 +183,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({
       };
 
       const result = await Share.share(options, {
-        dialogTitle: 'Share on X',
+        dialogTitle: t.export.shareOnX,
         subject: 'X',
       });
 
@@ -190,7 +192,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({
       }
     } catch (error) {
       console.error('Share error (X):', error);
-      Alert.alert('Error', 'Could not share on X.');
+      Alert.alert(t.common.error, t.export.couldNotShareX);
     } finally {
       setIsExporting(false);
     }
@@ -213,7 +215,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({
                 <View style={styles.iconContainer}>
                   <Text style={styles.iconText}>💾</Text>
                 </View>
-                <Text style={styles.actionText}>Save on device</Text>
+                <Text style={styles.actionText}>{t.export.saveToDevice}</Text>
               </>
             )}
           </TouchableOpacity>
@@ -234,7 +236,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({
                     resizeMode="contain"
                   />
                 </View>
-                <Text style={styles.actionText}>Share on Instagram</Text>
+                <Text style={styles.actionText}>{t.export.shareOnInstagram}</Text>
               </>
             )}
           </TouchableOpacity>
@@ -255,7 +257,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({
                     resizeMode="contain"
                   />
                 </View>
-                <Text style={styles.actionText}>Share on X</Text>
+                <Text style={styles.actionText}>{t.export.shareOnX}</Text>
               </>
             )}
           </TouchableOpacity>
@@ -270,16 +272,16 @@ const styles = StyleSheet.create({
     padding: Spacing.xl,
   },
   actionList: {
-    gap: Spacing.lg,
+    gap: Spacing.l,
   },
   actionButton: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: Colors.backgrounds.secondary,
     borderRadius: 16,
-    padding: Spacing.lg,
-    paddingVertical: Spacing.xl,
-    gap: Spacing.lg,
+    padding: Spacing.l,
+    paddingVertical: Spacing.l,
+    gap: Spacing.l,
   },
   iconContainer: {
     width: 48,

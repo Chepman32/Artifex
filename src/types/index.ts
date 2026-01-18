@@ -93,7 +93,7 @@ export interface UserPreferences {
   colorScheme: 'auto' | 'light' | 'dark';
   theme: 'light' | 'dark' | 'solar' | 'mono';
   soundEnabled: boolean;
-  language: 'en' | 'ru' | 'es' | 'de' | 'fr' | 'pt' | 'ja' | 'zh' | 'ko' | 'uk';
+  language: 'en' | 'zh' | 'ja' | 'ko' | 'de' | 'fr' | 'es' | 'pt' | 'ar' | 'ru' | 'it' | 'nl' | 'tr' | 'th' | 'vi' | 'id' | 'pl' | 'uk' | 'hi' | 'he' | 'sv' | 'no' | 'da' | 'fi' | 'cs' | 'hu' | 'ro' | 'el' | 'ms' | 'fil';
 }
 
 export interface ExportOptions {

@@ -8,6 +8,8 @@ export const uk: Translations = {
     close: 'Закрити',
     done: 'Готово',
     back: 'Назад',
+    ok: 'OK',
+    error: 'Error',
   },
   settings: {
     title: 'Налаштування',
@@ -52,5 +54,18 @@ export const uk: Translations = {
     clearCacheDesc: 'Видалити кешовані мініатюри та тимчасові файли',
     deleteAllProjects: 'Видалити всі проекти',
     deleteAllProjectsDesc: 'Безповоротно видалити всі проекти',
+  },
+  export: {
+    saveToDevice: 'Save on device',
+    shareOnInstagram: 'Share on Instagram',
+    shareOnX: 'Share on X',
+    savedToPhotos: 'Saved to Photos',
+    savedToPhotosDesc: 'Your image has been saved to gallery.',
+    viewInGallery: 'View in gallery',
+    noImageToExport: 'No image to export',
+    failedToExport: 'Failed to export image',
+    failedToSave: 'Failed to save image to Photos',
+    couldNotShareInstagram: 'Could not share on Instagram.',
+    couldNotShareX: 'Could not share on X.',
   },
 };

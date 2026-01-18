@@ -8,6 +8,8 @@ export const fr: Translations = {
     close: 'Fermer',
     done: 'Terminé',
     back: 'Retour',
+    ok: 'OK',
+    error: 'Error',
   },
   settings: {
     title: 'Paramètres',
@@ -54,5 +56,18 @@ export const fr: Translations = {
       'Supprimer les miniatures en cache et les fichiers temporaires',
     deleteAllProjects: 'Supprimer tous les projets',
     deleteAllProjectsDesc: 'Supprimer définitivement tous les projets',
+  },
+  export: {
+    saveToDevice: 'Save on device',
+    shareOnInstagram: 'Share on Instagram',
+    shareOnX: 'Share on X',
+    savedToPhotos: 'Saved to Photos',
+    savedToPhotosDesc: 'Your image has been saved to gallery.',
+    viewInGallery: 'View in gallery',
+    noImageToExport: 'No image to export',
+    failedToExport: 'Failed to export image',
+    failedToSave: 'Failed to save image to Photos',
+    couldNotShareInstagram: 'Could not share on Instagram.',
+    couldNotShareX: 'Could not share on X.',
   },
 };

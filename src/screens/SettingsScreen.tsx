@@ -10,6 +10,7 @@ import {
   Switch,
   Alert,
   Modal,
+  Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -216,6 +217,42 @@ const SettingsScreen: React.FC = () => {
     </Modal>
   );
 
+  const getFlagImage = (language: Language) => {
+    const flagMap: Record<Language, any> = {
+      en: require('../assets/icons/flags/en.png'),
+      zh: require('../assets/icons/flags/zh.png'),
+      ja: require('../assets/icons/flags/ja.png'),
+      ko: require('../assets/icons/flags/ko.png'),
+      de: require('../assets/icons/flags/de.png'),
+      fr: require('../assets/icons/flags/fr.png'),
+      es: require('../assets/icons/flags/es.png'),
+      pt: require('../assets/icons/flags/pt-BR.png'),
+      ar: require('../assets/icons/flags/ar.png'),
+      ru: require('../assets/icons/flags/ru.png'),
+      it: require('../assets/icons/flags/it.png'),
+      nl: require('../assets/icons/flags/nl.png'),
+      tr: require('../assets/icons/flags/tr.png'),
+      th: require('../assets/icons/flags/th.png'),
+      vi: require('../assets/icons/flags/vi.png'),
+      id: require('../assets/icons/flags/id.png'),
+      pl: require('../assets/icons/flags/pl.png'),
+      uk: require('../assets/icons/flags/uk.png'),
+      hi: require('../assets/icons/flags/hi.png'),
+      he: require('../assets/icons/flags/he.png'),
+      sv: require('../assets/icons/flags/sv.png'),
+      no: require('../assets/icons/flags/no.png'),
+      da: require('../assets/icons/flags/da.png'),
+      fi: require('../assets/icons/flags/fi.png'),
+      cs: require('../assets/icons/flags/cs.png'),
+      hu: require('../assets/icons/flags/hu.png'),
+      ro: require('../assets/icons/flags/ro.png'),
+      el: require('../assets/icons/flags/el.png'),
+      ms: require('../assets/icons/flags/ms.png'),
+      fil: require('../assets/icons/flags/fil.png'),
+    };
+    return flagMap[language];
+  };
+
   const renderLanguageModal = () => (
     <Modal
       visible={showLanguageModal}
@@ -247,19 +284,27 @@ const SettingsScreen: React.FC = () => {
                 ]}
                 onPress={() => handleLanguageChange(lang)}
               >
-                <Text
-                  style={[
-                    styles.modalOptionText,
-                    {
-                      color:
-                        preferences.language === lang
-                          ? theme.accent.primary
-                          : theme.text.primary,
-                    },
-                  ]}
-                >
-                  {languageNames[lang]}
-                </Text>
+                <View style={styles.languageOption}>
+                  <Image
+                    source={getFlagImage(lang)}
+                    style={styles.flagImage}
+                    resizeMode="contain"
+                  />
+                  <Text
+                    style={[
+                      styles.modalOptionText,
+                      {
+                        color:
+                          preferences.language === lang
+                            ? theme.accent.primary
+                            : theme.text.primary,
+                        marginLeft: Spacing.m,
+                      },
+                    ]}
+                  >
+                    {languageNames[lang]}
+                  </Text>
+                </View>
                 {preferences.language === lang && (
                   <Text
                     style={[styles.checkmark, { color: theme.accent.primary }]}
@@ -599,11 +644,20 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
   },
   modalOptionText: {
-    ...Typography.display.h5,
+    ...Typography.body.regular,
   },
   checkmark: {
     fontSize: 28,
     fontWeight: 'bold',
+  },
+  languageOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  flagImage: {
+    width: 24,
+    height: 16,
   },
 });
 

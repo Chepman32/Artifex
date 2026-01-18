@@ -8,6 +8,8 @@ export const ru: Translations = {
     close: 'Закрыть',
     done: 'Готово',
     back: 'Назад',
+    ok: 'OK',
+    error: 'Error',
   },
   settings: {
     title: 'Настройки',
@@ -52,5 +54,18 @@ export const ru: Translations = {
     clearCacheDesc: 'Удалить кэшированные миниатюры и временные файлы',
     deleteAllProjects: 'Удалить все проекты',
     deleteAllProjectsDesc: 'Безвозвратно удалить все проекты',
+  },
+  export: {
+    saveToDevice: 'Save on device',
+    shareOnInstagram: 'Share on Instagram',
+    shareOnX: 'Share on X',
+    savedToPhotos: 'Saved to Photos',
+    savedToPhotosDesc: 'Your image has been saved to gallery.',
+    viewInGallery: 'View in gallery',
+    noImageToExport: 'No image to export',
+    failedToExport: 'Failed to export image',
+    failedToSave: 'Failed to save image to Photos',
+    couldNotShareInstagram: 'Could not share on Instagram.',
+    couldNotShareX: 'Could not share on X.',
   },
 };

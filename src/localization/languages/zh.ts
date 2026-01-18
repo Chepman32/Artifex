@@ -8,6 +8,8 @@ export const zh: Translations = {
     close: '关闭',
     done: '完成',
     back: '返回',
+    ok: 'OK',
+    error: 'Error',
   },
   settings: {
     title: '设置',
@@ -51,5 +53,18 @@ export const zh: Translations = {
     clearCacheDesc: '删除缓存的缩略图和临时文件',
     deleteAllProjects: '删除所有项目',
     deleteAllProjectsDesc: '永久删除所有项目',
+  },
+  export: {
+    saveToDevice: 'Save on device',
+    shareOnInstagram: 'Share on Instagram',
+    shareOnX: 'Share on X',
+    savedToPhotos: 'Saved to Photos',
+    savedToPhotosDesc: 'Your image has been saved to gallery.',
+    viewInGallery: 'View in gallery',
+    noImageToExport: 'No image to export',
+    failedToExport: 'Failed to export image',
+    failedToSave: 'Failed to save image to Photos',
+    couldNotShareInstagram: 'Could not share on Instagram.',
+    couldNotShareX: 'Could not share on X.',
   },
 };
