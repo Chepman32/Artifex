@@ -16,8 +16,6 @@ import { Colors } from '../../constants/colors';
 import { Typography } from '../../constants/typography';
 import { Spacing } from '../../constants/spacing';
 import { STICKERS, STICKER_CATEGORIES } from '../../constants/assets';
-import { useAppStore } from '../../stores/appStore';
-import { useNavigation } from '@react-navigation/native';
 
 const { width: screenWidth, height: initialScreenHeight } =
   Dimensions.get('window');
@@ -52,8 +50,6 @@ export const StickerPickerModal: React.FC<StickerPickerModalProps> = ({
   onClose,
   onSelect,
 }) => {
-  const navigation = useNavigation();
-  const isProUser = useAppStore(state => state.isProUser);
   const [selectedCategory, setSelectedCategory] = useState('all');
 
   const modalHeight = useMemo(() => {
@@ -63,21 +59,12 @@ export const StickerPickerModal: React.FC<StickerPickerModalProps> = ({
 
   const filteredStickers = ALL_STICKERS.filter(sticker => {
     if (selectedCategory === 'all') {
-      return isProUser || !sticker.isPro;
+      return true;
     }
-    return (
-      sticker.category === selectedCategory && (isProUser || !sticker.isPro)
-    );
+    return sticker.category === selectedCategory;
   });
 
   const handleStickerPress = (sticker: Sticker) => {
-    if (sticker.isPro && !isProUser) {
-      // Navigate to paywall
-      onClose();
-      navigation.navigate('Paywall' as never);
-      return;
-    }
-
     // Select the sticker - use file if available, otherwise uri
     const stickerSource = sticker.file || sticker.uri || '';
     onSelect(stickerSource, sticker.width || 100, sticker.height || 100);
@@ -107,8 +94,6 @@ export const StickerPickerModal: React.FC<StickerPickerModalProps> = ({
   };
 
   const renderSticker = ({ item }: { item: Sticker }) => {
-    const isLocked = item.isPro && !isProUser;
-
     return (
       <TouchableOpacity
         style={styles.stickerItem}
@@ -118,17 +103,9 @@ export const StickerPickerModal: React.FC<StickerPickerModalProps> = ({
         <View style={styles.stickerContainer}>
           <Image
             source={item.file ? item.file : { uri: item.uri }}
-            style={[styles.stickerImage, isLocked && styles.stickerImageLocked]}
+            style={styles.stickerImage}
             resizeMode="contain"
           />
-
-          {isLocked && (
-            <View style={styles.lockedOverlay}>
-              <View style={styles.crownBadge}>
-                <Text style={styles.crownIcon}>👑</Text>
-              </View>
-            </View>
-          )}
         </View>
       </TouchableOpacity>
     );
@@ -160,28 +137,11 @@ export const StickerPickerModal: React.FC<StickerPickerModalProps> = ({
           ListEmptyComponent={
             <View style={styles.emptyState}>
               <Text style={styles.emptyText}>
-                {isProUser
-                  ? 'No stickers in this category'
-                  : 'Unlock Pro to access premium stickers'}
+                No stickers in this category
               </Text>
             </View>
           }
         />
-
-        {/* Pro CTA */}
-        {!isProUser && (
-          <TouchableOpacity
-            style={styles.proButton}
-            onPress={() => {
-              onClose();
-              navigation.navigate('Paywall' as never);
-            }}
-          >
-            <Text style={styles.proButtonText}>
-              👑 Unlock 70+ Premium Stickers
-            </Text>
-          </TouchableOpacity>
-        )}
       </View>
     </BottomSheet>
   );

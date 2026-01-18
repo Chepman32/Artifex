@@ -16,8 +16,6 @@ import { Colors } from '../../constants/colors';
 import { Typography } from '../../constants/typography';
 import { Spacing } from '../../constants/spacing';
 import { STAMPS, STAMP_CATEGORIES } from '../../constants/assets';
-import { useAppStore } from '../../stores/appStore';
-import { useNavigation } from '@react-navigation/native';
 
 const { width: screenWidth, height: initialScreenHeight } =
   Dimensions.get('window');
@@ -52,8 +50,6 @@ export const StampsPickerModal: React.FC<StampsPickerModalProps> = ({
   onClose,
   onSelect,
 }) => {
-  const navigation = useNavigation();
-  const isProUser = useAppStore(state => state.isProUser);
   const [selectedCategory, setSelectedCategory] = useState('all');
 
   const modalHeight = useMemo(() => {
@@ -63,19 +59,12 @@ export const StampsPickerModal: React.FC<StampsPickerModalProps> = ({
 
   const filteredStamps = ALL_STAMPS.filter(stamp => {
     if (selectedCategory === 'all') {
-      return isProUser || !stamp.isPro;
+      return true;
     }
-    return stamp.category === selectedCategory && (isProUser || !stamp.isPro);
+    return stamp.category === selectedCategory;
   });
 
   const handleStampPress = (stamp: Stamp) => {
-    if (stamp.isPro && !isProUser) {
-      // Navigate to paywall
-      onClose();
-      navigation.navigate('Paywall' as never);
-      return;
-    }
-
     // Select the stamp - use file if available, otherwise uri
     const stampSource = stamp.file || stamp.uri || '';
     onSelect(stampSource, stamp.width || 80, stamp.height || 80);
@@ -105,8 +94,6 @@ export const StampsPickerModal: React.FC<StampsPickerModalProps> = ({
   };
 
   const renderStamp = ({ item }: { item: Stamp }) => {
-    const isLocked = item.isPro && !isProUser;
-
     return (
       <TouchableOpacity
         style={styles.stampItem}
@@ -116,17 +103,9 @@ export const StampsPickerModal: React.FC<StampsPickerModalProps> = ({
         <View style={styles.stampContainer}>
           <Image
             source={item.file ? item.file : { uri: item.uri }}
-            style={[styles.stampImage, isLocked && styles.stampImageLocked]}
+            style={styles.stampImage}
             resizeMode="contain"
           />
-
-          {isLocked && (
-            <View style={styles.lockedOverlay}>
-              <View style={styles.crownBadge}>
-                <Text style={styles.crownIcon}>👑</Text>
-              </View>
-            </View>
-          )}
         </View>
       </TouchableOpacity>
     );
@@ -158,26 +137,11 @@ export const StampsPickerModal: React.FC<StampsPickerModalProps> = ({
           ListEmptyComponent={
             <View style={styles.emptyState}>
               <Text style={styles.emptyText}>
-                {isProUser
-                  ? 'No stamps in this category'
-                  : 'Unlock Pro to access premium stamps'}
+                No stamps in this category
               </Text>
             </View>
           }
         />
-
-        {/* Pro CTA */}
-        {!isProUser && (
-          <TouchableOpacity
-            style={styles.proButton}
-            onPress={() => {
-              onClose();
-              navigation.navigate('Paywall' as never);
-            }}
-          >
-            <Text style={styles.proButtonText}>👑 Unlock Premium Stamps</Text>
-          </TouchableOpacity>
-        )}
       </View>
     </BottomSheet>
   );

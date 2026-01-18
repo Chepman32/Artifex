@@ -13,7 +13,6 @@ import { BottomSheet } from './BottomSheet';
 import { Colors } from '../../constants/colors';
 import { Typography } from '../../constants/typography';
 import { Spacing } from '../../constants/spacing';
-import { useAppStore } from '../../stores/appStore';
 
 interface TextToolModalProps {
   visible: boolean;
@@ -59,13 +58,12 @@ export const TextToolModal: React.FC<TextToolModalProps> = ({
   initialSize = 24,
   initialColor = Colors.text.primary,
 }) => {
-  const isProUser = useAppStore(state => state.isProUser);
   const [text, setText] = useState(initialText);
   const [selectedFont, setSelectedFont] = useState(initialFont);
   const [selectedSize, setSelectedSize] = useState(initialSize);
   const [selectedColor, setSelectedColor] = useState(initialColor);
 
-  const allFonts = [...FONTS.free, ...(isProUser ? FONTS.pro : [])];
+  const allFonts = [...FONTS.free, ...FONTS.pro];
 
   const handleAdd = () => {
     if (text.trim()) {
@@ -75,11 +73,7 @@ export const TextToolModal: React.FC<TextToolModalProps> = ({
     }
   };
 
-  const handleFontSelect = (fontId: string, isPro: boolean) => {
-    if (isPro && !isProUser) {
-      // Show paywall
-      return;
-    }
+  const handleFontSelect = (fontId: string) => {
     const font = allFonts.find(f => f.id === fontId);
     if (font) {
       setSelectedFont(font.family);
@@ -117,7 +111,7 @@ export const TextToolModal: React.FC<TextToolModalProps> = ({
                     styles.fontOption,
                     selectedFont === font.family && styles.fontOptionSelected,
                   ]}
-                  onPress={() => handleFontSelect(font.id, font.isPro || false)}
+                  onPress={() => handleFontSelect(font.id)}
                 >
                   <Text
                     style={[
@@ -128,9 +122,6 @@ export const TextToolModal: React.FC<TextToolModalProps> = ({
                   >
                     {font.name}
                   </Text>
-                  {font.isPro && !isProUser && (
-                    <Text style={styles.proLabel}>👑</Text>
-                  )}
                 </TouchableOpacity>
               ))}
             </View>

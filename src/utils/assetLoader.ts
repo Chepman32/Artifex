@@ -2,7 +2,6 @@
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { STICKERS, WATERMARKS, STAMPS, FONTS } from '../constants/assets';
-import { useAppStore } from '../stores/appStore';
 
 // AsyncStorage keys for asset caching
 const ASSET_KEYS = {
@@ -39,14 +38,8 @@ class AssetLoader {
       // Load cached asset paths
       await this.loadCachedAssets();
 
-      // Preload free assets
-      await this.preloadFreeAssets();
-
-      // Load pro assets if user is pro
-      const isProUser = useAppStore.getState().isProUser;
-      if (isProUser) {
-        await this.preloadProAssets();
-      }
+      // Preload all assets (free + pro)
+      await this.preloadAllAssets();
 
       this.isInitialized = true;
       console.log('Asset loader initialized successfully');
@@ -77,10 +70,14 @@ class AssetLoader {
     }
   }
 
-  private async preloadFreeAssets(): Promise<void> {
-    // Convert asset definitions to loaded assets
+  private async preloadAllAssets(): Promise<void> {
+    // Convert asset definitions to loaded assets - load all free and pro assets
     this.loadedStickers = [
       ...STICKERS.free.map(sticker => ({
+        ...sticker,
+        uri: sticker.uri || '',
+      })),
+      ...STICKERS.pro.map(sticker => ({
         ...sticker,
         uri: sticker.uri || '',
       })),
@@ -91,6 +88,10 @@ class AssetLoader {
         ...watermark,
         uri: watermark.uri || '',
       })),
+      ...WATERMARKS.pro.map(watermark => ({
+        ...watermark,
+        uri: watermark.uri || '',
+      })),
     ];
 
     this.loadedStamps = [
@@ -98,40 +99,15 @@ class AssetLoader {
         ...stamp,
         uri: stamp.uri || '',
       })),
-    ];
-
-    this.loadedFonts = [...FONTS.free];
-
-    // Cache the loaded assets
-    await this.cacheAssets();
-  }
-
-  private async preloadProAssets(): Promise<void> {
-    // Add pro assets to loaded collections
-    this.loadedStickers.push(
-      ...STICKERS.pro.map(sticker => ({
-        ...sticker,
-        uri: sticker.uri || '',
-      })),
-    );
-
-    this.loadedWatermarks.push(
-      ...WATERMARKS.pro.map(watermark => ({
-        ...watermark,
-        uri: watermark.uri || '',
-      })),
-    );
-
-    this.loadedStamps.push(
       ...STAMPS.pro.map(stamp => ({
         ...stamp,
         uri: stamp.uri || '',
       })),
-    );
+    ];
 
-    this.loadedFonts.push(...FONTS.pro);
+    this.loadedFonts = [...FONTS.free, ...FONTS.pro];
 
-    // Update cache
+    // Cache the loaded assets
     await this.cacheAssets();
   }
 
@@ -171,10 +147,9 @@ class AssetLoader {
     return this.loadedFonts;
   }
 
-  // Unlock pro assets when user purchases
+  // Deprecated - all assets are now unlocked by default
   async unlockProAssets(): Promise<void> {
-    await this.preloadProAssets();
-    console.log('Pro assets unlocked and loaded');
+    console.log('All assets are already available');
   }
 
   // Clear cache (useful for debugging or reset)
@@ -201,13 +176,10 @@ class AssetLoader {
     return allAssets.find(asset => asset.id === id) || null;
   }
 
-  // Check if asset is available (not locked)
+  // Check if asset is available (always true now - all assets are free)
   isAssetAvailable(id: string): boolean {
     const asset = this.getAssetById(id);
-    if (!asset) return false;
-
-    const isProUser = useAppStore.getState().isProUser;
-    return !asset.isPro || isProUser;
+    return asset !== null;
   }
 }
 

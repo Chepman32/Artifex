@@ -37,7 +37,6 @@ const GRID_ITEM_SIZE =
 
 const HomeScreen: React.FC = () => {
   const navigation = useNavigation();
-  const isProUser = useAppStore(state => state.isProUser);
   const {
     projects,
     selectionMode,
@@ -110,9 +109,6 @@ const HomeScreen: React.FC = () => {
     navigation.navigate('Settings' as never);
   };
 
-  const handleProPress = () => {
-    navigation.navigate('Paywall' as never);
-  };
 
   // Animated project item component
   const AnimatedProjectItem = ({
@@ -222,14 +218,7 @@ const HomeScreen: React.FC = () => {
 
         <Text style={styles.title}>Artifex</Text>
 
-        {!isProUser && (
-          <TouchableOpacity
-            style={styles.topBarButton}
-            onPress={handleProPress}
-          >
-            <Text style={styles.crownIcon}>👑</Text>
-          </TouchableOpacity>
-        )}
+        <View style={styles.topBarButton} />
       </View>
 
       {/* Selection Mode Top Bar */}

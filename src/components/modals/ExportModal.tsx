@@ -16,7 +16,6 @@ import { BottomSheet } from './BottomSheet';
 import { Colors } from '../../constants/colors';
 import { Typography } from '../../constants/typography';
 import { Spacing } from '../../constants/spacing';
-import { useAppStore } from '../../stores/appStore';
 import { useEditorStore } from '../../stores/editorStore';
 import { exportCanvasToImage } from '../../utils/imageExporter';
 import { CameraRoll } from '@react-native-camera-roll/camera-roll';
@@ -42,7 +41,6 @@ export const ExportModal: React.FC<ExportModalProps> = ({
   const [quality, setQuality] = useState<number>(100);
   const [isExporting, setIsExporting] = useState(false);
 
-  const isProUser = useAppStore(state => state.isProUser);
   const {
     canvasElements,
     sourceImagePath,
@@ -77,7 +75,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({
         {
           format: selectedFormat,
           quality,
-          addWatermark: !isProUser,
+          addWatermark: false,
           canvasSize: storedCanvasSize || canvasDimensions,
         },
         appliedFilter,

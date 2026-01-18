@@ -26,7 +26,7 @@ const SettingsScreen: React.FC = () => {
   const navigation = useNavigation();
   const theme = useTheme();
   const t = useTranslation();
-  const { isProUser, preferences, updatePreferences } = useAppStore();
+  const { preferences, updatePreferences } = useAppStore();
   const [showThemeModal, setShowThemeModal] = useState(false);
   const [showLanguageModal, setShowLanguageModal] = useState(false);
 
@@ -50,12 +50,6 @@ const SettingsScreen: React.FC = () => {
     setShowLanguageModal(false);
   };
 
-  const handleRestorePurchases = () => {
-    Alert.alert(
-      'Restore Purchases',
-      'This feature will be implemented with IAP',
-    );
-  };
 
   const handleExportAllProjects = () => {
     Alert.alert('Export All Projects', 'This Pro feature will be implemented');
@@ -379,18 +373,11 @@ const SettingsScreen: React.FC = () => {
           t.settings.account,
           <>
             {renderSettingRow(
-              t.settings.restorePurchases,
-              t.settings.restorePurchasesDesc,
+              t.settings.exportAllProjects,
+              t.settings.exportAllProjectsDesc,
               undefined,
-              handleRestorePurchases,
+              handleExportAllProjects,
             )}
-            {isProUser &&
-              renderSettingRow(
-                t.settings.exportAllProjects,
-                t.settings.exportAllProjectsDesc,
-                undefined,
-                handleExportAllProjects,
-              )}
           </>,
         )}
 

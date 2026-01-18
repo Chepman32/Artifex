@@ -14,8 +14,6 @@ import { BottomSheet } from './BottomSheet';
 import { Colors } from '../../constants/colors';
 import { Typography } from '../../constants/typography';
 import { Spacing } from '../../constants/spacing';
-import { useAppStore } from '../../stores/appStore';
-import { useNavigation } from '@react-navigation/native';
 
 const { width: screenWidth } = Dimensions.get('window');
 const FILTER_COLUMNS = 3;
@@ -96,21 +94,12 @@ export const FilterToolModal: React.FC<FilterToolModalProps> = ({
   onClose,
   onApply,
 }) => {
-  const navigation = useNavigation();
-  const isProUser = useAppStore(state => state.isProUser);
   const [selectedFilter, setSelectedFilter] = useState<string>('none');
   const [intensity, setIntensity] = useState<number>(1.0);
 
-  const availableFilters = FILTERS.filter(filter => isProUser || !filter.isPro);
+  const availableFilters = FILTERS;
 
   const handleFilterPress = (filter: Filter) => {
-    if (filter.isPro && !isProUser) {
-      // Navigate to paywall
-      onClose();
-      navigation.navigate('Paywall' as never);
-      return;
-    }
-
     setSelectedFilter(filter.id);
   };
 
@@ -121,7 +110,6 @@ export const FilterToolModal: React.FC<FilterToolModalProps> = ({
 
   const renderFilter = ({ item }: { item: Filter }) => {
     const isSelected = selectedFilter === item.id;
-    const isLocked = item.isPro && !isProUser;
 
     return (
       <TouchableOpacity
@@ -134,28 +122,11 @@ export const FilterToolModal: React.FC<FilterToolModalProps> = ({
           <View
             style={[
               styles.previewPlaceholder,
-              isLocked && styles.previewPlaceholderLocked,
               getFilterPreviewStyle(item.id),
             ]}
           >
             <Text style={styles.previewText}>{item.name.charAt(0)}</Text>
           </View>
-
-          {/* Locked overlay for Pro filters */}
-          {isLocked && (
-            <View style={styles.lockedOverlay}>
-              <View style={styles.lockBadge}>
-                <Text style={styles.lockIcon}>🔒</Text>
-              </View>
-            </View>
-          )}
-
-          {/* Pro badge */}
-          {item.isPro && (
-            <View style={styles.proBadge}>
-              <Text style={styles.proBadgeText}>PRO</Text>
-            </View>
-          )}
         </View>
 
         <Text
@@ -220,21 +191,6 @@ export const FilterToolModal: React.FC<FilterToolModalProps> = ({
         <TouchableOpacity style={styles.applyButton} onPress={handleApply}>
           <Text style={styles.applyButtonText}>Apply Filter</Text>
         </TouchableOpacity>
-
-        {/* Pro CTA */}
-        {!isProUser && (
-          <TouchableOpacity
-            style={styles.proButton}
-            onPress={() => {
-              onClose();
-              navigation.navigate('Paywall' as never);
-            }}
-          >
-            <Text style={styles.proButtonText}>
-              👑 Unlock 8+ Premium Filters
-            </Text>
-          </TouchableOpacity>
-        )}
       </View>
     </BottomSheet>
   );

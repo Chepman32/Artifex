@@ -216,30 +216,21 @@ const OnboardingScreen: React.FC = () => {
       <View style={styles.panel}>
         <Animated.View style={[styles.heroSection, heroStyle]}>
           <View style={styles.beforeAfter}>
-            <View style={styles.beforeAfterSide}>
-              <Text style={styles.beforeAfterLabel}>Free</Text>
-              <View style={styles.beforeAfterImage}>
-                <Text style={styles.beforeAfterWatermark}>Made with Artifex</Text>
-              </View>
-            </View>
-            <View style={styles.beforeAfterSide}>
-              <Text style={styles.beforeAfterLabel}>Pro</Text>
-              <View style={styles.beforeAfterImage} />
-            </View>
+            <View style={styles.beforeAfterImage} />
           </View>
         </Animated.View>
         <Animated.View style={[styles.contentSection, contentStyle]}>
-          <Text style={styles.headline}>Unlock Pro</Text>
+          <Text style={styles.headline}>Completely Free</Text>
           <Text style={styles.body}>
-            One-time purchase. Premium fonts, exclusive assets, and your photos,
-            completely unmarked.
+            All features unlocked. No paywalls, no subscriptions, no limits.
+            Just create.
           </Text>
           <View style={styles.featurePills}>
             <View style={styles.featurePill}>
-              <Text style={styles.featurePillText}>100+ Premium Assets</Text>
+              <Text style={styles.featurePillText}>100+ Assets</Text>
             </View>
             <View style={styles.featurePill}>
-              <Text style={styles.featurePillText}>Advanced Tools</Text>
+              <Text style={styles.featurePillText}>All Tools Unlocked</Text>
             </View>
             <View style={styles.featurePill}>
               <Text style={styles.featurePillText}>No Watermarks</Text>
