@@ -240,6 +240,18 @@ export const WatermarkToolModal: React.FC<WatermarkToolModalProps> = ({
               <Text style={styles.backButtonText}>‹ Back to Presets</Text>
             </TouchableOpacity>
 
+            {/* Watermark Text Input */}
+            <View style={styles.textInputContainer}>
+              <Text style={styles.inputLabel}>Watermark Text</Text>
+              <TextInput
+                style={styles.textInput}
+                value={watermarkText}
+                onChangeText={setWatermarkText}
+                placeholder="Enter your watermark text"
+                placeholderTextColor={Colors.text.tertiary}
+              />
+            </View>
+
             <View style={styles.customizationContent}>
               <ScrollView
                 style={styles.customizationPanel}
