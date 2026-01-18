@@ -5,6 +5,19 @@ import RNFS from 'react-native-fs';
 import { CanvasElement, ImageFilter } from '../types';
 import { getFilterColorMatrix } from './colorMatrix';
 
+// Extend RNFS types for iOS-specific methods
+interface RNFSWithIOS {
+  copyAssetsFileIOS(
+    imageUri: string,
+    destPath: string,
+    width: number,
+    height: number,
+    scale?: number,
+    compression?: string,
+    resizeMode?: string
+  ): Promise<string>;
+}
+
 export interface ExportOptions {
   format: 'png' | 'jpg';
   quality: number; // 0-100
@@ -184,8 +197,33 @@ const resolveImageUriToPath = async (
   try {
     // Handle iOS photo library URLs
     if (uri.startsWith('ph://')) {
-      console.log('[imageExporter] iOS photo library URI detected, skipping:', uri);
-      return null;
+      console.log('[imageExporter] iOS photo library URI detected, converting:', uri);
+
+      if (Platform.OS !== 'ios') {
+        console.error('[imageExporter] ph:// URIs only supported on iOS');
+        return null;
+      }
+
+      try {
+        const ext = 'jpg';
+        const dest = `${RNFS.TemporaryDirectoryPath}/stikaro_ph_${Date.now()}.${ext}`;
+
+        // Copy photo library asset to temporary file
+        await (RNFS as any).copyAssetsFileIOS(
+          uri,
+          dest,
+          _dimensions?.width ?? 0,
+          _dimensions?.height ?? 0,
+          1,
+          ext,
+        );
+
+        console.log('[imageExporter] Successfully copied ph:// to:', dest);
+        return dest;
+      } catch (error) {
+        console.error('[imageExporter] Failed to copy iOS photo library asset:', error);
+        return null;
+      }
     }
 
     // Handle Android asset URIs
