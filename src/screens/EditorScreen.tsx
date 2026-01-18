@@ -979,10 +979,11 @@ const EditorScreen: React.FC = () => {
           <TouchableOpacity
             style={[
               styles.historyButton,
-              canvasElements.length === 0 && styles.historyButtonDisabled,
+              (canvasElements.length === 0 || isAllSelected) &&
+                styles.historyButtonDisabled,
             ]}
             onPress={handleSelectAll}
-            disabled={canvasElements.length === 0}
+            disabled={canvasElements.length === 0 || isAllSelected}
           >
             <Image
               source={selectAllIcon}
