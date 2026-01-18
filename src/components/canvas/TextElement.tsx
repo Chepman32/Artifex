@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { StyleSheet, TextStyle } from 'react-native';
-import Animated from 'react-native-reanimated';
+import Animated, { useAnimatedStyle } from 'react-native-reanimated';
 import { GestureDetector } from 'react-native-gesture-handler';
 import { useCanvasGestures } from '../../hooks/useCanvasGestures';
 import { Colors } from '../../constants/colors';
@@ -55,7 +55,7 @@ export const TextElement: React.FC<TextElementProps> = ({
   const estimatedWidth = text.length * fontSize * 0.6;
   const estimatedHeight = fontSize * 1.2;
 
-  const { gesture, animatedStyle } = useCanvasGestures({
+  const { gesture, animatedStyle, scaleValue } = useCanvasGestures({
     initialX: x,
     initialY: y,
     initialScale: scale,
@@ -66,6 +66,14 @@ export const TextElement: React.FC<TextElementProps> = ({
     onUpdate,
     onSelect,
     onEdit,
+  });
+
+  const selectionBorderStyle = useAnimatedStyle(() => {
+    const currentScale = scaleValue.value || 1;
+    const normalizedScale = Math.max(currentScale, 0.001);
+    return {
+      borderWidth: 1 / normalizedScale,
+    };
   });
 
   // Render text with effects using multiple layers
@@ -239,6 +247,13 @@ export const TextElement: React.FC<TextElementProps> = ({
           />
         )}
         {renderTextWithEffect()}
+        
+        {/* Selection border */}
+        {isSelected && (
+          <Animated.View
+            style={[styles.selectionBorder, selectionBorderStyle]}
+          />
+        )}
       </Animated.View>
     </GestureDetector>
   );
@@ -267,5 +282,11 @@ const styles = StyleSheet.create({
   },
   effectLayer: {
     position: 'absolute',
+  },
+  selectionBorder: {
+    ...StyleSheet.absoluteFillObject,
+    borderColor: Colors.accent.primary,
+    borderStyle: 'dashed',
+    borderRadius: 4,
   },
 });

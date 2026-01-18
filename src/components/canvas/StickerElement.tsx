@@ -58,7 +58,7 @@ export const StickerElement: React.FC<StickerElementProps> = ({
     const currentScale = scaleValue.value || 1;
     const normalizedScale = Math.max(currentScale, 0.001);
     return {
-      borderWidth: 2 / normalizedScale,
+      borderWidth: 1 / normalizedScale,
     };
   });
 
