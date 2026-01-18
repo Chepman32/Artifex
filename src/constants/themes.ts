@@ -1,4 +1,4 @@
-// Theme definitions for Artifex
+// Theme definitions for Stikaro
 
 export type ThemeType = 'light' | 'dark' | 'solar' | 'mono';
 

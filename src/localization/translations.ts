@@ -1,4 +1,4 @@
-// Translations for Artifex
+// Translations for Stikaro
 
 export type Language =
   | 'en'     // English

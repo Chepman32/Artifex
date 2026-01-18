@@ -57,13 +57,13 @@ const SettingsScreen: React.FC = () => {
   };
 
   const handleRateApp = () => {
-    Alert.alert('Rate Artifex', 'This will open the App Store rating dialog');
+    Alert.alert('Rate Stikaro', 'This will open the App Store rating dialog');
   };
 
   const handleContactSupport = () => {
     Alert.alert(
       'Contact Support',
-      'This will open email composer to support@artifex.app',
+      'This will open email composer to support@stikaro.app',
     );
   };
 
@@ -501,7 +501,7 @@ const SettingsScreen: React.FC = () => {
               () =>
                 Alert.alert(
                   t.settings.privacyPolicy,
-                  'This will open artifex.app/privacy',
+                  'This will open stikaro.app/privacy',
                 ),
             )}
             {renderSettingRow(
@@ -511,7 +511,7 @@ const SettingsScreen: React.FC = () => {
               () =>
                 Alert.alert(
                   t.settings.termsOfService,
-                  'This will open artifex.app/terms',
+                  'This will open stikaro.app/terms',
                 ),
             )}
           </>,

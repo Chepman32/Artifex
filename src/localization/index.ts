@@ -1,4 +1,4 @@
-// Localization system for Artifex
+// Localization system for Stikaro
 
 import { Language, Translations } from './translations';
 import { en } from './languages/en';

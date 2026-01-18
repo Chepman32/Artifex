@@ -1,4 +1,4 @@
-// React Native configuration for Artifex
+// React Native configuration for Stikaro
 
 module.exports = {
   project: {

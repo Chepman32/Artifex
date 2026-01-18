@@ -41,7 +41,7 @@ export const he: Translations = {
     hapticFeedback: 'משוב הפטי',
     hapticFeedbackDesc: 'רטט לאינטראקציות',
     version: 'גרסה',
-    rateApp: 'דרג את Artifex',
+    rateApp: 'דרג את Stikaro',
     rateAppDesc: 'עזור לנו להשתפר עם המשוב שלך',
     contactSupport: 'צור קשר עם התמיכה',
     contactSupportDesc: 'קבל עזרה או דווח על בעיות',

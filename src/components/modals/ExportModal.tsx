@@ -39,8 +39,8 @@ export const ExportModal: React.FC<ExportModalProps> = ({
   canvasDimensions,
 }) => {
   const t = useTranslation();
-  const [selectedFormat, setSelectedFormat] = useState<ExportFormat>('png');
-  const [quality, setQuality] = useState<number>(100);
+  const [selectedFormat, _setSelectedFormat] = useState<ExportFormat>('png');
+  const [quality, _setQuality] = useState<number>(100);
   const [isExporting, setIsExporting] = useState(false);
 
   const {
@@ -77,7 +77,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({
         {
           format: selectedFormat,
           quality,
-          addWatermark: false,
+          addWatermark: true,
           canvasSize: storedCanvasSize || canvasDimensions,
         },
         appliedFilter,

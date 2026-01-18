@@ -4,7 +4,7 @@ This file provides guidance to WARP (warp.dev) when working with code in this re
 
 ## Project Overview
 
-Artifex is a premium iOS photo annotation app built with React Native. It's an offline-first application for adding watermarks, text, stickers, and stamps to photos with gesture-driven editing. The app emphasizes 60fps animations, privacy-first design, and uses React Native Skia for high-performance 2D graphics rendering.
+Stikaro is a premium iOS photo annotation app built with React Native. It's an offline-first application for adding watermarks, text, stickers, and stamps to photos with gesture-driven editing. The app emphasizes 60fps animations, privacy-first design, and uses React Native Skia for high-performance 2D graphics rendering.
 
 ## Essential Commands
 
@@ -87,7 +87,7 @@ Located in `src/utils/imageExporter.ts`:
 1. Creates Skia surface matching source image dimensions
 2. Draws source image with optional filter (Skia ColorMatrix)
 3. Draws all canvas elements using Skia primitives
-4. Optionally adds "Made with Artifex" watermark for free users
+4. Optionally adds "Made with Stikaro" watermark for free users
 5. Encodes to PNG/JPEG and saves to temp directory
 6. Returns file path for sharing/saving to Photos
 
@@ -178,7 +178,7 @@ src/
 The app requires careful permission handling:
 - Photos: Read access for selection, write for saving exports
 - Camera: Optional, only when user initiates
-- Info.plist keys must be present (see `ios/Artifex/Info.plist`)
+- Info.plist keys must be present (see `ios/Stikaro/Info.plist`)
 
 ### Canvas Element Coordinates
 **Critical**: Canvas elements use normalized positions (0-1 range) when serialized, but absolute positions when editing.

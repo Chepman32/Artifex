@@ -43,7 +43,7 @@ export const fr: Translations = {
     hapticFeedback: 'Retour haptique',
     hapticFeedbackDesc: 'Vibration pour les interactions',
     version: 'Version',
-    rateApp: 'Évaluer Artifex',
+    rateApp: 'Évaluer Stikaro',
     rateAppDesc: 'Aidez-nous à améliorer avec vos commentaires',
     contactSupport: 'Contacter le support',
     contactSupportDesc: "Obtenir de l'aide ou signaler des problèmes",

@@ -1,6 +1,6 @@
-# Artifex - Offline Photo Annotation App
+# Stikaro - Offline Photo Annotation App
 
-Artifex is a premium iOS photo annotation app built with React Native, designed to provide an elegant, gesture-driven interface for adding watermarks, text, stickers, and stamps to photos. The app operates completely offline, ensuring user privacy and reliability.
+Stikaro is a premium iOS photo annotation app built with React Native, designed to provide an elegant, gesture-driven interface for adding watermarks, text, stickers, and stamps to photos. The app operates completely offline, ensuring user privacy and reliability.
 
 ## 🎯 Key Features
 
@@ -17,7 +17,7 @@ Artifex is a premium iOS photo annotation app built with React Native, designed 
 - ✅ 8 fonts, 30 stickers, 10 watermark templates, 8 stamps
 - ✅ Full gesture editing capabilities
 - ✅ Unlimited project saves
-- ⚠️ Exported photos include small "Made with Artifex" watermark
+- ⚠️ Exported photos include small "Made with Stikaro" watermark
 
 ### Pro Tier ($9.99 one-time purchase)
 
@@ -77,7 +77,7 @@ src/
 
 ```bash
 git clone <repository-url>
-cd Artifex
+cd Stikaro
 yarn install
 ```
 
@@ -252,13 +252,13 @@ This project is proprietary software. All rights reserved.
 
 ## 🤝 Contributing
 
-This is a commercial project. For bug reports or feature requests, please contact support@artifex.app.
+This is a commercial project. For bug reports or feature requests, please contact support@stikaro.app.
 
 ## 📞 Support
 
-- **Email**: support@artifex.app
-- **Privacy Policy**: artifex.app/privacy
-- **Terms of Service**: artifex.app/terms
+- **Email**: support@stikaro.app
+- **Privacy Policy**: stikaro.app/privacy
+- **Terms of Service**: stikaro.app/terms
 
 ---
 

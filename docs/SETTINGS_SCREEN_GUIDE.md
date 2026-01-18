@@ -31,7 +31,7 @@
 │  ABOUT                              │  ← Section 4
 │  ┌───────────────────────────────┐ │
 │  │ Version                1.0.0   │ │
-│  │ Rate Artifex               >  │ │
+│  │ Rate Stikaro               >  │ │
 │  │ Contact Support            >  │ │
 │  │ Privacy Policy             >  │ │
 │  │ Terms of Service           >  │ │

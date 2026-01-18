@@ -78,14 +78,14 @@ const devicePhotos: PhotoAsset[] = result.edges.map(edge => ({
 
 ## iOS Setup Required 📱
 
-Add these permissions to `ios/Artifex/Info.plist`:
+Add these permissions to `ios/Stikaro/Info.plist`:
 
 ```xml
 <key>NSPhotoLibraryUsageDescription</key>
-<string>Artifex needs access to your photo library to let you select images for editing.</string>
+<string>Stikaro needs access to your photo library to let you select images for editing.</string>
 
 <key>NSPhotoLibraryAddUsageDescription</key>
-<string>Artifex needs permission to save your edited photos to your photo library.</string>
+<string>Stikaro needs permission to save your edited photos to your photo library.</string>
 ```
 
 ## Testing Steps 🧪

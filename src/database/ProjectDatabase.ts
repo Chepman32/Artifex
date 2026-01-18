@@ -3,8 +3,8 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Project, SerializedElement } from '../types';
 
-const PROJECT_PREFIX = 'artifex_project_';
-const METADATA_KEY = 'artifex_project_ids';
+const PROJECT_PREFIX = 'stikaro_project_';
+const METADATA_KEY = 'stikaro_project_ids';
 
 export class ProjectDatabase {
   // Save or update a project

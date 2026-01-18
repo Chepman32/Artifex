@@ -41,7 +41,7 @@ export const ms: Translations = {
     hapticFeedback: 'Maklum Balas Haptik',
     hapticFeedbackDesc: 'Getaran untuk interaksi',
     version: 'Versi',
-    rateApp: 'Nilaikan Artifex',
+    rateApp: 'Nilaikan Stikaro',
     rateAppDesc: 'Bantu kami memperbaiki dengan maklum balas anda',
     contactSupport: 'Hubungi Sokongan',
     contactSupportDesc: 'Dapatkan bantuan atau laporkan masalah',

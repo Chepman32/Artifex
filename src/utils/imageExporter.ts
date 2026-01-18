@@ -1,5 +1,4 @@
 // Image export functionality using Skia for high-quality rendering
-
 import { Skia, type SkCanvas, type SkImage } from '@shopify/react-native-skia';
 import { Platform } from 'react-native';
 import RNFS from 'react-native-fs';
@@ -13,317 +12,95 @@ export interface ExportOptions {
   canvasSize?: { width: number; height: number };
 }
 
-const ARTIFEX_WATERMARK_TEXT = 'Made with Artifex';
+const STIKARO_WATERMARK_TEXT = 'Made with Stikaro';
 const WATERMARK_FONT_SIZE = 14;
 const WATERMARK_OPACITY = 0.6;
 const WATERMARK_PADDING = 12;
 
-const imageCache = new Map<string, SkImage>();
 
 interface CanvasScale {
   x: number;
   y: number;
 }
 
-const createFont = (size: number, family?: string) => {
-  try {
-    let typeface: ReturnType<typeof Skia.Typeface.MakeDefault> | null = null;
-
-    if (family && family !== 'System') {
-      typeface =
-        // @ts-expect-error - MakeFromName may not exist on all platforms
-        (Skia.Typeface.MakeFromName?.(family) as ReturnType<
-          typeof Skia.Typeface.MakeDefault
-        > | null) ?? null;
-    }
-
-    if (!typeface && typeof Skia.Typeface.MakeDefault === 'function') {
-      typeface = Skia.Typeface.MakeDefault();
-    }
-
-    const font = Skia.Font(typeface ?? undefined, size);
-    if (!font) {
-      console.warn('Skia: Failed to create font instance');
-      return null;
-    }
-
-    if (typeof font.setEdging === 'function') {
-      font.setEdging(Skia.FontEdging.SubpixelAntialias);
-    }
-    return font;
-  } catch (error) {
-    console.warn('Skia: Failed to create font', error);
-    return null;
-  }
-};
-
 interface ElementSize {
   width: number;
   height: number;
 }
 
-interface TextLayout {
-  font: ReturnType<typeof Skia.Font>;
-  text: string;
-  fontSize: number;
-  textWidth: number;
-  textHeight: number;
-  totalWidth: number;
-  totalHeight: number;
-  baseline: number;
-  paddedBaseline: number;
-  paddingX: number;
-  paddingY: number;
-}
 
-/**
- * Exports the current canvas to an image file on disk.
- */
-interface ExportResult {
-  filepath: string;
-  format: 'png' | 'jpg';
-  mime: string;
-}
-
-export const exportCanvasToImage = async (
-  sourceImagePath: string,
-  sourceImageDimensions: { width: number; height: number },
-  canvasElements: CanvasElement[],
-  options: ExportOptions,
-  filter?: ImageFilter | null,
-): Promise<ExportResult> => {
-  const { width, height } = sourceImageDimensions;
-  const { format, quality, addWatermark, canvasSize } = options;
-
+// Create a rasterized watermark as a sticker
+const createWatermarkSticker = async (
+  text: string,
+  fontSize: number = 24,
+  color: string = '#FFFFFF',
+  opacity: number = 1.0,
+): Promise<string> => {
   try {
-    const surface = Skia.Surface.Make(Math.round(width), Math.round(height));
+    // Create a temporary canvas for text rendering
+    const textWidth = text.length * fontSize * 0.6; // rough estimate
+    const textHeight = fontSize * 1.5;
+    const padding = fontSize * 0.3;
+    
+    const canvasWidth = Math.ceil(textWidth + padding * 2);
+    const canvasHeight = Math.ceil(textHeight + padding * 2);
+    
+    const surface = Skia.Surface.Make(canvasWidth, canvasHeight);
     if (!surface) {
-      throw new Error('Failed to create Skia surface');
+      throw new Error('Failed to create watermark surface');
     }
-
+    
     const canvas = surface.getCanvas();
-    canvas.clear(Skia.Color('#00000000'));
-
-    const canvasScale = getCanvasScale(
-      sourceImageDimensions,
-      canvasSize || null,
-    );
-
-    const sourceImage = await getImageFromCache(
-      sourceImagePath,
-      sourceImageDimensions,
-    );
-    if (!sourceImage) {
-      throw new Error('Failed to load source image');
+    canvas.clear(Skia.Color('transparent'));
+    
+    // Create font
+    const font = Skia.Font(undefined, fontSize);
+    if (!font) {
+      throw new Error('Failed to create font');
     }
-
-    drawSourceImage(canvas, sourceImage, width, height, filter);
-
-    if (typeof __DEV__ !== 'undefined' && __DEV__) {
-      const elementSummary = canvasElements.reduce((acc, element) => {
-        acc[element.type] = (acc[element.type] || 0) + 1;
-        return acc;
-      }, {} as Record<string, number>);
-      console.log('Export debug - element counts', elementSummary);
-
-      // Debug watermark elements specifically
-      const watermarkElements = canvasElements.filter(
-        el => el.type === 'watermark',
-      );
-      if (watermarkElements.length > 0) {
-        console.log(
-          'Export debug - watermark elements:',
-          watermarkElements.map(el => ({
-            id: el.id,
-            type: el.type,
-            opacity: el.opacity,
-            assetPath: el.assetPath,
-            width: el.width,
-            height: el.height,
-            position: el.position,
-          })),
-        );
+    
+    // Create paint
+    const paint = Skia.Paint();
+    paint.setAntiAlias(true);
+    paint.setColor(Skia.Color(color));
+    paint.setAlphaf(opacity);
+    
+    // Draw text
+    const x = padding;
+    const y = canvasHeight - padding;
+    
+    try {
+      (canvas as any).drawText(text, x, y, paint, font);
+    } catch {
+      try {
+        (canvas as any).drawText(text, x, y, font, paint);
+      } catch {
+        // If both fail, create a simple rectangle as fallback
+        const rect = Skia.XYWHRect(0, 0, canvasWidth, canvasHeight);
+        canvas.drawRect(rect, paint);
       }
     }
-
-    for (const element of canvasElements) {
-      await drawCanvasElement(canvas, element, canvasScale);
-    }
-
-    if (addWatermark) {
-      drawWatermark(canvas, width, height, canvasScale);
-    }
-
+    
+    // Encode to base64
     const snapshot = surface.makeImageSnapshot();
     const imageFormatEnum = (Skia as any).ImageFormat;
     let encoded: string;
-
-    let actualFormat: 'png' | 'jpg' = format;
-
-    if (format === 'png') {
-      if (imageFormatEnum?.PNG) {
-        encoded = snapshot.encodeToBase64(imageFormatEnum.PNG, 100);
-      } else {
-        encoded = snapshot.encodeToBase64();
-      }
+    
+    if (imageFormatEnum?.PNG) {
+      encoded = snapshot.encodeToBase64(imageFormatEnum.PNG, 100);
     } else {
-      if (imageFormatEnum?.JPEG) {
-        encoded = snapshot.encodeToBase64(imageFormatEnum.JPEG, quality);
-      } else {
-        console.warn(
-          'Skia.ImageFormat.JPEG unavailable; falling back to PNG encoding.',
-        );
-        encoded = snapshot.encodeToBase64();
-        actualFormat = 'png';
-      }
+      encoded = snapshot.encodeToBase64();
     }
-
-    const filename = `artifex_export_${Date.now()}.${actualFormat}`;
+    
+    // Save to temp file
+    const filename = `watermark_${Date.now()}.png`;
     const filepath = `${RNFS.TemporaryDirectoryPath}/${filename}`;
     await RNFS.writeFile(filepath, encoded, 'base64');
-
-    return {
-      filepath,
-      format: actualFormat,
-      mime: actualFormat === 'png' ? 'image/png' : 'image/jpeg',
-    };
+    
+    return filepath;
   } catch (error) {
-    console.error('Export error:', error);
-    throw new Error('Failed to export image');
-  }
-};
-
-const getImageFromCache = async (
-  uri: string,
-  dimensions?: { width: number; height: number },
-): Promise<SkImage | null> => {
-  const cacheKey = `${uri}|${dimensions?.width || 0}x${
-    dimensions?.height || 0
-  }`;
-  if (imageCache.has(cacheKey)) {
-    return imageCache.get(cacheKey) as SkImage;
-  }
-
-  const image = await loadImage(uri, dimensions);
-  if (image) {
-    imageCache.set(cacheKey, image);
-  }
-  return image;
-};
-
-const stripFileScheme = (path: string): string => {
-  if (path.startsWith('file://')) {
-    return path.replace('file://', '');
-  }
-  return path;
-};
-
-const guessImageExtension = (
-  uri: string,
-  fallback: 'png' | 'jpg' = 'jpg',
-): 'png' | 'jpg' => {
-  const match = uri.match(/\.(png|jpg|jpeg)$/i);
-  if (!match) {
-    return fallback;
-  }
-  const ext = match[1].toLowerCase();
-  return ext === 'jpeg' ? 'jpg' : (ext as 'png' | 'jpg');
-};
-
-const resolveImageUriToPath = async (
-  uri: string,
-  dimensions?: { width: number; height: number },
-): Promise<string | null> => {
-  if (!uri) {
-    return null;
-  }
-
-  if (uri.startsWith('data:image/')) {
-    return uri;
-  }
-
-  try {
-    if (Platform.OS === 'ios' && uri.startsWith('ph://')) {
-      const ext = 'jpg';
-      const dest = `${
-        RNFS.TemporaryDirectoryPath
-      }/artifex_ph_${Date.now()}.${ext}`;
-      await RNFS.copyAssetsFileIOS(
-        uri,
-        dest,
-        dimensions?.width ?? 0,
-        dimensions?.height ?? 0,
-        1,
-        ext,
-      );
-      return dest;
-    }
-
-    if (Platform.OS === 'android' && uri.startsWith('file:///android_asset/')) {
-      const assetPath = uri.replace('file:///android_asset/', '');
-      const ext = guessImageExtension(assetPath, 'png');
-      const dest = `${
-        RNFS.CachesDirectoryPath
-      }/artifex_asset_${Date.now()}.${ext}`;
-      await RNFS.copyFileAssets(assetPath, dest);
-      return dest;
-    }
-
-    if (uri.startsWith('http://') || uri.startsWith('https://')) {
-      const ext = guessImageExtension(uri, 'jpg');
-      const dest = `${
-        RNFS.TemporaryDirectoryPath
-      }/artifex_remote_${Date.now()}.${ext}`;
-      const downloadResult = await RNFS.downloadFile({
-        fromUrl: uri,
-        toFile: dest,
-      }).promise;
-
-      if (downloadResult.statusCode && downloadResult.statusCode >= 400) {
-        throw new Error(
-          `Download failed with status ${downloadResult.statusCode}`,
-        );
-      }
-
-      return dest;
-    }
-
-    const normalized = stripFileScheme(uri);
-    const exists = await RNFS.exists(normalized);
-    if (exists) {
-      return normalized;
-    }
-
-    return normalized;
-  } catch (error) {
-    console.error('Failed to resolve image URI:', uri, error);
-    return null;
-  }
-};
-
-const loadImage = async (
-  uri: string,
-  dimensions?: { width: number; height: number },
-): Promise<SkImage | null> => {
-  try {
-    const resolved = await resolveImageUriToPath(uri, dimensions);
-    if (!resolved) {
-      return null;
-    }
-
-    if (resolved.startsWith('data:image/')) {
-      const base64 = resolved.split(',')[1] ?? '';
-      const data = Skia.Data.fromBase64(base64);
-      return Skia.Image.MakeImageFromEncoded(data);
-    }
-
-    const normalized = stripFileScheme(resolved);
-    const base64 = await RNFS.readFile(normalized, 'base64');
-    const data = Skia.Data.fromBase64(base64);
-    return Skia.Image.MakeImageFromEncoded(data);
-  } catch (error) {
-    console.error('Failed to load image:', uri, error);
-    return null;
+    console.error('Failed to create watermark sticker:', error);
+    throw error;
   }
 };
 
@@ -370,68 +147,192 @@ const drawSourceImage = (
   canvas.drawImageRect(image, srcRect, dstRect, paint);
 };
 
-const drawCanvasElement = async (
+const loadImage = async (
+  uri: string,
+  dimensions?: { width: number; height: number },
+): Promise<SkImage | null> => {
+  try {
+    const resolved = await resolveImageUriToPath(uri, dimensions);
+    if (!resolved) {
+      return null;
+    }
+
+    if (resolved.startsWith('data:image/')) {
+      const base64 = resolved.split(',')[1] ?? '';
+      const data = Skia.Data.fromBase64(base64);
+      return Skia.Image.MakeImageFromEncoded(data);
+    }
+
+    const normalized = resolved.startsWith('file://') ? resolved.replace('file://', '') : resolved;
+    const base64 = await RNFS.readFile(normalized, 'base64');
+    const data = Skia.Data.fromBase64(base64);
+    return Skia.Image.MakeImageFromEncoded(data);
+  } catch (error) {
+    console.error('Failed to load image:', uri, error);
+    return null;
+  }
+};
+
+const resolveImageUriToPath = async (
+  uri: string,
+  _dimensions?: { width: number; height: number },
+): Promise<string | null> => {
+  if (!uri) {
+    return null;
+  }
+
+  try {
+    // Handle iOS photo library URLs
+    if (uri.startsWith('ph://')) {
+      console.log('[imageExporter] iOS photo library URI detected, skipping:', uri);
+      return null;
+    }
+
+    // Handle Android asset URIs
+    if (Platform.OS === 'android' && uri.startsWith('file:///android_asset/')) {
+      const assetPath = uri.replace('file:///android_asset/', '');
+      const ext = uri.endsWith('.png') ? 'png' : 'jpg';
+      const dest = `${RNFS.CachesDirectoryPath}/stikaro_asset_${Date.now()}.${ext}`;
+      await RNFS.copyFileAssets(assetPath, dest);
+      return dest;
+    }
+
+    // Handle Metro dev-server URLs
+    if (uri.startsWith('http://') || uri.startsWith('https://')) {
+      // Special case: Metro bundle URLs (not assets)
+      if (uri.includes('localhost:8081') && (uri.includes('.bundle') || uri.includes('index.bundle'))) {
+        console.log(`[imageExporter] Metro bundle URL detected, attempting HTTP download: ${uri}`);
+        // Try to download from Metro bundle URL
+        const ext = uri.endsWith('.png') ? 'png' : 'jpg';
+        const dest = `${RNFS.TemporaryDirectoryPath}/stikaro_bundle_${Date.now()}.${ext}`;
+        
+        try {
+          const result = await RNFS.downloadFile({
+            fromUrl: uri,
+            toFile: dest,
+          }).promise;
+          
+          if (result.statusCode && result.statusCode >= 400) {
+            throw new Error(`Bundle download failed with status ${result.statusCode}`);
+          }
+          console.log(`[imageExporter] Successfully downloaded bundle image to: ${dest}`);
+          return dest;
+        } catch (error) {
+          console.error(`[imageExporter] Bundle download failed: ${error}`);
+          throw new Error('Cannot export from Metro bundle URL - download failed');
+        }
+      }
+      
+      if (uri.includes('localhost:8081')) {
+        console.log(`[imageExporter] Detected Metro URL, trying local resolution: ${uri}`);
+        
+        // Check if it's a sticker asset
+        if (uri.includes('/assets/')) {
+          // Extract filename and search locally for stickers
+          const filenameMatch = uri.match(/\/([\w-.]+)\.png/);
+          if (filenameMatch) {
+            const filename = filenameMatch[1] + '.png';
+            console.log(`[imageExporter] Extracted filename: ${filename}`);
+            
+            // Search in sticker directories
+            const searchPaths = [
+              `src/assets/stickers/social-media/${filename}`,
+              `src/assets/stickers/brand-icons/${filename}`,
+              `src/assets/stickers/emoji/${filename}`,
+              `src/assets/stickers/food/${filename}`,
+              `src/assets/stickers/miscellaneous/${filename}`,
+              `src/assets/stickers/seasonal/${filename}`,
+              `src/assets/stickers/text-labels/${filename}`,
+              `src/assets/stickers/${filename}`,
+            ];
+            
+            for (const path of searchPaths) {
+              console.log(`[imageExporter] Checking path: ${path}`);
+              const exists = await RNFS.exists(path);
+              if (exists) {
+                console.log(`[imageExporter] Found asset at: ${path}`);
+                
+                const dest = `${RNFS.TemporaryDirectoryPath}/stikaro_resolved_${Date.now()}_${filename}`;
+                await RNFS.copyFile(path, dest);
+                console.log(`[imageExporter] Copied resolved asset to: ${dest}`);
+                
+                return dest;
+              }
+            }
+            
+            console.log(`[imageExporter] Asset not found in any sticker location`);
+          }
+        } else {
+          // For source images from Metro (not assets), they're likely bundled images
+          // Try to extract the actual image data from the Metro bundle
+          console.log(`[imageExporter] Source image from Metro bundle: ${uri}`);
+          
+          // For Metro bundle URLs, we need to download them via HTTP
+          // since they're not local files
+        }
+      }
+      
+      // Fallback: try HTTP download for all Metro URLs
+      const ext = uri.endsWith('.png') ? 'png' : 'jpg';
+      const dest = `${RNFS.TemporaryDirectoryPath}/stikaro_remote_${Date.now()}.${ext}`;
+
+      try {
+        const result = await RNFS.downloadFile({
+          fromUrl: uri,
+          toFile: dest,
+        }).promise;
+
+        if (result.statusCode && result.statusCode >= 400) {
+          throw new Error(`Download failed with status ${result.statusCode}`);
+        }
+        console.log(`[imageExporter] Successfully downloaded from: ${uri}`);
+        return dest;
+      } catch (error) {
+        console.log(`[imageExporter] Download failed for ${uri}: ${error}`);
+        throw error;
+      }
+    }
+
+    // Handle local files
+    const normalized = uri.startsWith('file://') ? uri.replace('file://', '') : uri;
+    const exists = await RNFS.exists(normalized);
+    if (exists) {
+      return normalized;
+    }
+
+    return normalized;
+  } catch (error) {
+    console.error('Failed to resolve image URI:', uri, error);
+    return null;
+  }
+};
+
+const drawImageElement = async (
   canvas: SkCanvas,
   element: CanvasElement,
-  scale: CanvasScale,
+  size: ElementSize,
 ): Promise<void> => {
-  const drawTextWithTransform = async () => {
-    const layout = measureTextLayout(element, scale);
-    if (!layout) {
-      console.warn(
-        'Export: skipped text element - failed to measure layout',
-        element.id,
-        element.textContent,
-      );
-      return;
-    }
-    await withElementTransform(
-      canvas,
-      element,
-      {
-        width: layout.totalWidth,
-        height: layout.totalHeight,
-      },
-      scale,
-      async () => {
-        drawTextElement(canvas, element, layout);
-      },
-    );
-  };
-
-  switch (element.type) {
-    case 'text': {
-      await drawTextWithTransform();
-      break;
-    }
-    case 'watermark': {
-      if (!element.assetPath && element.textContent) {
-        await drawTextWithTransform();
-        break;
-      }
-      // Fall through to image-based handling when assetPath is present
-    }
-    case 'sticker':
-    case 'stamp': {
-      if (!element.assetPath) {
-        return;
-      }
-      const width = (element.width || 100) * scale.x;
-      const height = (element.height || 100) * scale.y;
-      await withElementTransform(
-        canvas,
-        element,
-        { width, height },
-        scale,
-        async () => {
-          await drawImageElement(canvas, element, { width, height });
-        },
-      );
-      break;
-    }
-    default:
-      break;
+  if (!element.assetPath) {
+    return;
   }
+
+  const image = await loadImage(element.assetPath);
+  if (!image) {
+    console.warn('Export: skipped image element - failed to load', element.id, element.assetPath);
+    return;
+  }
+
+  const paint = Skia.Paint();
+  paint.setAntiAlias(true);
+
+  // Apply opacity if specified
+  if (element.opacity !== undefined && element.opacity < 1) {
+    paint.setAlphaf(Math.max(0, Math.min(element.opacity, 1)));
+  }
+
+  const srcRect = Skia.XYWHRect(0, 0, image.width(), image.height());
+  const dstRect = Skia.XYWHRect(0, 0, size.width, size.height);
+  canvas.drawImageRect(image, srcRect, dstRect, paint);
 };
 
 const withElementTransform = async (
@@ -454,7 +355,7 @@ const withElementTransform = async (
   canvas.save();
   canvas.translate(x + pivotX, y + pivotY);
   if (rotationDegrees !== 0) {
-    canvas.rotate(rotationDegrees);
+    canvas.rotate(rotationDegrees, 0, 0);
   }
   if (safeScale !== 1) {
     canvas.scale(safeScale, safeScale);
@@ -462,294 +363,188 @@ const withElementTransform = async (
   canvas.translate(-pivotX, -pivotY);
 
   await draw();
+
   canvas.restore();
 };
 
-const measureTextLayout = (
+const drawCanvasElement = async (
+  canvas: SkCanvas,
   element: CanvasElement,
   scale: CanvasScale,
-): TextLayout | null => {
-  const text = element.textContent ?? '';
-  if (!text) {
-    return null;
-  }
-
-  const baseFontSize = element.fontSize ?? 24;
-  const scaledFontSize = baseFontSize * scale.x;
-  const font = createFont(scaledFontSize, element.fontFamily);
-  if (!font) {
-    return null;
-  }
-  const measurement = font.measureText(text);
-  const metrics = font.getMetrics();
-
-  const textWidth = measurement.width || scaledFontSize;
-  const textHeight =
-    metrics.descent - metrics.ascent > 0
-      ? metrics.descent - metrics.ascent
-      : scaledFontSize;
-  const baseline = -metrics.ascent;
-
-  const paddingX = Math.max(baseFontSize * 0.25, 8) * scale.x;
-  const paddingY = Math.max(baseFontSize * 0.2, 6) * scale.y;
-
-  const totalWidth = textWidth + paddingX * 2;
-  const totalHeight = textHeight + paddingY * 2;
-
-  return {
-    font,
-    text,
-    fontSize: scaledFontSize,
-    textWidth,
-    textHeight,
-    totalWidth,
-    totalHeight,
-    baseline,
-    paddedBaseline: baseline + paddingY,
-    paddingX,
-    paddingY,
-  };
-};
-
-const drawTextElement = (
-  canvas: SkCanvas,
-  element: CanvasElement,
-  layout: TextLayout,
-) => {
-  const { text, font, fontSize, totalWidth, totalHeight } = layout;
-  const baseColor = element.color || '#FFFFFF';
-  const opacity = Math.max(0, Math.min(element.opacity ?? 1, 1));
-
-  if (element.textBackground) {
-    const backgroundPaint = Skia.Paint();
-    backgroundPaint.setAntiAlias(true);
-    backgroundPaint.setColor(Skia.Color(element.textBackground));
-    backgroundPaint.setAlphaf(opacity);
-    canvas.drawRoundRect(
-      Skia.XYWHRect(0, 0, totalWidth, totalHeight),
-      fontSize * 0.25,
-      fontSize * 0.25,
-      backgroundPaint,
-    );
-  }
-
-  drawTextEffects(canvas, element, layout, baseColor, font, opacity);
-
-  const textPaint = Skia.Paint();
-  textPaint.setAntiAlias(true);
-  textPaint.setColor(Skia.Color(baseColor));
-  textPaint.setAlphaf(opacity);
-  canvas.drawText(
-    text,
-    layout.paddingX,
-    layout.paddedBaseline,
-    textPaint,
-    font,
-  );
-};
-
-const drawTextEffects = (
-  canvas: SkCanvas,
-  element: CanvasElement,
-  layout: TextLayout,
-  baseColor: string,
-  font: ReturnType<typeof Skia.Font>,
-  opacity: number,
-) => {
-  const textX = layout.paddingX;
-  const textY = layout.paddedBaseline;
-
-  switch (element.textEffect) {
-    case 'neon':
-      drawGlow(canvas, layout.text, textX, textY, font, baseColor, opacity, {
-        radius: layout.fontSize * 0.65,
-        opacity: 0.35,
-      });
-      drawGlow(canvas, layout.text, textX, textY, font, baseColor, opacity, {
-        radius: layout.fontSize * 0.35,
-        opacity: 0.55,
-      });
-      break;
-    case 'glow':
-      drawGlow(canvas, layout.text, textX, textY, font, baseColor, opacity, {
-        radius: layout.fontSize * 0.45,
-        opacity: 0.4,
-      });
-      break;
-    case 'shadow':
-      drawShadow(
+): Promise<void> => {
+  switch (element.type) {
+    case 'sticker':
+    case 'watermark': {
+      if (!element.assetPath) {
+        return;
+      }
+      const width = (element.width || 100) * scale.x;
+      const height = (element.height || 100) * scale.y;
+      await withElementTransform(
         canvas,
-        layout.text,
-        textX,
-        textY,
-        font,
-        layout.fontSize,
-        opacity,
+        element,
+        { width, height },
+        scale,
+        async () => {
+          await drawImageElement(canvas, element, { width, height });
+        },
       );
       break;
-    case 'outline':
-      drawOutline(
-        canvas,
-        layout.text,
-        textX,
-        textY,
-        font,
-        layout.fontSize,
-        opacity,
-      );
-      break;
+    }
     default:
       break;
   }
 };
 
-const drawGlow = (
-  canvas: SkCanvas,
-  text: string,
-  x: number,
-  y: number,
-  font: ReturnType<typeof Skia.Font>,
-  color: string,
-  baseOpacity: number,
-  options: { radius: number; opacity: number },
-) => {
-  const paint = Skia.Paint();
-  paint.setAntiAlias(true);
-  paint.setColor(Skia.Color(color));
-  paint.setAlphaf(Math.max(0, Math.min(options.opacity * baseOpacity, 1)));
+export const exportCanvasToImage = async (
+  sourceImagePath: string,
+  sourceImageDimensions: { width: number; height: number },
+  canvasElements: CanvasElement[],
+  options: ExportOptions,
+  filter?: ImageFilter | null,
+): Promise<{ filepath: string; format: 'png' | 'jpg'; mime: string }> => {
+  const { width, height } = sourceImageDimensions;
+  const { format, quality, addWatermark, canvasSize } = options;
 
-  const maskFilter = Skia.MaskFilter.MakeBlur(
-    Skia.BlurStyle.Normal,
-    Math.max(options.radius, 0.1),
-    true,
-  );
-  if (maskFilter) {
-    paint.setMaskFilter(maskFilter);
-  }
+  try {
+    const surface = Skia.Surface.Make(Math.round(width), Math.round(height));
+    if (!surface) {
+      throw new Error('Failed to create Skia surface');
+    }
 
-  canvas.drawText(text, x, y, paint, font);
-};
+    const canvas = surface.getCanvas();
+    canvas.clear(Skia.Color('#00000000'));
 
-const drawShadow = (
-  canvas: SkCanvas,
-  text: string,
-  x: number,
-  y: number,
-  font: ReturnType<typeof Skia.Font>,
-  fontSize: number,
-  baseOpacity: number,
-) => {
-  const offset = Math.max(fontSize * 0.15, 2);
-  const paint = Skia.Paint();
-  paint.setAntiAlias(true);
-  paint.setColor(Skia.Color('#000000'));
-  paint.setAlphaf(0.6 * baseOpacity);
-  canvas.drawText(text, x + offset, y + offset, paint, font);
-};
+    const canvasScale = getCanvasScale(
+      sourceImageDimensions,
+      canvasSize || null,
+    );
 
-const drawOutline = (
-  canvas: SkCanvas,
-  text: string,
-  x: number,
-  y: number,
-  font: ReturnType<typeof Skia.Font>,
-  fontSize: number,
-  baseOpacity: number,
-) => {
-  const paint = Skia.Paint();
-  paint.setAntiAlias(true);
-  paint.setColor(Skia.Color('#000000'));
-  paint.setAlphaf(0.85 * baseOpacity);
+    // Load and draw source image
+    console.log(`[imageExporter] Loading source image: ${sourceImagePath}`);
+    const sourceImage = await loadImage(sourceImagePath);
+    if (!sourceImage) {
+      console.error(`[imageExporter] Failed to load source image: ${sourceImagePath}`);
+      throw new Error('Failed to load source image');
+    }
 
-  const offsets = [-1, 0, 1];
-  const distance = Math.max(fontSize * 0.08, 1);
+    drawSourceImage(canvas, sourceImage, width, height, filter);
 
-  for (const dx of offsets) {
-    for (const dy of offsets) {
-      if (dx === 0 && dy === 0) {
-        continue;
+    // Convert text watermarks to sticker elements
+    const elementsToRender = [...canvasElements];
+    
+    // Process text watermarks by converting them to rasterized stickers
+    for (const element of canvasElements) {
+      if (element.type === 'watermark' && element.textContent && !element.assetPath) {
+        try {
+          console.log(`[imageExporter] Converting text watermark to sticker: ${element.textContent}`);
+          const watermarkPath = await createWatermarkSticker(
+            element.textContent,
+            element.fontSize || 24,
+            element.color || '#FFFFFF',
+            element.opacity || 1.0
+          );
+          
+          // Replace text watermark with image-based watermark
+          const stickerElement: CanvasElement = {
+            ...element,
+            type: 'watermark',
+            assetPath: watermarkPath,
+            textContent: undefined,
+          };
+          
+          const index = elementsToRender.findIndex(el => el.id === element.id);
+          if (index !== -1) {
+            elementsToRender[index] = stickerElement;
+          }
+        } catch (error) {
+          console.error(`[imageExporter] Failed to convert watermark ${element.id}:`, error);
+        }
       }
-      canvas.drawText(text, x + dx * distance, y + dy * distance, paint, font);
     }
-  }
-};
 
-const drawImageElement = async (
-  canvas: SkCanvas,
-  element: CanvasElement,
-  size: ElementSize,
-): Promise<void> => {
-  if (!element.assetPath) {
+    // Add built-in watermark if requested
+    if (addWatermark) {
+      try {
+        console.log(`[imageExporter] Creating built-in watermark sticker`);
+        const watermarkPath = await createWatermarkSticker(
+          STIKARO_WATERMARK_TEXT,
+          WATERMARK_FONT_SIZE,
+          '#FFFFFF',
+          WATERMARK_OPACITY
+        );
+        
+        const builtInWatermark: CanvasElement = {
+          id: `builtin-watermark-${Date.now()}`,
+          type: 'watermark',
+          assetPath: watermarkPath,
+          position: { 
+            x: width - 200 - WATERMARK_PADDING, 
+            y: height - 30 - WATERMARK_PADDING 
+          },
+          scale: 1,
+          rotation: 0,
+          width: 200,
+          height: 30,
+          opacity: WATERMARK_OPACITY,
+        };
+        
+        elementsToRender.push(builtInWatermark);
+      } catch (error) {
+        console.error(`[imageExporter] Failed to create built-in watermark:`, error);
+      }
+    }
+
+    // Debug logging
     if (typeof __DEV__ !== 'undefined' && __DEV__) {
-      console.log(
-        'Export debug - skipping element (no assetPath):',
-        element.id,
-        element.type,
-      );
+      const elementSummary = elementsToRender.reduce((acc, element) => {
+        acc[element.type] = (acc[element.type] || 0) + 1;
+        return acc;
+      }, {} as Record<string, number>);
+      console.log('[imageExporter] Export debug - final element counts', elementSummary);
     }
-    return;
-  }
 
-  const image = await getImageFromCache(element.assetPath);
-  if (!image) {
-    if (typeof __DEV__ !== 'undefined' && __DEV__) {
-      console.log(
-        'Export debug - failed to load image:',
-        element.id,
-        element.assetPath,
-      );
+    // Render all elements (now all as images)
+    for (const element of elementsToRender) {
+      await drawCanvasElement(canvas, element, canvasScale);
     }
-    return;
+
+    // Encode and save
+    const snapshot = surface.makeImageSnapshot();
+    const imageFormatEnum = (Skia as any).ImageFormat;
+    let encoded: string;
+
+    let actualFormat: 'png' | 'jpg' = format;
+
+    if (format === 'png') {
+      if (imageFormatEnum?.PNG) {
+        encoded = snapshot.encodeToBase64(imageFormatEnum.PNG, 100);
+      } else {
+        encoded = snapshot.encodeToBase64();
+      }
+    } else {
+      if (imageFormatEnum?.JPEG) {
+        encoded = snapshot.encodeToBase64(imageFormatEnum.JPEG, quality);
+      } else {
+        console.warn(
+          'Skia.ImageFormat.JPEG unavailable; falling back to PNG encoding.',
+        );
+        encoded = snapshot.encodeToBase64();
+        actualFormat = 'png';
+      }
+    }
+
+    const filename = `stikaro_export_${Date.now()}.${actualFormat}`;
+    const filepath = `${RNFS.TemporaryDirectoryPath}/${filename}`;
+    await RNFS.writeFile(filepath, encoded, 'base64');
+
+    return {
+      filepath,
+      format: actualFormat,
+      mime: actualFormat === 'png' ? 'image/png' : 'image/jpeg',
+    };
+  } catch (error) {
+    console.error('Export error:', error);
+    throw new Error('Failed to export image');
   }
-
-  if (
-    typeof __DEV__ !== 'undefined' &&
-    __DEV__ &&
-    element.type === 'watermark'
-  ) {
-    console.log('Export debug - drawing watermark:', {
-      id: element.id,
-      opacity: element.opacity,
-      size,
-      assetPath: element.assetPath,
-    });
-  }
-
-  const paint = Skia.Paint();
-  paint.setAntiAlias(true);
-
-  // Apply opacity if specified (for watermarks and other elements)
-  if (element.opacity !== undefined && element.opacity < 1) {
-    paint.setAlphaf(Math.max(0, Math.min(element.opacity, 1)));
-  }
-
-  const srcRect = Skia.XYWHRect(0, 0, image.width(), image.height());
-  const dstRect = Skia.XYWHRect(0, 0, size.width, size.height);
-  canvas.drawImageRect(image, srcRect, dstRect, paint);
-};
-
-const drawWatermark = (
-  canvas: SkCanvas,
-  canvasWidth: number,
-  canvasHeight: number,
-  scale: CanvasScale,
-) => {
-  const scaleFactor = Math.max(scale.x, scale.y);
-  const font = createFont(WATERMARK_FONT_SIZE * scaleFactor);
-  if (!font) {
-    return;
-  }
-  const metrics = font.getMetrics();
-  const textWidth = font.measureText(ARTIFEX_WATERMARK_TEXT).width;
-  const paint = Skia.Paint();
-  paint.setAntiAlias(true);
-  paint.setColor(Skia.Color('#FFFFFF'));
-  paint.setAlphaf(WATERMARK_OPACITY);
-
-  const paddingX = WATERMARK_PADDING * scale.x;
-  const paddingY = WATERMARK_PADDING * scale.y;
-
-  const x = canvasWidth - textWidth - paddingX;
-  const baseline = canvasHeight - paddingY - metrics.descent;
-  canvas.drawText(ARTIFEX_WATERMARK_TEXT, x, baseline, paint, font);
 };

@@ -5,10 +5,10 @@ import { STICKERS, WATERMARKS, STAMPS, FONTS } from '../constants/assets';
 
 // AsyncStorage keys for asset caching
 const ASSET_KEYS = {
-  stickers: 'artifex_stickers',
-  watermarks: 'artifex_watermarks',
-  stamps: 'artifex_stamps',
-  fonts: 'artifex_fonts',
+  stickers: 'stikaro_stickers',
+  watermarks: 'stikaro_watermarks',
+  stamps: 'stikaro_stamps',
+  fonts: 'stikaro_fonts',
 };
 
 export interface LoadedAsset {

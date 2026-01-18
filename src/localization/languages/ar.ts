@@ -41,7 +41,7 @@ export const ar: Translations = {
     hapticFeedback: 'الرد الاهتزازي',
     hapticFeedbackDesc: 'اهتزاز للتفاعلات',
     version: 'الإصدار',
-    rateApp: 'قيم Artifex',
+    rateApp: 'قيم Stikaro',
     rateAppDesc: 'ساعدنا في التحسين بملاحظاتك',
     contactSupport: 'اتصل بالدعم',
     contactSupportDesc: 'احصل على المساعدة أو أبلغ عن مشاكل',

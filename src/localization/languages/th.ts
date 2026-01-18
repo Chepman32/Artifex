@@ -41,7 +41,7 @@ export const th: Translations = {
     hapticFeedback: 'การสั่นสะเทือนตอบสนอง',
     hapticFeedbackDesc: 'การสั่นสำหรับการโต้ตอบ',
     version: 'เวอร์ชัน',
-    rateApp: 'ให้คะแนน Artifex',
+    rateApp: 'ให้คะแนน Stikaro',
     rateAppDesc: 'ช่วยให้เราดีขึ้นด้วยข้อเสนอแนะของคุณ',
     contactSupport: 'ติดต่อฝ่ายสนับสนุน',
     contactSupportDesc: 'รับความช่วยเหลือหรือรายงานปัญหา',

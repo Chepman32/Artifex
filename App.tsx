@@ -1,5 +1,5 @@
 /**
- * Artifex - Offline Photo Annotation App
+ * Stikaro - Offline Photo Annotation App
  * Main application entry point
  */
 

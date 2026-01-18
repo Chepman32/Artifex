@@ -41,7 +41,7 @@ export const fi: Translations = {
     hapticFeedback: 'Haptinen palaute',
     hapticFeedbackDesc: 'Tärinä vuorovaikutuksille',
     version: 'Versio',
-    rateApp: 'Arvostele Artifex',
+    rateApp: 'Arvostele Stikaro',
     rateAppDesc: 'Auta meitä parantamaan palautteellasi',
     contactSupport: 'Ota yhteyttä tukeen',
     contactSupportDesc: 'Hanki apua tai raportoi ongelmia',

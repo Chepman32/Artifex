@@ -41,7 +41,7 @@ export const el: Translations = {
     hapticFeedback: 'Ανατροφοδότηση Αφής',
     hapticFeedbackDesc: 'Δονήσεις για αλληλεπιδράσεις',
     version: 'Έκδοση',
-    rateApp: 'Αξιολογήστε το Artifex',
+    rateApp: 'Αξιολογήστε το Stikaro',
     rateAppDesc: 'Βοηθήστε μας να βελτιωθούμε με τα σχόλιά σας',
     contactSupport: 'Επικοινωνία με την Υποστήριξη',
     contactSupportDesc: 'Λάβετε βοήθεια ή αναφέρετε προβλήματα',

@@ -41,7 +41,7 @@ export const no: Translations = {
     hapticFeedback: 'Haptisk tilbakemelding',
     hapticFeedbackDesc: 'Vibrasjon for interaksjoner',
     version: 'Versjon',
-    rateApp: 'Vurder Artifex',
+    rateApp: 'Vurder Stikaro',
     rateAppDesc: 'Hjelp oss å forbedre med din tilbakemelding',
     contactSupport: 'Kontakt support',
     contactSupportDesc: 'Få hjelp eller rapporter problemer',

@@ -1,4 +1,4 @@
-# Running Artifex App
+# Running Stikaro App
 
 ## Current Status
 

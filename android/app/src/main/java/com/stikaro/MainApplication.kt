@@ -1,4 +1,4 @@
-package com.artifex
+package com.stikaro
 
 import android.app.Application
 import com.facebook.react.PackageList

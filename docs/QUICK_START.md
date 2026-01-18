@@ -1,4 +1,4 @@
-# Artifex - Quick Start Guide
+# Stikaro - Quick Start Guide
 
 ## 🚀 Running the App
 

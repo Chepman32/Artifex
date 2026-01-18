@@ -41,7 +41,7 @@ export const tr: Translations = {
     hapticFeedback: 'Haptik Geri Bildirim',
     hapticFeedbackDesc: 'Etkileşimler için titreşim',
     version: 'Sürüm',
-    rateApp: 'Artifex\'i Değerlendir',
+    rateApp: 'Stikaro\'i Değerlendir',
     rateAppDesc: 'Geri bildiriminizle bize yardımcı olun',
     contactSupport: 'Destek İle İletişime Geç',
     contactSupportDesc: 'Yardım alın veya sorunları bildirin',
