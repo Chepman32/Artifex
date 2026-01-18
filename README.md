@@ -272,3 +272,4 @@ TODO: fix - Myafair and Rise filters have wrong effect
 TODO: add opacity slider for watermarks
 Make the Stamps and Stickers assets categorized
 TODO: fix - Lo-Fi filter effect should be stronger
+TODO: replace emojis
