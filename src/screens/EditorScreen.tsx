@@ -617,11 +617,21 @@ const EditorScreen: React.FC = () => {
   };
 
   const handleStampSelect = (
-    stampUri: string,
+    stampSource: string | any,
     width: number,
     height: number,
   ) => {
     const canvasSize = calculateCanvasSize();
+
+    // Handle both URI strings and require() results
+    let stampUri: string;
+    if (typeof stampSource === 'string') {
+      stampUri = stampSource;
+    } else {
+      // Convert require object to URI string
+      const resolvedAsset = Image.resolveAssetSource(stampSource);
+      stampUri = resolvedAsset.uri;
+    }
 
     const element = createStickerElement(
       stampUri,
