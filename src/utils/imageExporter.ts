@@ -382,13 +382,11 @@ const drawImageElement = async (
     return;
   }
 
-  console.log(`[imageExporter] drawImageElement: Loading image for ${element.id} from ${element.assetPath}`);
   const image = await loadImage(element.assetPath);
   if (!image) {
-    console.warn('[imageExporter] drawImageElement: FAILED to load', element.id, element.assetPath);
+    console.warn('Export: skipped image element - failed to load', element.id, element.assetPath);
     return;
   }
-  console.log(`[imageExporter] drawImageElement: Successfully loaded image ${element.id}, dimensions: ${image.width()}x${image.height()}, drawing at size: ${size.width}x${size.height}`);
 
   const paint = Skia.Paint();
   paint.setAntiAlias(true);
@@ -441,11 +439,8 @@ const drawCanvasElement = async (
   scale: CanvasScale,
 ): Promise<void> => {
   if (!element.assetPath) {
-    console.log(`[imageExporter] drawCanvasElement: Skipping element ${element.id} - no assetPath`);
     return;
   }
-
-  console.log(`[imageExporter] drawCanvasElement: Drawing ${element.id}, assetPath: ${element.assetPath.substring(0, 60)}, pos: (${element.position.x}, ${element.position.y}), scale: ${element.scale}`);
 
   const width = (element.width || 100) * scale.x;
   const height = (element.height || 100) * scale.y;
@@ -500,32 +495,23 @@ export const exportCanvasToImage = async (
 
     const elementsToRender: CanvasElement[] = [];
 
-    // Debug: Log incoming canvas elements
-    console.log(`[imageExporter] Received ${canvasElements.length} canvas elements`);
-    canvasElements.forEach((el, i) => {
-      console.log(`[imageExporter] Element ${i}: type=${el.type}, hasAssetPath=${!!el.assetPath}, hasTextContent=${!!el.textContent}, assetPath=${el.assetPath?.substring(0, 50)}`);
-    });
-
     // Process all elements
     const processedElements = await Promise.all(
       canvasElements.map(async element => {
         // Case 1: Already has an image asset (Sticker, Stamp, Image Watermark)
         if (element.assetPath) {
-          console.log(`[imageExporter] Processing element with assetPath: ${element.id}, type: ${element.type}`);
           // Force type to 'sticker' for consistency
           return { ...element, type: 'sticker' } as CanvasElement;
         }
 
         // Case 2: Text content that needs rasterization (Text, Text Watermark)
         if (element.textContent) {
-          console.log(`[imageExporter] Rasterizing text element: ${element.id}, text: ${element.textContent}`);
           const rasterized = await rasterizeTextForExport(element);
           if (rasterized) {
             return rasterized;
           }
         }
 
-        console.log(`[imageExporter] Skipping element: ${element.id}, type: ${element.type}, no assetPath or textContent`);
         return null;
       }),
     );

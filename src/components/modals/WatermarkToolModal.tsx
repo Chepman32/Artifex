@@ -12,16 +12,115 @@ import {
   ScrollView,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  runOnJS,
+} from 'react-native-reanimated';
 import { BottomSheet } from './BottomSheet';
 import { Colors } from '../../constants/colors';
 import { Typography } from '../../constants/typography';
 import { Spacing } from '../../constants/spacing';
 import { WATERMARK_PRESETS } from '../../constants/watermarkPresets';
 import { WatermarkPreset } from '../../types/watermark';
+import { haptics } from '../../utils/haptics';
 
 const { width: screenWidth } = Dimensions.get('window');
 const GRID_COLUMNS = 2;
 const PRESET_WIDTH = (screenWidth - Spacing.m * 2 - Spacing.m) / GRID_COLUMNS;
+
+const THUMB_SIZE = 24;
+
+interface GestureSliderProps {
+  label: string;
+  value: number;
+  minValue: number;
+  maxValue: number;
+  onChange: (value: number) => void;
+  formatValue: (value: number) => string;
+}
+
+const GestureSlider: React.FC<GestureSliderProps> = ({
+  label,
+  value,
+  minValue,
+  maxValue,
+  onChange,
+  formatValue,
+}) => {
+  const trackWidth = useSharedValue(0);
+  const thumbX = useSharedValue(0);
+  const isDragging = useSharedValue(false);
+  const isLayoutReady = React.useRef(false);
+
+  // Calculate and update thumb position from value
+  React.useEffect(() => {
+    if (isLayoutReady.current && trackWidth.value > 0) {
+      const normalized = (value - minValue) / (maxValue - minValue);
+      thumbX.value = normalized * (trackWidth.value - THUMB_SIZE);
+    }
+  }, [value, minValue, maxValue]);
+
+  const panGesture = Gesture.Pan()
+    .onStart(() => {
+      isDragging.value = true;
+      runOnJS(haptics.light)();
+    })
+    .onUpdate((event) => {
+      const newX = Math.max(0, Math.min(event.x - THUMB_SIZE / 2, trackWidth.value - THUMB_SIZE));
+      thumbX.value = newX;
+
+      const normalized = newX / (trackWidth.value - THUMB_SIZE);
+      const newValue = minValue + normalized * (maxValue - minValue);
+      runOnJS(onChange)(newValue);
+    })
+    .onEnd(() => {
+      isDragging.value = false;
+      runOnJS(haptics.light)();
+    });
+
+  const thumbStyle = useAnimatedStyle(() => ({
+    transform: [{ translateX: thumbX.value }],
+  }));
+
+  const fillWidth = ((value - minValue) / (maxValue - minValue)) * 100;
+
+  return (
+    <View style={styles.sliderContainer}>
+      <Text style={styles.sliderLabel}>{label}</Text>
+      <View style={styles.sliderRow}>
+        <Text style={styles.sliderValue}>{formatValue(value)}</Text>
+        <GestureDetector gesture={panGesture}>
+          <View
+            style={styles.sliderTrackContainer}
+            onLayout={(e) => {
+              const width = e.nativeEvent.layout.width;
+              trackWidth.value = width;
+
+              // Initialize thumb position on first layout
+              if (!isLayoutReady.current) {
+                isLayoutReady.current = true;
+                const normalized = (value - minValue) / (maxValue - minValue);
+                thumbX.value = normalized * (width - THUMB_SIZE);
+              }
+            }}
+          >
+            <View style={styles.sliderTrack}>
+              <View
+                style={[
+                  styles.sliderFill,
+                  { width: `${fillWidth}%` },
+                ]}
+              />
+            </View>
+            <Animated.View style={[styles.sliderThumb, thumbStyle]} />
+          </View>
+        </GestureDetector>
+      </View>
+    </View>
+  );
+};
 
 interface WatermarkToolModalProps {
   visible: boolean;
@@ -50,6 +149,17 @@ export const WatermarkToolModal: React.FC<WatermarkToolModalProps> = ({
   const [globalScale, setGlobalScale] = useState(1);
   const [globalRotation, setGlobalRotation] = useState(0);
 
+  // Reset all state when modal closes
+  React.useEffect(() => {
+    if (!visible) {
+      setSelectedPresetId(null);
+      setShowCustomization(false);
+      setGlobalOpacity(1);
+      setGlobalScale(1);
+      setGlobalRotation(0);
+    }
+  }, [visible]);
+
   const filteredPresets = WATERMARK_PRESETS.filter(preset => {
     return preset.category === 'pattern';
   });
@@ -70,6 +180,7 @@ export const WatermarkToolModal: React.FC<WatermarkToolModalProps> = ({
       onClose();
       // Reset customization
       setShowCustomization(false);
+      setSelectedPresetId(null);
       setGlobalOpacity(1);
       setGlobalScale(1);
       setGlobalRotation(0);
@@ -235,7 +346,10 @@ export const WatermarkToolModal: React.FC<WatermarkToolModalProps> = ({
             {/* Customization Panel */}
             <TouchableOpacity
               style={styles.backButton}
-              onPress={() => setShowCustomization(false)}
+              onPress={() => {
+                setShowCustomization(false);
+                setSelectedPresetId(null);
+              }}
             >
               <Text style={styles.backButtonText}>‹ Back to Presets</Text>
             </TouchableOpacity>
@@ -264,110 +378,34 @@ export const WatermarkToolModal: React.FC<WatermarkToolModalProps> = ({
                 <Text style={styles.sectionTitle}>Global Adjustments</Text>
 
                 {/* Opacity Slider */}
-                <View style={styles.sliderContainer}>
-                  <Text style={styles.sliderLabel}>Opacity</Text>
-                  <View style={styles.sliderRow}>
-                    <Text style={styles.sliderValue}>
-                      {Math.round(globalOpacity * 100)}%
-                    </Text>
-                    <View style={styles.sliderTrack}>
-                      <View
-                        style={[
-                          styles.sliderFill,
-                          { width: `${globalOpacity * 100}%` },
-                        ]}
-                      />
-                    </View>
-                  </View>
-                  <View style={styles.sliderButtons}>
-                    <TouchableOpacity
-                      style={styles.sliderButton}
-                      onPress={() =>
-                        setGlobalOpacity(Math.max(0.1, globalOpacity - 0.1))
-                      }
-                    >
-                      <Text style={styles.sliderButtonText}>-</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      style={styles.sliderButton}
-                      onPress={() =>
-                        setGlobalOpacity(Math.min(1, globalOpacity + 0.1))
-                      }
-                    >
-                      <Text style={styles.sliderButtonText}>+</Text>
-                    </TouchableOpacity>
-                  </View>
-                </View>
+                <GestureSlider
+                  label="Opacity"
+                  value={globalOpacity}
+                  minValue={0.1}
+                  maxValue={1}
+                  onChange={setGlobalOpacity}
+                  formatValue={(v) => `${Math.round(v * 100)}%`}
+                />
 
                 {/* Scale Slider */}
-                <View style={styles.sliderContainer}>
-                  <Text style={styles.sliderLabel}>Size</Text>
-                  <View style={styles.sliderRow}>
-                    <Text style={styles.sliderValue}>
-                      {Math.round(globalScale * 100)}%
-                    </Text>
-                    <View style={styles.sliderTrack}>
-                      <View
-                        style={[
-                          styles.sliderFill,
-                          { width: `${(globalScale / 2) * 100}%` },
-                        ]}
-                      />
-                    </View>
-                  </View>
-                  <View style={styles.sliderButtons}>
-                    <TouchableOpacity
-                      style={styles.sliderButton}
-                      onPress={() =>
-                        setGlobalScale(Math.max(0.5, globalScale - 0.1))
-                      }
-                    >
-                      <Text style={styles.sliderButtonText}>-</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      style={styles.sliderButton}
-                      onPress={() =>
-                        setGlobalScale(Math.min(2, globalScale + 0.1))
-                      }
-                    >
-                      <Text style={styles.sliderButtonText}>+</Text>
-                    </TouchableOpacity>
-                  </View>
-                </View>
+                <GestureSlider
+                  label="Size"
+                  value={globalScale}
+                  minValue={0.5}
+                  maxValue={2}
+                  onChange={setGlobalScale}
+                  formatValue={(v) => `${Math.round(v * 100)}%`}
+                />
 
                 {/* Rotation Slider */}
-                <View style={styles.sliderContainer}>
-                  <Text style={styles.sliderLabel}>Rotation</Text>
-                  <View style={styles.sliderRow}>
-                    <Text style={styles.sliderValue}>{globalRotation}°</Text>
-                    <View style={styles.sliderTrack}>
-                      <View
-                        style={[
-                          styles.sliderFill,
-                          { width: `${((globalRotation + 45) / 90) * 100}%` },
-                        ]}
-                      />
-                    </View>
-                  </View>
-                  <View style={styles.sliderButtons}>
-                    <TouchableOpacity
-                      style={styles.sliderButton}
-                      onPress={() =>
-                        setGlobalRotation(Math.max(-45, globalRotation - 5))
-                      }
-                    >
-                      <Text style={styles.sliderButtonText}>-</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      style={styles.sliderButton}
-                      onPress={() =>
-                        setGlobalRotation(Math.min(45, globalRotation + 5))
-                      }
-                    >
-                      <Text style={styles.sliderButtonText}>+</Text>
-                    </TouchableOpacity>
-                  </View>
-                </View>
+                <GestureSlider
+                  label="Rotation"
+                  value={globalRotation}
+                  minValue={-45}
+                  maxValue={45}
+                  onChange={setGlobalRotation}
+                  formatValue={(v) => `${Math.round(v)}°`}
+                />
 
                 <TouchableOpacity
                   style={[
@@ -537,8 +575,12 @@ const styles = StyleSheet.create({
     width: 50,
     fontWeight: '600',
   },
-  sliderTrack: {
+  sliderTrackContainer: {
     flex: 1,
+    height: THUMB_SIZE,
+    justifyContent: 'center',
+  },
+  sliderTrack: {
     height: 6,
     backgroundColor: Colors.backgrounds.tertiary,
     borderRadius: 3,
@@ -548,23 +590,17 @@ const styles = StyleSheet.create({
     height: '100%',
     backgroundColor: Colors.accent.primary,
   },
-  sliderButtons: {
-    flexDirection: 'row',
-    gap: Spacing.xs,
-  },
-  sliderButton: {
-    width: 44,
-    height: 44,
-    backgroundColor: Colors.backgrounds.tertiary,
-    borderRadius: 22,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  sliderButtonText: {
-    ...Typography.body.regular,
-    color: Colors.text.primary,
-    fontSize: 20,
-    fontWeight: '600',
+  sliderThumb: {
+    position: 'absolute',
+    width: THUMB_SIZE,
+    height: THUMB_SIZE,
+    borderRadius: THUMB_SIZE / 2,
+    backgroundColor: Colors.accent.primary,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 4,
   },
   previewInfo: {
     backgroundColor: Colors.backgrounds.tertiary,
