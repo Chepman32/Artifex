@@ -35,7 +35,7 @@ import { WatermarkToolModal } from '../components/modals/WatermarkToolModal';
 import { LayersModal } from '../components/modals/LayersModal';
 
 import { SizeSlider } from '../components/SizeSlider';
-import { createStickerElement } from '../utils/canvasElements';
+import { createStickerElement, createStampElement } from '../utils/canvasElements';
 import { rasterizeTextElementToWatermark } from '../utils/textRasterizer';
 import { WatermarkManager } from '../utils/watermarkManager';
 import { WatermarkPreset } from '../types/watermark';
@@ -633,7 +633,7 @@ const EditorScreen: React.FC = () => {
       stampUri = resolvedAsset.uri;
     }
 
-    const element = createStickerElement(
+    const element = createStampElement(
       stampUri,
       canvasSize.width / 2 - width / 2,
       canvasSize.height / 2 - height / 2,
