@@ -1,10 +1,20 @@
 // Image export functionality using Skia for high-quality rendering
 import { Skia, type SkCanvas, type SkImage } from '@shopify/react-native-skia';
+import { CameraRoll } from '@react-native-camera-roll/camera-roll';
 import { Platform } from 'react-native';
 import RNFS from 'react-native-fs';
 import { CanvasElement, ImageFilter } from '../types';
 import { getFilterColorMatrix } from './colorMatrix';
 import { rasterizeTextElementToWatermark } from './textRasterizer';
+
+const getTempDir = async () => {
+  const dir = `${RNFS.CachesDirectoryPath}/stikaro_temp`;
+  const exists = await RNFS.exists(dir);
+  if (!exists) {
+    await RNFS.mkdir(dir);
+  }
+  return dir;
+};
 
 // Extend RNFS types for iOS-specific methods
 interface RNFSWithIOS {
@@ -14,7 +24,7 @@ interface RNFSWithIOS {
     width: number,
     height: number,
     scale?: number,
-    compression?: string,
+    compression?: number,
     resizeMode?: string
   ): Promise<string>;
 }
@@ -31,6 +41,17 @@ const WATERMARK_FONT_SIZE = 14;
 const WATERMARK_OPACITY = 0.6;
 const WATERMARK_PADDING = 12;
 
+const stripFileScheme = (value: string): string => {
+  if (value.startsWith('file://')) {
+    return value.replace('file://', '');
+  }
+
+  if (value.startsWith('file:/')) {
+    return value.replace('file:/', '/');
+  }
+
+  return value;
+};
 
 interface CanvasScale {
   x: number;
@@ -56,7 +77,6 @@ const isValidCanvasSize = (
 
 const rasterizeTextForExport = async (
   element: CanvasElement,
-  targetType: 'sticker' | 'watermark',
 ): Promise<CanvasElement | null> => {
   if (!element.textContent) {
     return null;
@@ -74,7 +94,7 @@ const rasterizeTextForExport = async (
 
     return {
       ...rasterized,
-      type: targetType,
+      type: 'sticker',
       scale: element.scale ?? rasterized.scale ?? 1,
       rotation: element.rotation ?? rasterized.rotation,
       opacity: element.opacity ?? 1,
@@ -148,7 +168,7 @@ const loadImage = async (
       return Skia.Image.MakeImageFromEncoded(data);
     }
 
-    const normalized = resolved.startsWith('file://') ? resolved.replace('file://', '') : resolved;
+    const normalized = stripFileScheme(resolved);
     const base64 = await RNFS.readFile(normalized, 'base64');
     const data = Skia.Data.fromBase64(base64);
     return Skia.Image.MakeImageFromEncoded(data);
@@ -176,19 +196,52 @@ const resolveImageUriToPath = async (
         return null;
       }
 
+      const normalizedUri = uri.replace(/^ph:\/\//i, 'ph://');
+
       try {
-        const ext = 'jpg';
-        const dest = `${RNFS.TemporaryDirectoryPath}/stikaro_ph_${Date.now()}.${ext}`;
+        const photoData = await CameraRoll.iosGetImageDataById(
+          normalizedUri,
+          {
+            convertHeicImages: true,
+            quality: 1,
+          },
+        );
+        const filepath = photoData?.node?.image?.filepath;
+        if (filepath) {
+          console.log('[imageExporter] Resolved ph:// to filepath:', filepath);
+          return filepath;
+        }
+        console.warn(
+          '[imageExporter] iosGetImageDataById returned no filepath; falling back to copyAssetsFileIOS.',
+        );
+      } catch (error) {
+        console.warn(
+          '[imageExporter] iosGetImageDataById failed; falling back to copyAssetsFileIOS:',
+          error,
+        );
+      }
+
+      try {
+        const tempDir = await getTempDir();
+        const dest = `${tempDir}/stikaro_ph_${Date.now()}.jpg`;
+        const width = Math.max(0, Math.round(_dimensions?.width ?? 0));
+        const height = Math.max(0, Math.round(_dimensions?.height ?? 0));
 
         // Copy photo library asset to temporary file
-        await (RNFS as any).copyAssetsFileIOS(
-          uri,
+        await (RNFS as RNFSWithIOS).copyAssetsFileIOS(
+          normalizedUri,
           dest,
-          _dimensions?.width ?? 0,
-          _dimensions?.height ?? 0,
+          width,
+          height,
           1,
-          ext,
+          1,
+          'contain',
         );
+
+        const exists = await RNFS.exists(dest);
+        if (!exists) {
+          throw new Error('copyAssetsFileIOS did not create the output file');
+        }
 
         console.log('[imageExporter] Successfully copied ph:// to:', dest);
         return dest;
@@ -214,7 +267,8 @@ const resolveImageUriToPath = async (
         console.log(`[imageExporter] Metro bundle URL detected, attempting HTTP download: ${uri}`);
         // Try to download from Metro bundle URL
         const ext = uri.endsWith('.png') ? 'png' : 'jpg';
-        const dest = `${RNFS.TemporaryDirectoryPath}/stikaro_bundle_${Date.now()}.${ext}`;
+        const tempDir = await getTempDir();
+        const dest = `${tempDir}/stikaro_bundle_${Date.now()}.${ext}`;
         
         try {
           const result = await RNFS.downloadFile({
@@ -262,7 +316,8 @@ const resolveImageUriToPath = async (
               if (exists) {
                 console.log(`[imageExporter] Found asset at: ${path}`);
                 
-                const dest = `${RNFS.TemporaryDirectoryPath}/stikaro_resolved_${Date.now()}_${filename}`;
+                const tempDir = await getTempDir();
+                const dest = `${tempDir}/stikaro_resolved_${Date.now()}_${filename}`;
                 await RNFS.copyFile(path, dest);
                 console.log(`[imageExporter] Copied resolved asset to: ${dest}`);
                 
@@ -284,7 +339,8 @@ const resolveImageUriToPath = async (
       
       // Fallback: try HTTP download for all Metro URLs
       const ext = uri.endsWith('.png') ? 'png' : 'jpg';
-      const dest = `${RNFS.TemporaryDirectoryPath}/stikaro_remote_${Date.now()}.${ext}`;
+      const tempDir = await getTempDir();
+      const dest = `${tempDir}/stikaro_remote_${Date.now()}.${ext}`;
 
       try {
         const result = await RNFS.downloadFile({
@@ -304,7 +360,7 @@ const resolveImageUriToPath = async (
     }
 
     // Handle local files
-    const normalized = uri.startsWith('file://') ? uri.replace('file://', '') : uri;
+    const normalized = stripFileScheme(uri);
     const exists = await RNFS.exists(normalized);
     if (exists) {
       return normalized;
@@ -382,29 +438,22 @@ const drawCanvasElement = async (
   element: CanvasElement,
   scale: CanvasScale,
 ): Promise<void> => {
-  switch (element.type) {
-    case 'sticker':
-    case 'stamp':
-    case 'watermark': {
-      if (!element.assetPath) {
-        return;
-      }
-      const width = (element.width || 100) * scale.x;
-      const height = (element.height || 100) * scale.y;
-      await withElementTransform(
-        canvas,
-        element,
-        { width, height },
-        scale,
-        async () => {
-          await drawImageElement(canvas, element, { width, height });
-        },
-      );
-      break;
-    }
-    default:
-      break;
+  if (!element.assetPath) {
+    return;
   }
+
+  const width = (element.width || 100) * scale.x;
+  const height = (element.height || 100) * scale.y;
+
+  await withElementTransform(
+    canvas,
+    element,
+    { width, height },
+    scale,
+    async () => {
+      await drawImageElement(canvas, element, { width, height });
+    },
+  );
 };
 
 export const exportCanvasToImage = async (
@@ -437,7 +486,7 @@ export const exportCanvasToImage = async (
 
     // Load and draw source image
     console.log(`[imageExporter] Loading source image: ${sourceImagePath}`);
-    const sourceImage = await loadImage(sourceImagePath);
+    const sourceImage = await loadImage(sourceImagePath, sourceImageDimensions);
     if (!sourceImage) {
       console.error(`[imageExporter] Failed to load source image: ${sourceImagePath}`);
       throw new Error('Failed to load source image');
@@ -445,29 +494,35 @@ export const exportCanvasToImage = async (
 
     drawSourceImage(canvas, sourceImage, width, height, filter);
 
-    const elementsToRender = await Promise.all(
+    const elementsToRender: CanvasElement[] = [];
+
+    // Process all elements
+    const processedElements = await Promise.all(
       canvasElements.map(async element => {
-        if (element.type === 'text') {
-          const rasterized = await rasterizeTextForExport(element, 'sticker');
+        // Case 1: Already has an image asset (Sticker, Stamp, Image Watermark)
+        if (element.assetPath) {
+          // Force type to 'sticker' for consistency
+          return { ...element, type: 'sticker' } as CanvasElement;
+        }
+
+        // Case 2: Text content that needs rasterization (Text, Text Watermark)
+        if (element.textContent) {
+          const rasterized = await rasterizeTextForExport(element);
           if (rasterized) {
             return rasterized;
           }
         }
 
-        if (
-          element.type === 'watermark' &&
-          element.textContent &&
-          !element.assetPath
-        ) {
-          const rasterized = await rasterizeTextForExport(element, 'watermark');
-          if (rasterized) {
-            return rasterized;
-          }
-        }
-
-        return element;
+        return null;
       }),
     );
+
+    // Filter out nulls and add to render list
+    processedElements.forEach(el => {
+      if (el) {
+        elementsToRender.push(el);
+      }
+    });
 
     if (addWatermark) {
       try {
@@ -484,10 +539,7 @@ export const exportCanvasToImage = async (
           opacity: WATERMARK_OPACITY,
         };
 
-        const rasterized = await rasterizeTextForExport(
-          baseElement,
-          'watermark',
-        );
+        const rasterized = await rasterizeTextForExport(baseElement);
 
         if (rasterized) {
           const watermarkWidth =
@@ -526,7 +578,7 @@ export const exportCanvasToImage = async (
       console.log('[imageExporter] Export debug - final element counts', elementSummary);
     }
 
-    // Render all elements (now all as images)
+    // Render all elements (now all as images/stickers)
     for (const element of elementsToRender) {
       await drawCanvasElement(canvas, element, canvasScale);
     }
@@ -556,8 +608,10 @@ export const exportCanvasToImage = async (
       }
     }
 
+    const tempDir = await getTempDir();
     const filename = `stikaro_export_${Date.now()}.${actualFormat}`;
-    const filepath = `${RNFS.TemporaryDirectoryPath}/${filename}`;
+    const filepath = `${tempDir}/${filename}`;
+    console.log(`[imageExporter] Saving export to: ${filepath}`);
     await RNFS.writeFile(filepath, encoded, 'base64');
 
     return {

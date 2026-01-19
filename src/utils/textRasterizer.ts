@@ -92,7 +92,11 @@ export const rasterizeTextElementToWatermark = async (
   const snapshot = surface.makeImageSnapshot();
   const base64 = snapshot.encodeToBase64();
   const filename = `stikaro_wm_text_${Date.now()}.png`;
-  const filepath = `${RNFS.TemporaryDirectoryPath}/${filename}`;
+  
+  const tempDir = `${RNFS.CachesDirectoryPath}/stikaro_temp`;
+  await RNFS.mkdir(tempDir);
+  
+  const filepath = `${tempDir}/${filename}`;
   await RNFS.writeFile(filepath, base64, 'base64');
 
   return {
