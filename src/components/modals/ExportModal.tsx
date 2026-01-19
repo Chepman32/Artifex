@@ -51,6 +51,16 @@ export const ExportModal: React.FC<ExportModalProps> = ({
     appliedFilter,
   } = useEditorStore();
 
+  // Debug: Log canvas elements when modal is visible
+  React.useEffect(() => {
+    if (visible) {
+      console.log(`[ExportModal] Modal opened - canvasElements count: ${canvasElements.length}`);
+      canvasElements.forEach((el, i) => {
+        console.log(`[ExportModal] Element ${i}: type=${el.type}, id=${el.id}, hasAssetPath=${!!el.assetPath}, hasTextContent=${!!el.textContent}`);
+      });
+    }
+  }, [visible, canvasElements]);
+
   const openCameraRoll = async () => {
     const iosPhotosUrl = 'photos-redirect://';
     const androidPhotosUrl = 'content://media/internal/images/media';

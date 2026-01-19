@@ -382,11 +382,13 @@ const drawImageElement = async (
     return;
   }
 
+  console.log(`[imageExporter] drawImageElement: Loading image for ${element.id} from ${element.assetPath}`);
   const image = await loadImage(element.assetPath);
   if (!image) {
-    console.warn('Export: skipped image element - failed to load', element.id, element.assetPath);
+    console.warn('[imageExporter] drawImageElement: FAILED to load', element.id, element.assetPath);
     return;
   }
+  console.log(`[imageExporter] drawImageElement: Successfully loaded image ${element.id}, dimensions: ${image.width()}x${image.height()}, drawing at size: ${size.width}x${size.height}`);
 
   const paint = Skia.Paint();
   paint.setAntiAlias(true);
@@ -439,8 +441,11 @@ const drawCanvasElement = async (
   scale: CanvasScale,
 ): Promise<void> => {
   if (!element.assetPath) {
+    console.log(`[imageExporter] drawCanvasElement: Skipping element ${element.id} - no assetPath`);
     return;
   }
+
+  console.log(`[imageExporter] drawCanvasElement: Drawing ${element.id}, assetPath: ${element.assetPath.substring(0, 60)}, pos: (${element.position.x}, ${element.position.y}), scale: ${element.scale}`);
 
   const width = (element.width || 100) * scale.x;
   const height = (element.height || 100) * scale.y;
@@ -482,7 +487,6 @@ export const exportCanvasToImage = async (
       sourceImageDimensions,
       normalizedCanvasSize,
     );
-    const exportCanvasSize = normalizedCanvasSize || sourceImageDimensions;
 
     // Load and draw source image
     console.log(`[imageExporter] Loading source image: ${sourceImagePath}`);
@@ -496,23 +500,32 @@ export const exportCanvasToImage = async (
 
     const elementsToRender: CanvasElement[] = [];
 
+    // Debug: Log incoming canvas elements
+    console.log(`[imageExporter] Received ${canvasElements.length} canvas elements`);
+    canvasElements.forEach((el, i) => {
+      console.log(`[imageExporter] Element ${i}: type=${el.type}, hasAssetPath=${!!el.assetPath}, hasTextContent=${!!el.textContent}, assetPath=${el.assetPath?.substring(0, 50)}`);
+    });
+
     // Process all elements
     const processedElements = await Promise.all(
       canvasElements.map(async element => {
         // Case 1: Already has an image asset (Sticker, Stamp, Image Watermark)
         if (element.assetPath) {
+          console.log(`[imageExporter] Processing element with assetPath: ${element.id}, type: ${element.type}`);
           // Force type to 'sticker' for consistency
           return { ...element, type: 'sticker' } as CanvasElement;
         }
 
         // Case 2: Text content that needs rasterization (Text, Text Watermark)
         if (element.textContent) {
+          console.log(`[imageExporter] Rasterizing text element: ${element.id}, text: ${element.textContent}`);
           const rasterized = await rasterizeTextForExport(element);
           if (rasterized) {
             return rasterized;
           }
         }
 
+        console.log(`[imageExporter] Skipping element: ${element.id}, type: ${element.type}, no assetPath or textContent`);
         return null;
       }),
     );
@@ -523,51 +536,6 @@ export const exportCanvasToImage = async (
         elementsToRender.push(el);
       }
     });
-
-    if (addWatermark) {
-      try {
-        const baseElement: CanvasElement = {
-          id: `builtin-watermark-${Date.now()}`,
-          type: 'text',
-          textContent: STIKARO_WATERMARK_TEXT,
-          fontFamily: 'System',
-          fontSize: WATERMARK_FONT_SIZE,
-          color: '#FFFFFF',
-          position: { x: 0, y: 0 },
-          scale: 1,
-          rotation: 0,
-          opacity: WATERMARK_OPACITY,
-        };
-
-        const rasterized = await rasterizeTextForExport(baseElement);
-
-        if (rasterized) {
-          const watermarkWidth =
-            rasterized.width ?? WATERMARK_FONT_SIZE * 8;
-          const watermarkHeight =
-            rasterized.height ?? WATERMARK_FONT_SIZE * 2;
-
-          const x = Math.max(
-            exportCanvasSize.width - watermarkWidth - WATERMARK_PADDING,
-            0,
-          );
-          const y = Math.max(
-            exportCanvasSize.height - watermarkHeight - WATERMARK_PADDING,
-            0,
-          );
-
-          elementsToRender.push({
-            ...rasterized,
-            position: { x, y },
-          });
-        }
-      } catch (error) {
-        console.error(
-          '[imageExporter] Failed to create built-in watermark:',
-          error,
-        );
-      }
-    }
 
     // Debug logging
     if (typeof __DEV__ !== 'undefined' && __DEV__) {
@@ -581,6 +549,52 @@ export const exportCanvasToImage = async (
     // Render all elements (now all as images/stickers)
     for (const element of elementsToRender) {
       await drawCanvasElement(canvas, element, canvasScale);
+    }
+
+    // Add built-in watermark as a sticker element (rasterized at export resolution)
+    if (addWatermark) {
+      try {
+        const scaleFactor = Math.max(canvasScale.x, canvasScale.y);
+        const exportFontSize = Math.round(WATERMARK_FONT_SIZE * scaleFactor);
+
+        // Rasterize watermark text at export resolution
+        const rasterized = await rasterizeTextElementToWatermark({
+          id: `builtin-watermark-${Date.now()}`,
+          type: 'text',
+          textContent: STIKARO_WATERMARK_TEXT,
+          fontFamily: 'System',
+          fontSize: exportFontSize,
+          color: '#FFFFFF',
+          position: { x: 0, y: 0 },
+          scale: 1,
+          rotation: 0,
+          opacity: WATERMARK_OPACITY,
+        });
+
+        if (rasterized.assetPath) {
+          const watermarkWidth = rasterized.width ?? exportFontSize * 10;
+          const watermarkHeight = rasterized.height ?? exportFontSize * 2;
+
+          // Position in EXPORT coordinates (bottom-right with scaled padding)
+          const paddingScaled = WATERMARK_PADDING * scaleFactor;
+          const exportX = width - watermarkWidth - paddingScaled;
+          const exportY = height - watermarkHeight - paddingScaled;
+
+          // Draw watermark directly at export coordinates (no scaling needed)
+          const watermarkImage = await loadImage(rasterized.assetPath);
+          if (watermarkImage) {
+            const paint = Skia.Paint();
+            paint.setAntiAlias(true);
+            // Opacity is already baked into the rasterized image
+
+            const srcRect = Skia.XYWHRect(0, 0, watermarkImage.width(), watermarkImage.height());
+            const dstRect = Skia.XYWHRect(exportX, exportY, watermarkWidth, watermarkHeight);
+            canvas.drawImageRect(watermarkImage, srcRect, dstRect, paint);
+          }
+        }
+      } catch (error) {
+        console.error('[imageExporter] Failed to draw watermark:', error);
+      }
     }
 
     // Encode and save

@@ -6,29 +6,50 @@ import type { CanvasElement } from '../types';
 
 const createFont = (size: number, family?: string) => {
   try {
-    let typeface: ReturnType<typeof Skia.Typeface.MakeDefault> | null = null;
+    const SkiaTypeface = Skia.Typeface as any;
+    let typeface: any = null;
 
     if (family && family !== 'System') {
-      // @ts-expect-error - MakeFromName may not exist on all platforms
-      typeface = (Skia.Typeface.MakeFromName?.(family) as ReturnType<
-        typeof Skia.Typeface.MakeDefault
-      > | null) ?? null;
+      typeface = SkiaTypeface.MakeFromName?.(family) ?? null;
     }
 
-    if (!typeface && typeof Skia.Typeface.MakeDefault === 'function') {
-      typeface = Skia.Typeface.MakeDefault();
+    if (!typeface && typeof SkiaTypeface.MakeDefault === 'function') {
+      typeface = SkiaTypeface.MakeDefault();
     }
 
-    const font = Skia.Font(typeface ?? undefined, size);
+    // Try to create font with typeface, or without if typeface is not available
+    let font;
+    if (typeface) {
+      font = Skia.Font(typeface, size);
+    } else {
+      // Fallback: try using FontMgr to get system font
+      const fontMgr = (Skia as any).FontMgr?.System?.();
+      if (fontMgr) {
+        const familyCount = fontMgr.countFamilies();
+        if (familyCount > 0) {
+          const firstFamily = fontMgr.getFamilyName(0);
+          const matchedTypeface = fontMgr.matchFamilyStyle(firstFamily, { weight: 400, width: 5, slant: 0 });
+          if (matchedTypeface) {
+            font = Skia.Font(matchedTypeface, size);
+          }
+        }
+      }
+    }
+
     if (!font) {
+      console.warn('[textRasterizer] Failed to create font');
       return null;
     }
 
     if (typeof font.setEdging === 'function') {
-      font.setEdging(Skia.FontEdging.SubpixelAntialias);
+      const FontEdging = (Skia as any).FontEdging;
+      if (FontEdging && typeof FontEdging.SubpixelAntialias !== 'undefined') {
+        font.setEdging(FontEdging.SubpixelAntialias);
+      }
     }
     return font;
-  } catch {
+  } catch (error) {
+    console.error('[textRasterizer] createFont error:', error);
     return null;
   }
 };
@@ -73,12 +94,10 @@ export const rasterizeTextElementToWatermark = async (
     backgroundPaint.setAntiAlias(true);
     backgroundPaint.setColor(Skia.Color(element.textBackground));
     backgroundPaint.setAlphaf(bgOpacity);
-    canvas.drawRoundRect(
-      Skia.XYWHRect(0, 0, totalWidth, totalHeight),
-      baseFontSize * 0.25,
-      baseFontSize * 0.25,
-      backgroundPaint,
-    );
+    const rect = Skia.XYWHRect(0, 0, totalWidth, totalHeight);
+    const radius = baseFontSize * 0.25;
+    const rrect = Skia.RRectXY(rect, radius, radius);
+    canvas.drawRRect(rrect, backgroundPaint);
   }
 
   const paint = Skia.Paint();
