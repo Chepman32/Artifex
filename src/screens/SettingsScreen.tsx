@@ -268,6 +268,7 @@ const SettingsScreen: React.FC = () => {
         <View
           style={[
             styles.modalContent,
+            styles.languageModalContent,
             { backgroundColor: theme.backgrounds.secondary },
           ]}
         >
@@ -621,10 +622,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   modalContent: {
-    width: '85%',
+    width: '99%',
     maxHeight: '75%',
     borderRadius: AppDimensions.cornerRadius.large,
     overflow: 'hidden',
+  },
+  languageModalContent: {
+    maxHeight: '99%',
   },
   modalTitle: {
     ...Typography.display.h3,
