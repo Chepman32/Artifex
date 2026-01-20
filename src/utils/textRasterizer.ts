@@ -2,22 +2,78 @@
 
 import { Skia } from '@shopify/react-native-skia';
 import RNFS from 'react-native-fs';
+import { Platform } from 'react-native';
 import type { CanvasElement } from '../types';
 
-const createFont = (size: number, family?: string) => {
+// Cache for the default font typeface (FiraSans-Regular supports Unicode including ©)
+let defaultTypeface: any = null;
+let fontLoadPromise: Promise<void> | null = null;
+
+// Load the default font (FiraSans-Regular) - supports Unicode special characters
+const loadDefaultFont = async (): Promise<void> => {
+  if (defaultTypeface) {
+    return;
+  }
+  if (fontLoadPromise) {
+    return fontLoadPromise;
+  }
+
+  fontLoadPromise = (async () => {
+    try {
+      let fontBase64: string;
+
+      if (Platform.OS === 'ios') {
+        // iOS: fonts registered via UIAppFonts in Info.plist are copied to bundle root
+        const fontPath = `${RNFS.MainBundlePath}/FiraSans-Regular.ttf`;
+        fontBase64 = await RNFS.readFile(fontPath, 'base64');
+      } else {
+        // Android: fonts are in assets folder
+        fontBase64 = await RNFS.readFileAssets('fonts/FiraSans-Regular.ttf', 'base64');
+      }
+
+      const fontData = Skia.Data.fromBase64(fontBase64);
+      const SkiaTypeface = Skia.Typeface as any;
+      defaultTypeface = SkiaTypeface.MakeFreeTypeFaceFromData(fontData);
+
+      if (!defaultTypeface) {
+        console.warn('[textRasterizer] Failed to create typeface from FiraSans font data');
+      }
+    } catch (error) {
+      console.warn('[textRasterizer] Failed to load FiraSans font:', error);
+    }
+  })();
+
+  return fontLoadPromise;
+};
+
+// Start loading font at module initialization
+loadDefaultFont();
+
+const createFont = async (size: number, _family?: string) => {
   try {
+    // Ensure font is loaded
+    await loadDefaultFont();
+
+    // Use the loaded FiraSans font if available
+    if (defaultTypeface) {
+      const font = Skia.Font(defaultTypeface, size);
+      if (font && typeof font.setEdging === 'function') {
+        const FontEdging = (Skia as any).FontEdging;
+        if (FontEdging?.SubpixelAntialias !== undefined) {
+          font.setEdging(FontEdging.SubpixelAntialias);
+        }
+      }
+      return font;
+    }
+
+    // Fallback to default typeface (may not support all Unicode characters)
     const SkiaTypeface = Skia.Typeface as any;
     let typeface: any = null;
 
-    if (family && family !== 'System') {
-      typeface = SkiaTypeface.MakeFromName?.(family) ?? null;
-    }
-
-    if (!typeface && typeof SkiaTypeface.MakeDefault === 'function') {
+    if (typeof SkiaTypeface.MakeDefault === 'function') {
       typeface = SkiaTypeface.MakeDefault();
     }
 
-    // Try to create font with typeface, or without if typeface is not available
     let font;
     if (typeface) {
       font = Skia.Font(typeface, size);
@@ -59,7 +115,7 @@ export const rasterizeTextElementToWatermark = async (
 ): Promise<CanvasElement> => {
   const text = element.textContent ?? '';
   const baseFontSize = element.fontSize ?? 24;
-  const font = createFont(baseFontSize, element.fontFamily);
+  const font = await createFont(baseFontSize, element.fontFamily);
   if (!font || !text) {
     return element;
   }
