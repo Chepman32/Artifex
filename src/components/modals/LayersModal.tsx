@@ -16,23 +16,28 @@ import { Spacing } from '../../constants/spacing';
 import { useEditorStore } from '../../stores/editorStore';
 import { CanvasElement } from '../../types';
 
+// Import toolbar icons
+const stickerIcon = require('../../assets/icons/toolbar/sticker.png');
+const stampIcon = require('../../assets/icons/toolbar/2471542.png');
+const watermarkIcon = require('../../assets/icons/toolbar/watermark.png');
+
 interface LayersModalProps {
   visible: boolean;
   onClose: () => void;
 }
 
-const getElementIcon = (type: CanvasElement['type']) => {
+const getElementIcon = (type: CanvasElement['type']): { type: 'emoji' | 'image'; value: string | any } => {
   switch (type) {
     case 'text':
-      return '📝';
+      return { type: 'emoji', value: '📝' };
     case 'sticker':
-      return '😀';
+      return { type: 'image', value: stickerIcon };
     case 'watermark':
-      return '💧';
+      return { type: 'image', value: watermarkIcon };
     case 'stamp':
-      return '🏷️';
+      return { type: 'image', value: stampIcon };
     default:
-      return '📄';
+      return { type: 'emoji', value: '📄' };
   }
 };
 
@@ -114,7 +119,22 @@ export const LayersModal: React.FC<LayersModalProps> = ({
       >
         <View style={styles.layerContent}>
           {/* Element Icon */}
-          <Text style={styles.elementIcon}>{getElementIcon(item.type)}</Text>
+          <View style={styles.elementIconContainer}>
+            {(() => {
+              const icon = getElementIcon(item.type);
+              if (icon.type === 'emoji') {
+                return <Text style={styles.elementIcon}>{icon.value}</Text>;
+              } else {
+                return (
+                  <Image
+                    source={icon.value}
+                    style={styles.elementIconImage}
+                    resizeMode="contain"
+                  />
+                );
+              }
+            })()}
+          </View>
 
           {/* Element Info */}
           <View style={styles.elementInfo}>
@@ -260,9 +280,19 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: Spacing.m,
   },
+  elementIconContainer: {
+    width: 32,
+    height: 32,
+    marginRight: Spacing.m,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   elementIcon: {
     fontSize: 24,
-    marginRight: Spacing.m,
+  },
+  elementIconImage: {
+    width: 28,
+    height: 28,
   },
   elementInfo: {
     flex: 1,

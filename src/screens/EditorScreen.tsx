@@ -1008,7 +1008,11 @@ const EditorScreen: React.FC = () => {
               style={styles.deleteButton}
               onPress={handleDeleteElement}
             >
-              <Text style={styles.deleteIcon}>🗑️</Text>
+              <Image
+                source={require('../assets/icons/remove.png')}
+                style={styles.actionIcon}
+                resizeMode="contain"
+              />
             </TouchableOpacity>
           )}
         </View>
@@ -1317,7 +1321,6 @@ const styles = StyleSheet.create({
   actionIcon: {
     width: 20,
     height: 20,
-    tintColor: Colors.text.primary,
   },
   exportButton: {
     paddingHorizontal: Spacing.m,
