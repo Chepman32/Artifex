@@ -1,6 +1,6 @@
 // Reusable bottom sheet modal with physics-based spring animations
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   StyleSheet,
@@ -15,6 +15,7 @@ import Animated, {
   withSpring,
   useAnimatedGestureHandler,
   runOnJS,
+  WithSpringConfig,
 } from 'react-native-reanimated';
 import { PanGestureHandler } from 'react-native-gesture-handler';
 import { Colors } from '../../constants/colors';
@@ -38,6 +39,7 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({
   snapPoints = [0.5, 0.9],
 }) => {
   const insets = useSafeAreaInsets();
+  const [isRendered, setIsRendered] = useState(visible);
 
   const baseHeight = height || screenHeight * snapPoints[0];
   const sheetHeight = baseHeight + insets.bottom;
@@ -47,15 +49,21 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({
 
   useEffect(() => {
     if (visible) {
+      setIsRendered(true);
       translateY.value = withSpring(0, {
         damping: 50,
         stiffness: 400,
       });
       backdropOpacity.value = withSpring(1);
     } else {
-      translateY.value = withSpring(sheetHeight, {
+      const closeConfig: WithSpringConfig = {
         damping: 45,
         stiffness: 320,
+      };
+      translateY.value = withSpring(sheetHeight, closeConfig, (finished) => {
+        if (finished) {
+          runOnJS(setIsRendered)(false);
+        }
       });
       backdropOpacity.value = withSpring(0);
     }
@@ -98,14 +106,14 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({
     opacity: backdropOpacity.value,
   }));
 
-  if (!visible) {
+  if (!isRendered) {
     return null;
   }
 
   return (
     <Modal
       transparent
-      visible={visible}
+      visible={isRendered}
       animationType="none"
       onRequestClose={onClose}
     >

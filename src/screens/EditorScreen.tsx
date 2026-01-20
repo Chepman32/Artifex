@@ -26,6 +26,7 @@ import Animated, {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { useEditorStore } from '../stores/editorStore';
+import { useAppStore } from '../stores/appStore';
 import { SkiaCanvas } from '../components/SkiaCanvas';
 
 import { StickerPickerModal } from '../components/modals/StickerPickerModal';
@@ -246,30 +247,39 @@ const EditorScreen: React.FC = () => {
   }, [initializeProject, loadProject, params]);
 
   const handleBack = async () => {
+    const autoSave = useAppStore.getState().preferences.autoSaveProjects;
+
     // Only prompt to save if there are actual changes
     if (hasChanges()) {
-      Alert.alert(
-        'Save Changes?',
-        'You have unsaved changes. Do you want to save this project before leaving?',
-        [
-          {
-            text: 'Discard',
-            style: 'destructive',
-            onPress: () => navigation.goBack(),
-          },
-          {
-            text: 'Save',
-            onPress: async () => {
-              await saveProject(canvasSize);
-              navigation.goBack();
+      if (autoSave) {
+        // Auto-save enabled: save and go back without prompting
+        await saveProject(canvasSize);
+        navigation.goBack();
+      } else {
+        // Auto-save disabled: show prompt
+        Alert.alert(
+          'Save Changes?',
+          'You have unsaved changes. Do you want to save this project before leaving?',
+          [
+            {
+              text: 'Discard',
+              style: 'destructive',
+              onPress: () => navigation.goBack(),
             },
-          },
-          {
-            text: 'Cancel',
-            style: 'cancel',
-          },
-        ],
-      );
+            {
+              text: 'Save',
+              onPress: async () => {
+                await saveProject(canvasSize);
+                navigation.goBack();
+              },
+            },
+            {
+              text: 'Cancel',
+              style: 'cancel',
+            },
+          ],
+        );
+      }
     } else {
       navigation.goBack();
     }

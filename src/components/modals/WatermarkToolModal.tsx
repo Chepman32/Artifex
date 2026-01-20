@@ -17,6 +17,8 @@ import Animated, {
   useSharedValue,
   useAnimatedStyle,
   runOnJS,
+  withTiming,
+  Easing,
 } from 'react-native-reanimated';
 import { BottomSheet } from './BottomSheet';
 import { Colors } from '../../constants/colors';
@@ -149,6 +151,23 @@ export const WatermarkToolModal: React.FC<WatermarkToolModalProps> = ({
   const [globalScale, setGlobalScale] = useState(1);
   const [globalRotation, setGlobalRotation] = useState(0);
 
+  // View transition animation (0 = presets, 1 = customization)
+  const viewProgress = useSharedValue(0);
+
+  const presetsViewStyle = useAnimatedStyle(() => ({
+    opacity: 1 - viewProgress.value,
+    transform: [{ translateX: -viewProgress.value * 50 }],
+    position: viewProgress.value === 1 ? 'absolute' : 'relative',
+    pointerEvents: viewProgress.value === 1 ? 'none' : 'auto',
+  }));
+
+  const customizationViewStyle = useAnimatedStyle(() => ({
+    opacity: viewProgress.value,
+    transform: [{ translateX: (1 - viewProgress.value) * 50 }],
+    position: viewProgress.value === 0 ? 'absolute' : 'relative',
+    pointerEvents: viewProgress.value === 0 ? 'none' : 'auto',
+  }));
+
   // Reset all state when modal closes
   React.useEffect(() => {
     if (!visible) {
@@ -157,8 +176,17 @@ export const WatermarkToolModal: React.FC<WatermarkToolModalProps> = ({
       setGlobalOpacity(1);
       setGlobalScale(1);
       setGlobalRotation(0);
+      viewProgress.value = 0;
     }
   }, [visible]);
+
+  // Animate view transition
+  React.useEffect(() => {
+    viewProgress.value = withTiming(showCustomization ? 1 : 0, {
+      duration: 250,
+      easing: Easing.out(Easing.cubic),
+    });
+  }, [showCustomization]);
 
   const filteredPresets = WATERMARK_PRESETS.filter(preset => {
     return preset.category === 'pattern';
@@ -293,8 +321,9 @@ export const WatermarkToolModal: React.FC<WatermarkToolModalProps> = ({
       <View style={styles.container}>
         <Text style={styles.title}>💧 Watermark Tool</Text>
 
-        {!showCustomization ? (
-          <>
+        <View style={styles.viewContainer}>
+          {/* Presets View */}
+          <Animated.View style={[styles.animatedView, presetsViewStyle]}>
             {/* Watermark Text Input */}
             <View style={styles.textInputContainer}>
               <Text style={styles.inputLabel}>Watermark Text</Text>
@@ -340,9 +369,10 @@ export const WatermarkToolModal: React.FC<WatermarkToolModalProps> = ({
                 </TouchableOpacity>
               </View>
             )}
-          </>
-        ) : (
-          <>
+          </Animated.View>
+
+          {/* Customization View */}
+          <Animated.View style={[styles.animatedView, customizationViewStyle]}>
             {/* Customization Panel */}
             <TouchableOpacity
               style={styles.backButton}
@@ -439,8 +469,8 @@ export const WatermarkToolModal: React.FC<WatermarkToolModalProps> = ({
                 </View>
               </ScrollView>
             </View>
-          </>
-        )}
+          </Animated.View>
+        </View>
       </View>
     </BottomSheet>
   );
@@ -449,6 +479,13 @@ export const WatermarkToolModal: React.FC<WatermarkToolModalProps> = ({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  viewContainer: {
+    flex: 1,
+  },
+  animatedView: {
+    flex: 1,
+    width: '100%',
   },
   title: {
     ...Typography.display.h3,
