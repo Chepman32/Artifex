@@ -35,6 +35,7 @@ export const SizeSlider: React.FC<SizeSliderProps> = ({
 }) => {
   const translateY = useSharedValue(0);
   const scale = useSharedValue(initialValue);
+  const isDragging = useSharedValue(false);
 
   // Convert scale value to slider position (0 to 1)
   const getSliderPosition = (scaleValue: number) => {
@@ -42,6 +43,11 @@ export const SizeSlider: React.FC<SizeSliderProps> = ({
   };
 
   React.useEffect(() => {
+    // Skip animation during active drag to prevent bouncing
+    if (isDragging.value) {
+      return;
+    }
+
     const sliderPos = getSliderPosition(initialValue);
     // Center thumb on track endpoints (thumb center at track top/bottom)
     const trackRange = SLIDER_HEIGHT;
@@ -56,6 +62,7 @@ export const SizeSlider: React.FC<SizeSliderProps> = ({
 
   const panGesture = Gesture.Pan()
     .onStart(() => {
+      isDragging.value = true;
       startY.value = translateY.value;
       runOnJS(haptics.light)();
     })
@@ -77,6 +84,7 @@ export const SizeSlider: React.FC<SizeSliderProps> = ({
       runOnJS(onValueChange)(newScale);
     })
     .onEnd(() => {
+      isDragging.value = false;
       runOnJS(haptics.light)();
       // Call onChangeEnd to save to history
       if (onChangeEnd) {
