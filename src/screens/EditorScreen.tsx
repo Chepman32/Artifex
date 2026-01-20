@@ -1311,7 +1311,7 @@ const styles = StyleSheet.create({
     marginLeft: Spacing.xs,
   },
   deleteIcon: {
-    fontSize: 20,
+    fontSize: 40,
     color: '#FF4444',
   },
   historyIcon: {
@@ -1321,6 +1321,7 @@ const styles = StyleSheet.create({
   actionIcon: {
     width: 20,
     height: 20,
+    tintColor: Colors.text.primary,
   },
   exportButton: {
     paddingHorizontal: Spacing.m,
