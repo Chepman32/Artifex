@@ -1,6 +1,6 @@
 // Home screen - Project gallery with FAB and staggered animations
 
-import React, { useEffect, useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -21,7 +21,8 @@ import Animated, {
   Layout,
 } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
+import { useCallback } from 'react';
 import { useProjectGalleryStore } from '../stores/projectGalleryStore';
 import { useAppStore } from '../stores/appStore';
 import { Colors } from '../constants/colors';
@@ -50,9 +51,11 @@ const HomeScreen: React.FC = () => {
     toggleSelection,
   } = useProjectGalleryStore();
 
-  useEffect(() => {
-    loadProjects();
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      loadProjects();
+    }, [loadProjects])
+  );
 
   const handleFabPress = () => {
     try {

@@ -245,11 +245,11 @@ const EditorScreen: React.FC = () => {
   }, [initializeProject, loadProject, params]);
 
   const handleBack = async () => {
-    // Check if there are unsaved changes
-    if (canvasElements.length > 0) {
+    // Check if we have a valid project to potentially save
+    if (sourceImagePath) {
       Alert.alert(
         'Save Changes?',
-        'You have unsaved changes. Do you want to save this project before leaving?',
+        'Do you want to save this project before leaving?',
         [
           {
             text: 'Discard',
