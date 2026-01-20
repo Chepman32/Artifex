@@ -16,6 +16,15 @@ const getTempDir = async () => {
   return dir;
 };
 
+const getThumbnailDir = async () => {
+  const dir = `${RNFS.DocumentDirectoryPath}/stikaro_thumbnails`;
+  const exists = await RNFS.exists(dir);
+  if (!exists) {
+    await RNFS.mkdir(dir);
+  }
+  return dir;
+};
+
 // Extend RNFS types for iOS-specific methods
 interface RNFSWithIOS {
   copyAssetsFileIOS(
@@ -632,13 +641,24 @@ export const generateThumbnail = async (
   canvasSize: { width: number; height: number } | null,
   filter?: ImageFilter | null,
   thumbnailWidth: number = 300,
+  projectId?: string,
 ): Promise<string> => {
+  console.log('[generateThumbnail] Starting thumbnail generation', {
+    sourceImagePath,
+    sourceImageDimensions,
+    canvasElementsCount: canvasElements.length,
+    canvasSize,
+    projectId,
+  });
+
   // Calculate scaled dimensions maintaining aspect ratio
   const aspectRatio = sourceImageDimensions.height / sourceImageDimensions.width;
   const scaledDimensions = {
     width: Math.round(thumbnailWidth),
     height: Math.round(thumbnailWidth * aspectRatio),
   };
+
+  console.log('[generateThumbnail] Scaled dimensions:', scaledDimensions);
 
   const result = await exportCanvasToImage(
     sourceImagePath,
@@ -653,5 +673,24 @@ export const generateThumbnail = async (
     filter,
   );
 
-  return result.filepath;
+  console.log('[generateThumbnail] Export result:', result.filepath);
+
+  // Move thumbnail from temp to permanent storage
+  const thumbnailDir = await getThumbnailDir();
+  const filename = projectId
+    ? `thumbnail_${projectId}.jpg`
+    : `thumbnail_${Date.now()}.jpg`;
+  const permanentPath = `${thumbnailDir}/${filename}`;
+
+  console.log('[generateThumbnail] Moving to permanent path:', permanentPath);
+
+  // Copy to permanent location (overwrites if exists)
+  if (await RNFS.exists(permanentPath)) {
+    await RNFS.unlink(permanentPath);
+  }
+  await RNFS.moveFile(result.filepath, permanentPath);
+
+  console.log('[generateThumbnail] Thumbnail saved successfully');
+
+  return permanentPath;
 };

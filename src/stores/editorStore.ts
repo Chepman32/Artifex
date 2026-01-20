@@ -470,6 +470,8 @@ export const useEditorStore = create<EditorState>((set, get) => ({
         canvasElements,
         canvasSize || null,
         appliedFilter,
+        300,
+        currentProjectId,
       );
     } catch (error) {
       console.error('Failed to generate thumbnail:', error);
