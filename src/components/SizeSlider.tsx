@@ -112,13 +112,6 @@ export const SizeSlider: React.FC<SizeSliderProps> = ({
           <View style={styles.thumbInner} />
         </Animated.View>
       </GestureDetector>
-
-      {/* Size Indicator Lines */}
-      <View style={styles.indicators}>
-        <View style={[styles.indicator, styles.indicatorSmall]} />
-        <View style={[styles.indicator, styles.indicatorMedium]} />
-        <View style={[styles.indicator, styles.indicatorLarge]} />
-      </View>
     </Animated.View>
   );
 };
@@ -159,28 +152,5 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 4,
     elevation: 4,
-  },
-  indicators: {
-    position: 'absolute',
-    right: -12,
-    height: '100%',
-    justifyContent: 'space-between',
-    paddingVertical: THUMB_SIZE / 2,
-  },
-  indicator: {
-    backgroundColor: Colors.text.tertiary,
-    borderRadius: 1,
-  },
-  indicatorSmall: {
-    width: 6,
-    height: 2,
-  },
-  indicatorMedium: {
-    width: 8,
-    height: 2,
-  },
-  indicatorLarge: {
-    width: 10,
-    height: 2,
   },
 });
