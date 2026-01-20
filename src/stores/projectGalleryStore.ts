@@ -75,7 +75,7 @@ export const useProjectGalleryStore = create<ProjectGalleryState>(
 
     deleteProjects: async ids => {
       try {
-        await ProjectDatabase.deleteMany(ids);
+        await ProjectDatabase.deleteMultiple(ids);
         set(state => ({
           projects: state.projects.filter(p => !ids.includes(p.id)),
           selectedIds: new Set(),

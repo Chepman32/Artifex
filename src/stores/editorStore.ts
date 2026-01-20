@@ -8,6 +8,7 @@ import {
   ImageFilter,
 } from '../types';
 import { ProjectDatabase } from '../database/ProjectDatabase';
+import { generateThumbnail } from '../utils/imageExporter';
 
 interface EditorState {
   canvasElements: CanvasElement[];
@@ -20,6 +21,8 @@ interface EditorState {
   sourceImageDimensions: { width: number; height: number } | null;
   canvasSize: { width: number; height: number } | null;
   appliedFilter: ImageFilter | null;
+  initialCanvasElements: CanvasElement[];
+  initialAppliedFilter: ImageFilter | null;
 
   // Element manipulation
   addElement: (element: CanvasElement) => void;
@@ -61,6 +64,9 @@ interface EditorState {
     imageUri: string,
     dimensions: { width: number; height: number },
   ) => void;
+
+  // Change detection
+  hasChanges: () => boolean;
 
   // Reset
   reset: () => void;
@@ -425,8 +431,12 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       const project = await ProjectDatabase.getById(projectId);
       if (!project) return;
 
+      const elements = project.elements as CanvasElement[];
       set({
-        canvasElements: project.elements as CanvasElement[],
+        canvasElements: elements,
+        initialCanvasElements: elements,
+        initialAppliedFilter: null,
+        appliedFilter: null,
         selectedElementId: null,
         selectedElementIds: [],
         history: [],
@@ -447,22 +457,42 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       currentProjectId,
       sourceImagePath,
       sourceImageDimensions,
+      appliedFilter,
     } = get();
     if (!currentProjectId || !sourceImagePath || !sourceImageDimensions) return;
+
+    // Generate thumbnail with all elements
+    let thumbnailPath = sourceImagePath; // Fallback
+    try {
+      thumbnailPath = await generateThumbnail(
+        sourceImagePath,
+        sourceImageDimensions,
+        canvasElements,
+        canvasSize || null,
+        appliedFilter,
+      );
+    } catch (error) {
+      console.error('Failed to generate thumbnail:', error);
+    }
 
     const project = {
       id: currentProjectId,
       sourceImagePath,
       sourceImageDimensions,
-      canvasSize, // Store canvas size for proper export scaling
-      thumbnailPath: sourceImagePath, // Use source image as thumbnail
+      canvasSize,
+      thumbnailPath,
       elements: canvasElements,
-      createdAt: new Date(), // Will be preserved if existing
+      createdAt: new Date(),
       updatedAt: new Date(),
     };
 
     try {
       await ProjectDatabase.save(project);
+      // Update initial state after successful save
+      set({
+        initialCanvasElements: canvasElements,
+        initialAppliedFilter: appliedFilter,
+      });
     } catch (error) {
       console.error('Failed to save project:', error);
     }
@@ -480,12 +510,15 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       currentProjectId: projectId,
       sourceImagePath: imageUri,
       sourceImageDimensions: dimensions,
-      canvasSize: null, // Will be set on first save
+      canvasSize: null,
       canvasElements: [],
+      initialCanvasElements: [],
+      initialAppliedFilter: null,
       selectedElementId: null,
       selectedElementIds: [],
       history: [],
       historyIndex: -1,
+      appliedFilter: null,
     });
   },
 
@@ -527,9 +560,19 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     });
   },
 
+  hasChanges: () => {
+    const { canvasElements, appliedFilter, initialCanvasElements, initialAppliedFilter } = get();
+    return (
+      JSON.stringify(canvasElements) !== JSON.stringify(initialCanvasElements) ||
+      JSON.stringify(appliedFilter) !== JSON.stringify(initialAppliedFilter)
+    );
+  },
+
   reset: () =>
     set({
       canvasElements: [],
+      initialCanvasElements: [],
+      initialAppliedFilter: null,
       selectedElementId: null,
       selectedElementIds: [],
       history: [],

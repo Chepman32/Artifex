@@ -624,3 +624,34 @@ export const exportCanvasToImage = async (
     throw new Error('Failed to export image');
   }
 };
+
+export const generateThumbnail = async (
+  sourceImagePath: string,
+  sourceImageDimensions: { width: number; height: number },
+  canvasElements: CanvasElement[],
+  canvasSize: { width: number; height: number } | null,
+  filter?: ImageFilter | null,
+  thumbnailWidth: number = 300,
+): Promise<string> => {
+  // Calculate scaled dimensions maintaining aspect ratio
+  const aspectRatio = sourceImageDimensions.height / sourceImageDimensions.width;
+  const scaledDimensions = {
+    width: Math.round(thumbnailWidth),
+    height: Math.round(thumbnailWidth * aspectRatio),
+  };
+
+  const result = await exportCanvasToImage(
+    sourceImagePath,
+    scaledDimensions,
+    canvasElements,
+    {
+      format: 'jpg',
+      quality: 80,
+      addWatermark: false,
+      canvasSize: canvasSize || undefined,
+    },
+    filter,
+  );
+
+  return result.filepath;
+};

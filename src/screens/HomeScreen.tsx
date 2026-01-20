@@ -216,7 +216,11 @@ const HomeScreen: React.FC = () => {
           style={styles.topBarButton}
           onPress={handleSettingsPress}
         >
-          <Text style={styles.topBarIcon}>⚙️</Text>
+          <Image 
+            source={require('../assets/icons/settings.png')} 
+            style={styles.topBarIcon}
+            resizeMode="contain"
+          />
         </TouchableOpacity>
 
         <Text style={styles.title}>Stikaro</Text>
@@ -295,7 +299,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   topBarIcon: {
-    fontSize: 20,
+    width: 20,
+    height: 20,
   },
   title: {
     ...Typography.display.h4,

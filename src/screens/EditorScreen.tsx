@@ -202,6 +202,7 @@ const EditorScreen: React.FC = () => {
     selectAllElements,
     applyFilter,
     removeFilter,
+    hasChanges,
   } = useEditorStore();
 
   const [activeToolbar, setActiveToolbar] = useState<
@@ -245,11 +246,11 @@ const EditorScreen: React.FC = () => {
   }, [initializeProject, loadProject, params]);
 
   const handleBack = async () => {
-    // Check if we have a valid project to potentially save
-    if (sourceImagePath) {
+    // Only prompt to save if there are actual changes
+    if (hasChanges()) {
       Alert.alert(
         'Save Changes?',
-        'Do you want to save this project before leaving?',
+        'You have unsaved changes. Do you want to save this project before leaving?',
         [
           {
             text: 'Discard',
