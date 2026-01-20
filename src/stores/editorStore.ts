@@ -455,7 +455,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       sourceImagePath,
       sourceImageDimensions,
       canvasSize, // Store canvas size for proper export scaling
-      thumbnailPath: '', // Will be generated
+      thumbnailPath: sourceImagePath, // Use source image as thumbnail
       elements: canvasElements,
       createdAt: new Date(), // Will be preserved if existing
       updatedAt: new Date(),
