@@ -1,6 +1,6 @@
 // Filter tool modal with Skia shader effects
 
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -11,7 +11,9 @@ import {
   Dimensions,
 } from 'react-native';
 import { BottomSheet } from './BottomSheet';
-import { Colors } from '../../constants/colors';
+import { Theme } from '../../constants/themes';
+import { useTheme } from '../../hooks/useTheme';
+import { useTranslation } from '../../hooks/useTranslation';
 import { Typography } from '../../constants/typography';
 import { Spacing } from '../../constants/spacing';
 
@@ -56,7 +58,6 @@ const getFilterPreviewStyle = (filterId: string) => {
 
 interface Filter {
   id: string;
-  name: string;
   preview: string; // Base64 or URI for preview
   isPro: boolean;
   intensity?: number; // 0-1
@@ -65,22 +66,22 @@ interface Filter {
 // Mock filter data - would be replaced with actual Skia shader implementations
 const FILTERS: Filter[] = [
   // Free filters
-  { id: 'none', name: 'Original', preview: '', isPro: false },
-  { id: 'bw', name: 'Black & White', preview: '', isPro: false },
-  { id: 'sepia', name: 'Sepia', preview: '', isPro: false },
-  { id: 'vintage', name: 'Vintage', preview: '', isPro: false },
-  { id: 'cool', name: 'Cool', preview: '', isPro: false },
-  { id: 'warm', name: 'Warm', preview: '', isPro: false },
+  { id: 'none', preview: '', isPro: false },
+  { id: 'bw', preview: '', isPro: false },
+  { id: 'sepia', preview: '', isPro: false },
+  { id: 'vintage', preview: '', isPro: false },
+  { id: 'cool', preview: '', isPro: false },
+  { id: 'warm', preview: '', isPro: false },
 
   // Pro filters
-  { id: 'cinematic', name: 'Cinematic', preview: '', isPro: true },
-  { id: 'film', name: 'Film Grain', preview: '', isPro: true },
-  { id: 'hdr', name: 'HDR', preview: '', isPro: true },
-  { id: 'portrait', name: 'Portrait', preview: '', isPro: true },
-  { id: 'landscape', name: 'Landscape', preview: '', isPro: true },
-  { id: 'neon', name: 'Neon', preview: '', isPro: true },
-  { id: 'cyberpunk', name: 'Cyberpunk', preview: '', isPro: true },
-  { id: 'retro', name: 'Retro Wave', preview: '', isPro: true },
+  { id: 'cinematic', preview: '', isPro: true },
+  { id: 'film', preview: '', isPro: true },
+  { id: 'hdr', preview: '', isPro: true },
+  { id: 'portrait', preview: '', isPro: true },
+  { id: 'landscape', preview: '', isPro: true },
+  { id: 'neon', preview: '', isPro: true },
+  { id: 'cyberpunk', preview: '', isPro: true },
+  { id: 'retro', preview: '', isPro: true },
 ];
 
 interface FilterToolModalProps {
@@ -94,10 +95,17 @@ export const FilterToolModal: React.FC<FilterToolModalProps> = ({
   onClose,
   onApply,
 }) => {
+  const theme = useTheme();
+  const t = useTranslation();
+  const styles = useMemo(() => createStyles(theme), [theme]);
   const [selectedFilter, setSelectedFilter] = useState<string>('none');
   const [intensity, setIntensity] = useState<number>(1.0);
 
   const availableFilters = FILTERS;
+  const getFilterName = (filterId: string) => {
+    const names = t.filters.names as Record<string, string>;
+    return names[filterId] || filterId;
+  };
 
   const handleFilterPress = (filter: Filter) => {
     setSelectedFilter(filter.id);
@@ -110,6 +118,7 @@ export const FilterToolModal: React.FC<FilterToolModalProps> = ({
 
   const renderFilter = ({ item }: { item: Filter }) => {
     const isSelected = selectedFilter === item.id;
+    const displayName = getFilterName(item.id);
 
     return (
       <TouchableOpacity
@@ -125,14 +134,14 @@ export const FilterToolModal: React.FC<FilterToolModalProps> = ({
               getFilterPreviewStyle(item.id),
             ]}
           >
-            <Text style={styles.previewText}>{item.name.charAt(0)}</Text>
+            <Text style={styles.previewText}>{displayName.charAt(0)}</Text>
           </View>
         </View>
 
         <Text
           style={[styles.filterName, isSelected && styles.filterNameSelected]}
         >
-          {item.name}
+          {displayName}
         </Text>
       </TouchableOpacity>
     );
@@ -161,7 +170,7 @@ export const FilterToolModal: React.FC<FilterToolModalProps> = ({
   return (
     <BottomSheet visible={visible} onClose={onClose} snapPoints={[0.7, 0.9]}>
       <View style={styles.container}>
-        <Text style={styles.title}>Filters</Text>
+        <Text style={styles.title}>{t.filters.title}</Text>
 
         {/* Filter Grid */}
         <FlatList
@@ -177,7 +186,7 @@ export const FilterToolModal: React.FC<FilterToolModalProps> = ({
         {/* Intensity Control */}
         {selectedFilter !== 'none' && (
           <View style={styles.intensitySection}>
-            <Text style={styles.sectionLabel}>Intensity</Text>
+            <Text style={styles.sectionLabel}>{t.filters.intensity}</Text>
             <View style={styles.intensityButtons}>
               {renderIntensityButton(0.3, '30%')}
               {renderIntensityButton(0.5, '50%')}
@@ -189,20 +198,21 @@ export const FilterToolModal: React.FC<FilterToolModalProps> = ({
 
         {/* Apply Button */}
         <TouchableOpacity style={styles.applyButton} onPress={handleApply}>
-          <Text style={styles.applyButtonText}>Apply Filter</Text>
+          <Text style={styles.applyButtonText}>{t.filters.apply}</Text>
         </TouchableOpacity>
       </View>
     </BottomSheet>
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (theme: Theme) =>
+  StyleSheet.create({
   container: {
     flex: 1,
   },
   title: {
     ...Typography.display.h3,
-    color: Colors.text.primary,
+    color: theme.text.primary,
     marginBottom: Spacing.m,
   },
   filterList: {
@@ -230,7 +240,7 @@ const styles = StyleSheet.create({
   },
   previewPlaceholder: {
     flex: 1,
-    backgroundColor: Colors.backgrounds.tertiary,
+    backgroundColor: theme.backgrounds.tertiary,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 2,
@@ -241,13 +251,13 @@ const styles = StyleSheet.create({
   },
   previewText: {
     ...Typography.body.regular,
-    color: Colors.text.secondary,
+    color: theme.text.secondary,
     fontSize: 18,
     fontWeight: '600',
   },
   lockedOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    backgroundColor: theme.backgrounds.overlay,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -255,7 +265,7 @@ const styles = StyleSheet.create({
     width: 28,
     height: 28,
     borderRadius: 14,
-    backgroundColor: Colors.backgrounds.primary,
+    backgroundColor: theme.backgrounds.primary,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -266,25 +276,25 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 4,
     right: 4,
-    backgroundColor: Colors.accent.primary,
+    backgroundColor: theme.accent.primary,
     paddingHorizontal: 4,
     paddingVertical: 2,
     borderRadius: 4,
   },
   proBadgeText: {
     ...Typography.body.caption,
-    color: Colors.backgrounds.primary,
+    color: theme.backgrounds.primary,
     fontSize: 8,
     fontWeight: '700',
   },
   filterName: {
     ...Typography.body.small,
-    color: Colors.text.secondary,
+    color: theme.text.secondary,
     textAlign: 'center',
     fontSize: 11,
   },
   filterNameSelected: {
-    color: Colors.accent.primary,
+    color: theme.accent.primary,
     fontWeight: '600',
   },
   intensitySection: {
@@ -293,7 +303,7 @@ const styles = StyleSheet.create({
   },
   sectionLabel: {
     ...Typography.body.caption,
-    color: Colors.text.secondary,
+    color: theme.text.secondary,
     textTransform: 'uppercase',
     letterSpacing: 1,
     marginBottom: Spacing.s,
@@ -304,7 +314,7 @@ const styles = StyleSheet.create({
   },
   intensityButton: {
     flex: 1,
-    backgroundColor: Colors.backgrounds.tertiary,
+    backgroundColor: theme.backgrounds.tertiary,
     borderRadius: 8,
     paddingVertical: Spacing.s,
     alignItems: 'center',
@@ -312,19 +322,19 @@ const styles = StyleSheet.create({
     borderColor: 'transparent',
   },
   intensityButtonActive: {
-    borderColor: Colors.accent.primary,
-    backgroundColor: Colors.backgrounds.primary,
+    borderColor: theme.accent.primary,
+    backgroundColor: theme.backgrounds.primary,
   },
   intensityButtonText: {
     ...Typography.body.small,
-    color: Colors.text.secondary,
+    color: theme.text.secondary,
   },
   intensityButtonTextActive: {
-    color: Colors.accent.primary,
+    color: theme.accent.primary,
     fontWeight: '600',
   },
   applyButton: {
-    backgroundColor: Colors.accent.primary,
+    backgroundColor: theme.accent.primary,
     borderRadius: 12,
     padding: Spacing.m,
     alignItems: 'center',
@@ -332,20 +342,20 @@ const styles = StyleSheet.create({
   },
   applyButtonText: {
     ...Typography.ui.button,
-    color: Colors.backgrounds.primary,
+    color: theme.backgrounds.primary,
   },
   proButton: {
-    backgroundColor: Colors.accent.primary + '15',
+    backgroundColor: theme.accent.primary + '15',
     borderRadius: 12,
     padding: Spacing.m,
     alignItems: 'center',
     marginTop: Spacing.s,
     borderWidth: 1,
-    borderColor: Colors.accent.primary,
+    borderColor: theme.accent.primary,
   },
   proButtonText: {
     ...Typography.body.regular,
-    color: Colors.accent.primary,
+    color: theme.accent.primary,
     fontWeight: '600',
   },
-});
+  });

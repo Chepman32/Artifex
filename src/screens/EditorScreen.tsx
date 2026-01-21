@@ -1,6 +1,6 @@
 // Editor screen - Main canvas for photo annotation
 
-import React, { useEffect, useState, useRef, useCallback } from 'react';
+import React, { useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -40,7 +40,9 @@ import { createStickerElement, createStampElement } from '../utils/canvasElement
 import { rasterizeTextElementToWatermark } from '../utils/textRasterizer';
 import { WatermarkManager } from '../utils/watermarkManager';
 import { WatermarkPreset } from '../types/watermark';
-import { Colors } from '../constants/colors';
+import { Theme } from '../constants/themes';
+import { useTheme } from '../hooks/useTheme';
+import { useTranslation } from '../hooks/useTranslation';
 import { Typography } from '../constants/typography';
 import { Spacing } from '../constants/spacing';
 
@@ -59,126 +61,135 @@ type TextStylingOverrides = {
   textBackground?: string | null;
 };
 
-// Filters data
-const FILTERS = [
-  {
-    id: 'none',
-    name: 'Original',
-    icon: require('../assets/icons/filters/original.png'),
-    color: '#666666',
-  },
-  {
-    id: 'bw',
-    name: 'B&W',
-    icon: require('../assets/icons/filters/bw.png'),
-    color: '#888888',
-  },
-  {
-    id: 'sepia',
-    name: 'Sepia',
-    icon: require('../assets/icons/filters/sepia.png'),
-    color: '#D2B48C',
-  },
-  {
-    id: 'vintage',
-    name: 'Vintage',
-    icon: require('../assets/icons/filters/vintage.png'),
-    color: '#F4A460',
-  },
-  {
-    id: 'cool',
-    name: 'Cool',
-    icon: require('../assets/icons/filters/cool.png'),
-    color: '#87CEEB',
-  },
-  {
-    id: 'warm',
-    name: 'Warm',
-    icon: require('../assets/icons/filters/warm.png'),
-    color: '#FFB347',
-  },
-  {
-    id: 'juno',
-    name: 'Juno',
-    icon: require('../assets/icons/filters/original.png'),
-    color: '#FF6B9D',
-  },
-  {
-    id: 'gingham',
-    name: 'Gingham',
-    icon: require('../assets/icons/filters/original.png'),
-    color: '#B4E7CE',
-  },
-  {
-    id: 'clarendon',
-    name: 'Clarendon',
-    icon: require('../assets/icons/filters/original.png'),
-    color: '#FFD700',
-  },
-  {
-    id: 'lark',
-    name: 'Lark',
-    icon: require('../assets/icons/filters/original.png'),
-    color: '#A8D8EA',
-  },
-  {
-    id: 'ludwig',
-    name: 'Ludwig',
-    icon: require('../assets/icons/filters/original.png'),
-    color: '#FFA07A',
-  },
-  {
-    id: 'xproii',
-    name: 'X-Pro II',
-    icon: require('../assets/icons/filters/original.png'),
-    color: '#8B4513',
-  },
-  {
-    id: 'lofi',
-    name: 'Lo-Fi',
-    icon: require('../assets/icons/filters/original.png'),
-    color: '#696969',
-  },
-  {
-    id: 'mayfair',
-    name: 'Mayfair',
-    icon: require('../assets/icons/filters/original.png'),
-    color: '#FFB6C1',
-  },
-  {
-    id: 'sierra',
-    name: 'Sierra',
-    icon: require('../assets/icons/filters/original.png'),
-    color: '#DDA15E',
-  },
-  {
-    id: 'tattoo',
-    name: 'Tattoo',
-    icon: require('../assets/icons/filters/original.png'),
-    color: '#4A4A4A',
-  },
-  {
-    id: 'inkwell',
-    name: 'Inkwell',
-    icon: require('../assets/icons/filters/bw.png'),
-    color: '#000000',
-  },
-  {
-    id: 'rise',
-    name: 'Rise',
-    icon: require('../assets/icons/filters/original.png'),
-    color: '#FFE4B5',
-  },
-];
-
 const selectAllIcon = require('../assets/icons/select all - light theme.png');
 
-type FilterOption = (typeof FILTERS)[number];
+type FilterOption = {
+  id: string;
+  name: string;
+  icon: any;
+  color: string;
+};
 
 const EditorScreen: React.FC = () => {
   const navigation = useNavigation();
   const route = useRoute();
   const params = route.params as EditorRouteParams;
+  const theme = useTheme();
+  const t = useTranslation();
+  const styles = useMemo(() => createStyles(theme), [theme]);
+  const filters = useMemo<FilterOption[]>(
+    () => [
+      {
+        id: 'none',
+        name: t.filters.names.none,
+        icon: require('../assets/icons/filters/original.png'),
+        color: '#666666',
+      },
+      {
+        id: 'bw',
+        name: t.filters.names.bw,
+        icon: require('../assets/icons/filters/bw.png'),
+        color: '#888888',
+      },
+      {
+        id: 'sepia',
+        name: t.filters.names.sepia,
+        icon: require('../assets/icons/filters/sepia.png'),
+        color: '#D2B48C',
+      },
+      {
+        id: 'vintage',
+        name: t.filters.names.vintage,
+        icon: require('../assets/icons/filters/vintage.png'),
+        color: '#F4A460',
+      },
+      {
+        id: 'cool',
+        name: t.filters.names.cool,
+        icon: require('../assets/icons/filters/cool.png'),
+        color: '#87CEEB',
+      },
+      {
+        id: 'warm',
+        name: t.filters.names.warm,
+        icon: require('../assets/icons/filters/warm.png'),
+        color: '#FFB347',
+      },
+      {
+        id: 'juno',
+        name: t.filters.names.juno,
+        icon: require('../assets/icons/filters/original.png'),
+        color: '#FF6B9D',
+      },
+      {
+        id: 'gingham',
+        name: t.filters.names.gingham,
+        icon: require('../assets/icons/filters/original.png'),
+        color: '#B4E7CE',
+      },
+      {
+        id: 'clarendon',
+        name: t.filters.names.clarendon,
+        icon: require('../assets/icons/filters/original.png'),
+        color: '#FFD700',
+      },
+      {
+        id: 'lark',
+        name: t.filters.names.lark,
+        icon: require('../assets/icons/filters/original.png'),
+        color: '#A8D8EA',
+      },
+      {
+        id: 'ludwig',
+        name: t.filters.names.ludwig,
+        icon: require('../assets/icons/filters/original.png'),
+        color: '#FFA07A',
+      },
+      {
+        id: 'xproii',
+        name: t.filters.names.xproii,
+        icon: require('../assets/icons/filters/original.png'),
+        color: '#8B4513',
+      },
+      {
+        id: 'lofi',
+        name: t.filters.names.lofi,
+        icon: require('../assets/icons/filters/original.png'),
+        color: '#696969',
+      },
+      {
+        id: 'mayfair',
+        name: t.filters.names.mayfair,
+        icon: require('../assets/icons/filters/original.png'),
+        color: '#FFB6C1',
+      },
+      {
+        id: 'sierra',
+        name: t.filters.names.sierra,
+        icon: require('../assets/icons/filters/original.png'),
+        color: '#DDA15E',
+      },
+      {
+        id: 'tattoo',
+        name: t.filters.names.tattoo,
+        icon: require('../assets/icons/filters/original.png'),
+        color: '#4A4A4A',
+      },
+      {
+        id: 'inkwell',
+        name: t.filters.names.inkwell,
+        icon: require('../assets/icons/filters/bw.png'),
+        color: '#000000',
+      },
+      {
+        id: 'rise',
+        name: t.filters.names.rise,
+        icon: require('../assets/icons/filters/original.png'),
+        color: '#FFE4B5',
+      },
+    ],
+    [t],
+  );
 
   const {
     canvasElements,
@@ -258,23 +269,23 @@ const EditorScreen: React.FC = () => {
       } else {
         // Auto-save disabled: show prompt
         Alert.alert(
-          'Save Changes?',
-          'You have unsaved changes. Do you want to save this project before leaving?',
+          t.editor.saveChangesTitle,
+          t.editor.saveChangesMessage,
           [
             {
-              text: 'Discard',
+              text: t.common.discard,
               style: 'destructive',
               onPress: () => navigation.goBack(),
             },
             {
-              text: 'Save',
+              text: t.common.save,
               onPress: async () => {
                 await saveProject(canvasSize);
                 navigation.goBack();
               },
             },
             {
-              text: 'Cancel',
+              text: t.common.cancel,
               style: 'cancel',
             },
           ],
@@ -944,7 +955,6 @@ const EditorScreen: React.FC = () => {
   const renderToolIcon = (
     tool: typeof activeToolbar,
     iconSource: any,
-    _label: string,
   ) => (
     <TouchableOpacity
       style={[
@@ -972,7 +982,7 @@ const EditorScreen: React.FC = () => {
         <View style={styles.topBarLeft}>
           <TouchableOpacity style={styles.backButton} onPress={handleBack}>
             <Text style={styles.backIcon}>‹</Text>
-            <Text style={styles.backText}>Gallery</Text>
+            <Text style={styles.backText}>{t.editor.backToGallery}</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -1029,7 +1039,7 @@ const EditorScreen: React.FC = () => {
         </View>
 
         <TouchableOpacity style={styles.exportButton} onPress={handleExport}>
-          <Text style={styles.exportText}>Export</Text>
+          <Text style={styles.exportText}>{t.editor.export}</Text>
         </TouchableOpacity>
       </View>
 
@@ -1074,9 +1084,9 @@ const EditorScreen: React.FC = () => {
               ]}
             >
               <View style={styles.emptyCanvas}>
-                <Text style={styles.emptyCanvasText}>No image loaded</Text>
+                <Text style={styles.emptyCanvasText}>{t.editor.noImageLoaded}</Text>
                 <Text style={styles.emptyCanvasText}>
-                  Params: {JSON.stringify(params)}
+                  {t.editor.paramsLabel} {JSON.stringify(params)}
                 </Text>
               </View>
             </View>
@@ -1156,7 +1166,7 @@ const EditorScreen: React.FC = () => {
             // Filters horizontal scrolling toolbar
             <Animated.View style={[{ flex: 1 }, filterListAnimatedStyle]}>
               <FlatList
-                data={FILTERS}
+                data={filters}
                 horizontal
                 keyExtractor={item => item.id}
                 renderItem={renderFilterItem}
@@ -1178,27 +1188,22 @@ const EditorScreen: React.FC = () => {
                 {renderToolIcon(
                   'watermark',
                   require('../assets/icons/toolbar/watermark.png'),
-                  'Watermark',
                 )}
                 {renderToolIcon(
                   'sticker',
                   require('../assets/icons/toolbar/sticker.png'),
-                  'Sticker',
                 )}
                 {renderToolIcon(
                   'stamps',
                   require('../assets/icons/toolbar/2471542.png'),
-                  'Stamps',
                 )}
                 {renderToolIcon(
                   'filter',
                   require('../assets/icons/toolbar/filters.png'),
-                  'Filter',
                 )}
                 {renderToolIcon(
                   'layers',
                   require('../assets/icons/toolbar/layers.png'),
-                  'Layers',
                 )}
               </View>
 
@@ -1274,10 +1279,11 @@ const EditorScreen: React.FC = () => {
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (theme: Theme) =>
+  StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.backgrounds.primary,
+    backgroundColor: theme.backgrounds.primary,
   },
   topBar: {
     flexDirection: 'row',
@@ -1297,12 +1303,12 @@ const styles = StyleSheet.create({
   },
   backIcon: {
     fontSize: 24,
-    color: Colors.text.primary,
+    color: theme.text.primary,
     marginRight: 4,
   },
   backText: {
     ...Typography.body.regular,
-    color: Colors.text.primary,
+    color: theme.text.primary,
   },
   historyButton: {
     width: 44,
@@ -1327,12 +1333,12 @@ const styles = StyleSheet.create({
   },
   historyIcon: {
     fontSize: 20,
-    color: Colors.text.primary,
+    color: theme.text.primary,
   },
   actionIcon: {
     width: 20,
     height: 20,
-    tintColor: Colors.text.primary,
+    tintColor: theme.text.primary,
   },
   exportButton: {
     paddingHorizontal: Spacing.m,
@@ -1340,7 +1346,7 @@ const styles = StyleSheet.create({
   },
   exportText: {
     ...Typography.body.regular,
-    color: Colors.accent.primary,
+    color: theme.accent.primary,
     fontWeight: '600',
   },
   keyboardAvoidingContainer: {
@@ -1356,7 +1362,7 @@ const styles = StyleSheet.create({
     position: 'relative',
   },
   canvas: {
-    backgroundColor: Colors.backgrounds.secondary,
+    backgroundColor: theme.backgrounds.secondary,
     borderRadius: 8,
     overflow: 'hidden',
     position: 'relative',
@@ -1371,7 +1377,7 @@ const styles = StyleSheet.create({
   },
   emptyCanvasText: {
     ...Typography.body.regular,
-    color: Colors.text.tertiary,
+    color: theme.text.tertiary,
     textAlign: 'center',
   },
   hiddenTextInput: {
@@ -1384,7 +1390,7 @@ const styles = StyleSheet.create({
   },
   toolbar: {
     height: 48,
-    backgroundColor: Colors.backgrounds.secondary,
+    backgroundColor: theme.backgrounds.secondary,
     paddingHorizontal: Spacing.m,
     justifyContent: 'center',
   },
@@ -1421,7 +1427,7 @@ const styles = StyleSheet.create({
     left: 0,
     width: 28,
     height: 3,
-    backgroundColor: Colors.accent.primary,
+    backgroundColor: theme.accent.primary,
     borderRadius: 1.5,
   },
 
@@ -1455,11 +1461,11 @@ const styles = StyleSheet.create({
   },
   filterName: {
     ...Typography.body.caption,
-    color: Colors.text.primary,
+    color: theme.text.primary,
     fontSize: 13,
     textAlign: 'center',
     marginTop: 6,
   },
-});
+  });
 
 export default EditorScreen;

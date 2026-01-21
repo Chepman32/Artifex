@@ -27,7 +27,7 @@ const SettingsScreen: React.FC = () => {
   const navigation = useNavigation();
   const theme = useTheme();
   const t = useTranslation();
-  const { preferences, updatePreferences } = useAppStore();
+  const { preferences, updatePreferences, resetOnboarding } = useAppStore();
   const [showThemeModal, setShowThemeModal] = useState(false);
   const [showLanguageModal, setShowLanguageModal] = useState(false);
 
@@ -51,43 +51,59 @@ const SettingsScreen: React.FC = () => {
     setShowLanguageModal(false);
   };
 
+  const handleResetOnboarding = () => {
+    if (preferences.hapticFeedback) {
+      triggerHaptic('selection');
+    }
+    resetOnboarding();
+    navigation.reset({
+      index: 0,
+      routes: [{ name: 'Onboarding' as never }],
+    });
+  };
 
   const handleExportAllProjects = () => {
-    Alert.alert('Export All Projects', 'This Pro feature will be implemented');
+    Alert.alert(
+      t.settings.exportAllProjects,
+      t.settings.exportAllProjectsAlertMessage,
+    );
   };
 
   const handleRateApp = () => {
-    Alert.alert('Rate Stikaro', 'This will open the App Store rating dialog');
+    Alert.alert(t.settings.rateApp, t.settings.rateAppAlertMessage);
   };
 
   const handleContactSupport = () => {
     Alert.alert(
-      'Contact Support',
-      'This will open email composer to support@stikaro.app',
+      t.settings.contactSupport,
+      t.settings.contactSupportAlertMessage,
     );
   };
 
   const handleClearCache = () => {
     Alert.alert(
-      'Clear Cache',
-      'This will remove cached thumbnails and temporary files. Continue?',
+      t.settings.clearCache,
+      t.settings.clearCacheAlertMessage,
       [
         { text: t.common.cancel, style: 'cancel' },
-        { text: 'Clear', onPress: () => Alert.alert('Cache cleared') },
+        {
+          text: t.common.clear,
+          onPress: () => Alert.alert(t.settings.clearCacheSuccess),
+        },
       ],
     );
   };
 
   const handleDeleteAllProjects = () => {
     Alert.alert(
-      'Delete All Projects',
-      'This will permanently delete all projects. This cannot be undone. Continue?',
+      t.settings.deleteAllProjects,
+      t.settings.deleteAllProjectsAlertMessage,
       [
         { text: t.common.cancel, style: 'cancel' },
         {
           text: t.common.delete,
           style: 'destructive',
-          onPress: () => Alert.alert('All projects deleted'),
+          onPress: () => Alert.alert(t.settings.deleteAllProjectsSuccess),
         },
       ],
     );
@@ -467,6 +483,12 @@ const SettingsScreen: React.FC = () => {
                 thumbColor={theme.text.primary}
               />,
             )}
+            {renderSettingRow(
+              t.settings.resetOnboarding,
+              undefined,
+              undefined,
+              handleResetOnboarding,
+            )}
           </>,
         )}
 
@@ -502,7 +524,7 @@ const SettingsScreen: React.FC = () => {
               () =>
                 Alert.alert(
                   t.settings.privacyPolicy,
-                  'This will open stikaro.app/privacy',
+                  t.settings.privacyPolicyAlertMessage,
                 ),
             )}
             {renderSettingRow(
@@ -512,7 +534,7 @@ const SettingsScreen: React.FC = () => {
               () =>
                 Alert.alert(
                   t.settings.termsOfService,
-                  'This will open stikaro.app/terms',
+                  t.settings.termsOfServiceAlertMessage,
                 ),
             )}
           </>,

@@ -5,7 +5,7 @@ import { StyleSheet, Image } from 'react-native';
 import Animated, { useAnimatedStyle } from 'react-native-reanimated';
 import { GestureDetector } from 'react-native-gesture-handler';
 import { useCanvasGestures } from '../../hooks/useCanvasGestures';
-import { Colors } from '../../constants/colors';
+import { useTheme } from '../../hooks/useTheme';
 
 interface StickerElementProps {
   id: string;
@@ -42,6 +42,7 @@ export const StickerElement: React.FC<StickerElementProps> = ({
   onSelect,
   onUpdate,
 }) => {
+  const theme = useTheme();
   const { gesture, animatedStyle, scaleValue } = useCanvasGestures({
     initialX: x,
     initialY: y,
@@ -72,7 +73,11 @@ export const StickerElement: React.FC<StickerElementProps> = ({
         {/* Selection indicators */}
         {isSelected && (
           <Animated.View
-            style={[styles.selectionBorder, selectionBorderStyle]}
+            style={[
+              styles.selectionBorder,
+              { borderColor: theme.accent.primary },
+              selectionBorderStyle,
+            ]}
           />
         )}
       </Animated.View>
@@ -92,7 +97,6 @@ const styles = StyleSheet.create({
   },
   selectionBorder: {
     ...StyleSheet.absoluteFillObject,
-    borderColor: Colors.accent.primary,
     borderStyle: 'dashed',
     borderRadius: 4,
   },

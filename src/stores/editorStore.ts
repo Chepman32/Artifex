@@ -508,6 +508,16 @@ export const useEditorStore = create<EditorState>((set, get) => ({
 
   initializeProject: (imageUri, dimensions) => {
     const projectId = generateId();
+    const now = new Date();
+    const project = {
+      id: projectId,
+      sourceImagePath: imageUri,
+      sourceImageDimensions: dimensions,
+      thumbnailPath: imageUri,
+      elements: [],
+      createdAt: now,
+      updatedAt: now,
+    };
     set({
       currentProjectId: projectId,
       sourceImagePath: imageUri,
@@ -521,6 +531,9 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       history: [],
       historyIndex: -1,
       appliedFilter: null,
+    });
+    void ProjectDatabase.save(project).catch(error => {
+      console.error('Failed to save new project:', error);
     });
   },
 

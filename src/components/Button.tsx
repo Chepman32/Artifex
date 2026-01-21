@@ -14,7 +14,8 @@ import Animated, {
   withTiming,
   withSpring,
 } from 'react-native-reanimated';
-import { Colors } from '../constants/colors';
+import { useTheme } from '../hooks/useTheme';
+import { useTranslation } from '../hooks/useTranslation';
 import { Typography } from '../constants/typography';
 import { Spacing, Dimensions as AppDimensions } from '../constants/spacing';
 import { hapticFeedback } from '../utils/haptics';
@@ -43,6 +44,8 @@ const Button: React.FC<ButtonProps> = ({
   style,
   textStyle,
 }) => {
+  const theme = useTheme();
+  const t = useTranslation();
   const scale = useSharedValue(1);
   const opacity = useSharedValue(1);
 
@@ -98,16 +101,16 @@ const Button: React.FC<ButtonProps> = ({
     // Variant styles
     switch (variant) {
       case 'primary':
-        baseStyle.backgroundColor = Colors.accent.primary;
+        baseStyle.backgroundColor = theme.accent.primary;
         if (disabled) {
-          baseStyle.backgroundColor = Colors.backgrounds.tertiary;
+          baseStyle.backgroundColor = theme.backgrounds.tertiary;
           baseStyle.opacity = 0.5;
         }
         break;
       case 'secondary':
-        baseStyle.backgroundColor = Colors.backgrounds.tertiary;
+        baseStyle.backgroundColor = theme.backgrounds.tertiary;
         baseStyle.borderWidth = 1;
-        baseStyle.borderColor = Colors.backgrounds.tertiary;
+        baseStyle.borderColor = theme.backgrounds.tertiary;
         if (disabled) {
           baseStyle.opacity = 0.5;
         }
@@ -141,21 +144,21 @@ const Button: React.FC<ButtonProps> = ({
     // Variant styles
     switch (variant) {
       case 'primary':
-        baseStyle.color = Colors.backgrounds.primary;
+        baseStyle.color = theme.backgrounds.primary;
         if (disabled) {
-          baseStyle.color = Colors.text.tertiary;
+          baseStyle.color = theme.text.tertiary;
         }
         break;
       case 'secondary':
-        baseStyle.color = Colors.text.primary;
+        baseStyle.color = theme.text.primary;
         if (disabled) {
-          baseStyle.color = Colors.text.tertiary;
+          baseStyle.color = theme.text.tertiary;
         }
         break;
       case 'text':
-        baseStyle.color = Colors.accent.primary;
+        baseStyle.color = theme.accent.primary;
         if (disabled) {
-          baseStyle.color = Colors.text.tertiary;
+          baseStyle.color = theme.text.tertiary;
         }
         break;
     }
@@ -173,7 +176,7 @@ const Button: React.FC<ButtonProps> = ({
       activeOpacity={1} // We handle opacity with animations
     >
       <Text style={[getTextStyle(), textStyle]}>
-        {loading ? 'Loading...' : title}
+        {loading ? t.common.loading : title}
       </Text>
     </AnimatedTouchableOpacity>
   );

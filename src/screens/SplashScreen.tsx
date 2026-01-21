@@ -1,6 +1,6 @@
 // Physics-based splash screen with logo shatter animation
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import { View, StyleSheet, Dimensions } from 'react-native';
 import Animated, {
   useSharedValue,
@@ -13,7 +13,8 @@ import Animated, {
   runOnJS,
 } from 'react-native-reanimated';
 import { Canvas, Group, Path, vec, Skia } from '@shopify/react-native-skia';
-import { Colors } from '../constants/colors';
+import { Theme } from '../constants/themes';
+import { useTheme } from '../hooks/useTheme';
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 
@@ -51,6 +52,8 @@ const generateParticles = (count: number): Particle[] => {
 };
 
 const SplashScreen: React.FC = () => {
+  const theme = useTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
   const logoScale = useSharedValue(0);
   const logoRotation = useSharedValue(-180);
   const logoOpacity = useSharedValue(0);
@@ -119,10 +122,11 @@ const SplashScreen: React.FC = () => {
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (theme: Theme) =>
+  StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.backgrounds.primary,
+    backgroundColor: theme.backgrounds.primary,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -146,13 +150,13 @@ const styles = StyleSheet.create({
     borderBottomWidth: 52,
     borderLeftColor: 'transparent',
     borderRightColor: 'transparent',
-    borderBottomColor: Colors.accent.primary,
+    borderBottomColor: theme.accent.primary,
     position: 'absolute',
   },
   logoBar: {
     width: 36,
     height: 4,
-    backgroundColor: Colors.accent.primary,
+    backgroundColor: theme.accent.primary,
     position: 'absolute',
     bottom: 12,
   },
@@ -162,6 +166,6 @@ const styles = StyleSheet.create({
   particleEffect: {
     flex: 1,
   },
-});
+  });
 
 export default SplashScreen;

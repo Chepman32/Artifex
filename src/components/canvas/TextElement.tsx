@@ -5,8 +5,8 @@ import { StyleSheet, TextStyle } from 'react-native';
 import Animated, { useAnimatedStyle } from 'react-native-reanimated';
 import { GestureDetector } from 'react-native-gesture-handler';
 import { useCanvasGestures } from '../../hooks/useCanvasGestures';
-import { Colors } from '../../constants/colors';
 import { Typography } from '../../constants/typography';
+import { useTheme } from '../../hooks/useTheme';
 
 interface TextElementProps {
   id: string;
@@ -41,7 +41,7 @@ export const TextElement: React.FC<TextElementProps> = ({
   rotation = 0,
   fontSize = 24,
   fontFamily = 'System',
-  color = Colors.text.primary,
+  color,
   textEffect = 'none',
   textBackground = null,
   opacity = 1,
@@ -51,6 +51,8 @@ export const TextElement: React.FC<TextElementProps> = ({
   onUpdate,
   onEdit,
 }) => {
+  const theme = useTheme();
+  const resolvedColor = color ?? theme.text.primary;
   // Estimate text dimensions (rough approximation)
   const estimatedWidth = text.length * fontSize * 0.6;
   const estimatedHeight = fontSize * 1.2;
@@ -80,7 +82,7 @@ export const TextElement: React.FC<TextElementProps> = ({
   const renderTextWithEffect = () => {
     const baseStyle: TextStyle = {
       fontSize,
-      color,
+      color: resolvedColor,
     };
 
     if (fontFamily && fontFamily !== 'System') {
@@ -100,7 +102,7 @@ export const TextElement: React.FC<TextElementProps> = ({
                 styles.effectLayer,
                 baseStyle,
                 {
-                  textShadowColor: color,
+                  textShadowColor: resolvedColor,
                   textShadowOffset: { width: 0, height: 0 },
                   textShadowRadius: fontSize * 0.8,
                   opacity: 0.8,
@@ -116,7 +118,7 @@ export const TextElement: React.FC<TextElementProps> = ({
                 styles.effectLayer,
                 baseStyle,
                 {
-                  textShadowColor: color,
+                  textShadowColor: resolvedColor,
                   textShadowOffset: { width: 0, height: 0 },
                   textShadowRadius: fontSize * 0.5,
                   opacity: 0.9,
@@ -142,7 +144,7 @@ export const TextElement: React.FC<TextElementProps> = ({
                 styles.effectLayer,
                 baseStyle,
                 {
-                  textShadowColor: color,
+                  textShadowColor: resolvedColor,
                   textShadowOffset: { width: 0, height: 0 },
                   textShadowRadius: fontSize * 0.4,
                   opacity: 0.8,
@@ -251,7 +253,11 @@ export const TextElement: React.FC<TextElementProps> = ({
         {/* Selection border */}
         {isSelected && (
           <Animated.View
-            style={[styles.selectionBorder, selectionBorderStyle]}
+            style={[
+              styles.selectionBorder,
+              { borderColor: theme.accent.primary },
+              selectionBorderStyle,
+            ]}
           />
         )}
       </Animated.View>
@@ -285,7 +291,6 @@ const styles = StyleSheet.create({
   },
   selectionBorder: {
     ...StyleSheet.absoluteFillObject,
-    borderColor: Colors.accent.primary,
     borderStyle: 'dashed',
     borderRadius: 4,
   },

@@ -13,7 +13,7 @@ import { runOnJS } from 'react-native-reanimated';
 import { useEditorStore } from '../stores/editorStore';
 import { TextElement } from './canvas/TextElement';
 import { StickerElement } from './canvas/StickerElement';
-import { Colors } from '../constants/colors';
+import { useTheme } from '../hooks/useTheme';
 import { getFilterColorMatrix } from '../utils/colorMatrix';
 
 const { width: screenWidth } = Dimensions.get('window');
@@ -126,6 +126,7 @@ export const SkiaCanvas: React.FC<SkiaCanvasProps> = ({
   onTextEdit,
   onCanvasBackgroundTap,
 }) => {
+  const theme = useTheme();
   const {
     canvasElements,
     selectedElementIds,
@@ -185,7 +186,14 @@ export const SkiaCanvas: React.FC<SkiaCanvasProps> = ({
 
   return (
     <View
-      style={[styles.container, { width: canvasWidth, height: canvasHeight }]}
+      style={[
+        styles.container,
+        {
+          width: canvasWidth,
+          height: canvasHeight,
+          backgroundColor: theme.backgrounds.secondary,
+        },
+      ]}
     >
       {/* Background image layer with filter effects */}
       {sourceImageUri.startsWith('ph://') ? (
@@ -342,7 +350,6 @@ export const SkiaCanvas: React.FC<SkiaCanvasProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: Colors.backgrounds.secondary,
     borderRadius: 8,
     overflow: 'hidden',
     position: 'relative',

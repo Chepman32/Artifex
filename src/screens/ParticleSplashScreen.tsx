@@ -7,7 +7,8 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 import { Atlas, Canvas, Group, Skia, useImage } from '@shopify/react-native-skia';
-import { Colors } from '../constants/colors';
+import { Theme } from '../constants/themes';
+import { useTheme } from '../hooks/useTheme';
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 
@@ -34,6 +35,8 @@ function clamp01(v: number) {
 }
 
 const ParticleSplashScreen: React.FC = () => {
+  const theme = useTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
   const icon = useImage(require('../assets/icons/appIcon.png'));
 
   const progressRaw = useSharedValue(0);
@@ -174,15 +177,16 @@ const ParticleSplashScreen: React.FC = () => {
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (theme: Theme) =>
+  StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.backgrounds.primary,
+    backgroundColor: theme.backgrounds.primary,
   },
   canvas: {
     width: screenWidth,
     height: screenHeight,
   },
-});
+  });
 
 export default ParticleSplashScreen;

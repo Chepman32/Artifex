@@ -9,7 +9,7 @@ import Animated, {
   runOnJS,
 } from 'react-native-reanimated';
 import { GestureDetector, Gesture } from 'react-native-gesture-handler';
-import { Colors } from '../constants/colors';
+import { useTheme } from '../hooks/useTheme';
 import { haptics } from '../utils/haptics';
 
 interface SizeSliderProps {
@@ -33,6 +33,7 @@ export const SizeSlider: React.FC<SizeSliderProps> = ({
   onChangeEnd,
   position,
 }) => {
+  const theme = useTheme();
   const translateY = useSharedValue(0);
   const scale = useSharedValue(initialValue);
   const isDragging = useSharedValue(false);
@@ -112,12 +113,16 @@ export const SizeSlider: React.FC<SizeSliderProps> = ({
   return (
     <Animated.View style={[styles.container, containerStyle]}>
       {/* Background Track */}
-      <View style={styles.track} />
+      <View
+        style={[styles.track, { backgroundColor: theme.backgrounds.tertiary }]}
+      />
 
       {/* Draggable Thumb */}
       <GestureDetector gesture={panGesture}>
         <Animated.View style={[styles.thumb, thumbStyle]}>
-          <View style={styles.thumbInner} />
+          <View
+            style={[styles.thumbInner, { backgroundColor: theme.accent.primary }]}
+          />
         </Animated.View>
       </GestureDetector>
     </Animated.View>
@@ -136,7 +141,6 @@ const styles = StyleSheet.create({
     top: 0,
     width: 4,
     height: SLIDER_HEIGHT,
-    backgroundColor: Colors.backgrounds.tertiary,
     borderRadius: 2,
     overflow: 'hidden',
   },
@@ -154,7 +158,6 @@ const styles = StyleSheet.create({
     width: THUMB_SIZE - 4,
     height: THUMB_SIZE - 4,
     borderRadius: (THUMB_SIZE - 4) / 2,
-    backgroundColor: Colors.accent.primary,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.3,

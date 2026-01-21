@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { useAppStore } from '../stores/appStore';
+import { getDeviceLanguage } from '../localization/deviceLanguage';
 
 // Screens
 import ParticleSplashScreen from '../screens/ParticleSplashScreen';
@@ -29,8 +30,15 @@ export type RootStackParamList = {
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
 export default function AppNavigator() {
+  const hasHydrated = useAppStore(state => state.hasHydrated);
   const hasSeenOnboarding = useAppStore(state => state.hasSeenOnboarding);
+  const preferencesLanguage = useAppStore(state => state.preferences.language);
+  const updatePreferences = useAppStore(state => state.updatePreferences);
   const [showSplash, setShowSplash] = useState(true);
+
+  const shouldSyncLanguage = hasHydrated && !hasSeenOnboarding;
+  const deviceLanguage = shouldSyncLanguage ? getDeviceLanguage() : preferencesLanguage;
+  const isLanguageSynced = !shouldSyncLanguage || deviceLanguage === preferencesLanguage;
 
   useEffect(() => {
     // Splash screen duration matches animation (1.5 seconds total)
@@ -38,28 +46,35 @@ export default function AppNavigator() {
     return () => clearTimeout(timer);
   }, []);
 
-  if (showSplash) {
+  useEffect(() => {
+    if (!shouldSyncLanguage || isLanguageSynced) {
+      return;
+    }
+
+    updatePreferences({ language: deviceLanguage });
+  }, [deviceLanguage, isLanguageSynced, shouldSyncLanguage, updatePreferences]);
+
+  if (showSplash || !hasHydrated || !isLanguageSynced) {
     return <ParticleSplashScreen />;
   }
 
   return (
     <NavigationContainer>
       <Stack.Navigator
+        initialRouteName={hasSeenOnboarding ? 'Home' : 'Onboarding'}
         screenOptions={{
           headerShown: false, // Custom headers per screen
           animation: 'default',
         }}
       >
-        {!hasSeenOnboarding && (
-          <Stack.Screen
-            name="Onboarding"
-            component={OnboardingScreen}
-            options={{
-              presentation: 'fullScreenModal',
-              gestureEnabled: false, // Can't swipe away onboarding
-            }}
-          />
-        )}
+        <Stack.Screen
+          name="Onboarding"
+          component={OnboardingScreen}
+          options={{
+            presentation: 'fullScreenModal',
+            gestureEnabled: false, // Can't swipe away onboarding
+          }}
+        />
 
         <Stack.Screen name="Home" component={HomeScreen} />
 

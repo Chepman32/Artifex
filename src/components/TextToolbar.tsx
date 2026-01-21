@@ -1,6 +1,6 @@
 // Text Toolbar - Additional toolbar for text styling options
 
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -8,7 +8,9 @@ import {
   TouchableOpacity,
   ScrollView,
 } from 'react-native';
-import { Colors } from '../constants/colors';
+import { Theme } from '../constants/themes';
+import { useTheme } from '../hooks/useTheme';
+import { useTranslation } from '../hooks/useTranslation';
 import { Spacing } from '../constants/spacing';
 
 interface TextToolbarProps {
@@ -22,47 +24,6 @@ interface TextToolbarProps {
   selectedBackground?: string | null;
 }
 
-// Available fonts from assets
-const FONTS = [
-  { id: 'System', name: 'System', family: 'System' },
-  { id: 'ArchivoBlack', name: 'Archivo', family: 'ArchivoBlack-Regular' },
-  { id: 'BitcountInk', name: 'Bitcount', family: 'BitcountInk' },
-  { id: 'FiraSans', name: 'Fira Sans', family: 'FiraSans-Regular' },
-  { id: 'HomemadeApple', name: 'Homemade', family: 'HomemadeApple-Regular' },
-];
-
-// Text colors
-const TEXT_COLORS = [
-  { id: 'white', color: '#FFFFFF', name: 'White' },
-  { id: 'black', color: '#000000', name: 'Black' },
-  { id: 'red', color: '#FF3B30', name: 'Red' },
-  { id: 'orange', color: '#FF9500', name: 'Orange' },
-  { id: 'yellow', color: '#FFCC00', name: 'Yellow' },
-  { id: 'green', color: '#34C759', name: 'Green' },
-  { id: 'blue', color: '#007AFF', name: 'Blue' },
-  { id: 'purple', color: '#AF52DE', name: 'Purple' },
-  { id: 'pink', color: '#FF2D55', name: 'Pink' },
-];
-
-// Text effects
-const TEXT_EFFECTS = [
-  { id: 'none', name: 'None', icon: '//A' },
-  { id: 'neon', name: 'Neon', icon: '✨' },
-  { id: 'glow', name: 'Glow', icon: '💫' },
-  { id: 'shadow', name: 'Shadow', icon: '🌑' },
-  { id: 'outline', name: 'Outline', icon: '⭕' },
-];
-
-// Text backgrounds
-const TEXT_BACKGROUNDS = [
-  { id: 'none', name: 'None', color: null },
-  { id: 'black', name: 'Black', color: '#000000' },
-  { id: 'white', name: 'White', color: '#FFFFFF' },
-  { id: 'gray', name: 'Gray', color: '#8E8E93' },
-  { id: 'red', name: 'Red', color: '#FF3B30' },
-  { id: 'blue', name: 'Blue', color: '#007AFF' },
-];
-
 export const TextToolbar: React.FC<TextToolbarProps> = ({
   onFontSelect,
   onColorSelect,
@@ -73,9 +34,73 @@ export const TextToolbar: React.FC<TextToolbarProps> = ({
   selectedEffect = 'none',
   selectedBackground = null,
 }) => {
+  const theme = useTheme();
+  const t = useTranslation();
+  const styles = useMemo(() => createStyles(theme), [theme]);
   const [activeTab, setActiveTab] = useState<
     'font' | 'color' | 'effect' | 'background'
   >('font');
+  const fonts = useMemo(
+    () => [
+      { id: 'System', name: t.textToolbar.fonts.system, family: 'System' },
+      {
+        id: 'ArchivoBlack',
+        name: t.textToolbar.fonts.archivo,
+        family: 'ArchivoBlack-Regular',
+      },
+      {
+        id: 'BitcountInk',
+        name: t.textToolbar.fonts.bitcount,
+        family: 'BitcountInk',
+      },
+      {
+        id: 'FiraSans',
+        name: t.textToolbar.fonts.firaSans,
+        family: 'FiraSans-Regular',
+      },
+      {
+        id: 'HomemadeApple',
+        name: t.textToolbar.fonts.homemade,
+        family: 'HomemadeApple-Regular',
+      },
+    ],
+    [t],
+  );
+  const textColors = useMemo(
+    () => [
+      { id: 'white', color: '#FFFFFF', name: t.textToolbar.colors.white },
+      { id: 'black', color: '#000000', name: t.textToolbar.colors.black },
+      { id: 'red', color: '#FF3B30', name: t.textToolbar.colors.red },
+      { id: 'orange', color: '#FF9500', name: t.textToolbar.colors.orange },
+      { id: 'yellow', color: '#FFCC00', name: t.textToolbar.colors.yellow },
+      { id: 'green', color: '#34C759', name: t.textToolbar.colors.green },
+      { id: 'blue', color: '#007AFF', name: t.textToolbar.colors.blue },
+      { id: 'purple', color: '#AF52DE', name: t.textToolbar.colors.purple },
+      { id: 'pink', color: '#FF2D55', name: t.textToolbar.colors.pink },
+    ],
+    [t],
+  );
+  const textEffects = useMemo(
+    () => [
+      { id: 'none', name: t.textToolbar.effects.none, icon: '//A' },
+      { id: 'neon', name: t.textToolbar.effects.neon, icon: '✨' },
+      { id: 'glow', name: t.textToolbar.effects.glow, icon: '💫' },
+      { id: 'shadow', name: t.textToolbar.effects.shadow, icon: '🌑' },
+      { id: 'outline', name: t.textToolbar.effects.outline, icon: '⭕' },
+    ],
+    [t],
+  );
+  const textBackgrounds = useMemo(
+    () => [
+      { id: 'none', name: t.textToolbar.backgrounds.none, color: null },
+      { id: 'black', name: t.textToolbar.backgrounds.black, color: '#000000' },
+      { id: 'white', name: t.textToolbar.backgrounds.white, color: '#FFFFFF' },
+      { id: 'gray', name: t.textToolbar.backgrounds.gray, color: '#8E8E93' },
+      { id: 'red', name: t.textToolbar.backgrounds.red, color: '#FF3B30' },
+      { id: 'blue', name: t.textToolbar.backgrounds.blue, color: '#007AFF' },
+    ],
+    [t],
+  );
 
   return (
     <View style={styles.container}>
@@ -140,7 +165,7 @@ export const TextToolbar: React.FC<TextToolbarProps> = ({
       >
         {activeTab === 'font' && (
           <>
-            {FONTS.map(font => (
+            {fonts.map(font => (
               <TouchableOpacity
                 key={font.id}
                 style={[
@@ -161,7 +186,7 @@ export const TextToolbar: React.FC<TextToolbarProps> = ({
 
         {activeTab === 'color' && (
           <>
-            {TEXT_COLORS.map(colorItem => (
+            {textColors.map(colorItem => (
               <TouchableOpacity
                 key={colorItem.id}
                 style={[
@@ -185,7 +210,7 @@ export const TextToolbar: React.FC<TextToolbarProps> = ({
 
         {activeTab === 'effect' && (
           <>
-            {TEXT_EFFECTS.map(effect => (
+            {textEffects.map(effect => (
               <TouchableOpacity
                 key={effect.id}
                 style={[
@@ -203,7 +228,7 @@ export const TextToolbar: React.FC<TextToolbarProps> = ({
 
         {activeTab === 'background' && (
           <>
-            {TEXT_BACKGROUNDS.map(bg => (
+            {textBackgrounds.map(bg => (
               <TouchableOpacity
                 key={bg.id}
                 style={[
@@ -235,9 +260,10 @@ export const TextToolbar: React.FC<TextToolbarProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (theme: Theme) =>
+  StyleSheet.create({
   container: {
-    backgroundColor: Colors.backgrounds.secondary,
+    backgroundColor: theme.backgrounds.secondary,
     paddingVertical: Spacing.xs,
   },
   tabBar: {
@@ -246,7 +272,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.m,
     paddingBottom: Spacing.xs,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.1)',
+    borderBottomColor: theme.overlays.light,
   },
   tabButton: {
     paddingVertical: Spacing.xs,
@@ -257,18 +283,18 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   tabButtonActive: {
-    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    backgroundColor: theme.overlays.light,
   },
   tabIcon: {
     fontSize: 20,
-    color: Colors.text.primary,
+    color: theme.text.primary,
     fontWeight: '600',
   },
   colorIcon: {
     width: 28,
     height: 28,
     borderRadius: 14,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    backgroundColor: theme.overlays.light,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -277,19 +303,19 @@ const styles = StyleSheet.create({
     height: 20,
     borderRadius: 10,
     borderWidth: 2,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
+    borderColor: theme.text.tertiary,
   },
   bgIcon: {
     width: 28,
     height: 28,
     borderRadius: 6,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    backgroundColor: theme.overlays.light,
     justifyContent: 'center',
     alignItems: 'center',
   },
   bgIconText: {
     fontSize: 16,
-    color: Colors.text.primary,
+    color: theme.text.primary,
     fontWeight: '700',
   },
   scrollContent: {
@@ -305,16 +331,16 @@ const styles = StyleSheet.create({
     minWidth: 60,
   },
   optionButtonActive: {
-    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    backgroundColor: theme.overlays.light,
   },
   fontPreview: {
     fontSize: 24,
-    color: Colors.text.primary,
+    color: theme.text.primary,
     marginBottom: 4,
   },
   optionLabel: {
     fontSize: 10,
-    color: Colors.text.secondary,
+    color: theme.text.secondary,
     textAlign: 'center',
   },
   colorButton: {
@@ -325,7 +351,7 @@ const styles = StyleSheet.create({
     minWidth: 60,
   },
   colorButtonActive: {
-    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    backgroundColor: theme.overlays.light,
   },
   colorSwatch: {
     width: 32,
@@ -335,7 +361,7 @@ const styles = StyleSheet.create({
   },
   colorSwatchBorder: {
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
+    borderColor: theme.text.tertiary,
   },
   effectIcon: {
     fontSize: 24,
@@ -344,12 +370,12 @@ const styles = StyleSheet.create({
   noBackgroundSwatch: {
     backgroundColor: 'transparent',
     borderWidth: 2,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
+    borderColor: theme.text.tertiary,
     justifyContent: 'center',
     alignItems: 'center',
   },
   noBackgroundIcon: {
     fontSize: 20,
-    color: Colors.text.secondary,
+    color: theme.text.secondary,
   },
-});
+  });

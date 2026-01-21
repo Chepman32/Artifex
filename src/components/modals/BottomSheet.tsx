@@ -1,6 +1,6 @@
 // Reusable bottom sheet modal with physics-based spring animations
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   View,
   StyleSheet,
@@ -18,7 +18,8 @@ import Animated, {
   WithSpringConfig,
 } from 'react-native-reanimated';
 import { PanGestureHandler } from 'react-native-gesture-handler';
-import { Colors } from '../../constants/colors';
+import { Theme } from '../../constants/themes';
+import { useTheme } from '../../hooks/useTheme';
 import { Spacing } from '../../constants/spacing';
 
 const { height: screenHeight } = Dimensions.get('window');
@@ -39,6 +40,8 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({
   snapPoints = [0.5, 0.9],
 }) => {
   const insets = useSafeAreaInsets();
+  const theme = useTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
   const [isRendered, setIsRendered] = useState(visible);
 
   const baseHeight = height || screenHeight * snapPoints[0];
@@ -151,20 +154,21 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (theme: Theme) =>
+  StyleSheet.create({
   container: {
     flex: 1,
   },
   backdrop: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    backgroundColor: theme.backgrounds.overlay,
   },
   sheet: {
     position: 'absolute',
     bottom: 0,
     left: 0,
     right: 0,
-    backgroundColor: Colors.backgrounds.secondary,
+    backgroundColor: theme.backgrounds.secondary,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     shadowColor: '#000',
@@ -180,7 +184,7 @@ const styles = StyleSheet.create({
   handle: {
     width: 40,
     height: 5,
-    backgroundColor: Colors.backgrounds.tertiary,
+    backgroundColor: theme.backgrounds.tertiary,
     borderRadius: 2.5,
   },
   content: {
@@ -188,4 +192,4 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.m,
     paddingBottom: Spacing.l,
   },
-});
+  });

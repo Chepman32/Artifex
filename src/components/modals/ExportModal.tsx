@@ -1,6 +1,6 @@
 // Export modal with format and quality options
 
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -13,7 +13,8 @@ import {
   Image,
 } from 'react-native';
 import { BottomSheet } from './BottomSheet';
-import { Colors } from '../../constants/colors';
+import { Theme } from '../../constants/themes';
+import { useTheme } from '../../hooks/useTheme';
 import { Typography } from '../../constants/typography';
 import { Spacing } from '../../constants/spacing';
 import { useEditorStore } from '../../stores/editorStore';
@@ -39,6 +40,8 @@ export const ExportModal: React.FC<ExportModalProps> = ({
   canvasDimensions,
 }) => {
   const t = useTranslation();
+  const theme = useTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
   const [selectedFormat, _setSelectedFormat] = useState<ExportFormat>('png');
   const [quality, _setQuality] = useState<number>(100);
   const [isExporting, setIsExporting] = useState(false);
@@ -145,6 +148,14 @@ export const ExportModal: React.FC<ExportModalProps> = ({
     try {
       setIsExporting(true);
 
+      if (Platform.OS === 'ios') {
+        const savedUri = await CameraRoll.save(exportResult.filepath, { type: 'photo' });
+        const instagramUrl = `instagram://library?AssetPath=${encodeURIComponent(savedUri)}`;
+        await Linking.openURL(instagramUrl);
+        onClose();
+        return;
+      }
+
       const options = {
         url: `file://${exportResult.filepath}`,
         type: exportResult.mime,
@@ -209,7 +220,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({
             disabled={isExporting}
           >
             {isExporting ? (
-              <ActivityIndicator size="small" color={Colors.text.primary} />
+              <ActivityIndicator size="small" color={theme.text.primary} />
             ) : (
               <>
                 <View style={styles.iconContainer}>
@@ -226,7 +237,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({
             disabled={isExporting}
           >
             {isExporting ? (
-              <ActivityIndicator size="small" color={Colors.text.primary} />
+              <ActivityIndicator size="small" color={theme.text.primary} />
             ) : (
               <>
                 <View style={styles.iconContainer}>
@@ -247,7 +258,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({
             disabled={isExporting}
           >
             {isExporting ? (
-              <ActivityIndicator size="small" color={Colors.text.primary} />
+              <ActivityIndicator size="small" color={theme.text.primary} />
             ) : (
               <>
                 <View style={styles.iconContainer}>
@@ -267,7 +278,8 @@ export const ExportModal: React.FC<ExportModalProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (theme: Theme) =>
+  StyleSheet.create({
   container: {
     padding: Spacing.xl,
   },
@@ -277,7 +289,7 @@ const styles = StyleSheet.create({
   actionButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.backgrounds.secondary,
+    backgroundColor: theme.backgrounds.secondary,
     borderRadius: 16,
     padding: Spacing.l,
     paddingVertical: Spacing.l,
@@ -287,7 +299,7 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: Colors.backgrounds.primary,
+    backgroundColor: theme.backgrounds.primary,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -300,8 +312,8 @@ const styles = StyleSheet.create({
   },
   actionText: {
     ...Typography.body,
-    color: Colors.text.primary,
+    color: theme.text.primary,
     fontWeight: '600',
     fontSize: 16,
   },
-});
+  });

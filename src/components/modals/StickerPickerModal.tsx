@@ -12,7 +12,9 @@ import {
   ScrollView,
 } from 'react-native';
 import { BottomSheet } from './BottomSheet';
-import { Colors } from '../../constants/colors';
+import { Theme } from '../../constants/themes';
+import { useTheme } from '../../hooks/useTheme';
+import { useTranslation } from '../../hooks/useTranslation';
 import { Typography } from '../../constants/typography';
 import { Spacing } from '../../constants/spacing';
 import { STICKERS, STICKER_CATEGORIES } from '../../constants/assets';
@@ -50,7 +52,14 @@ export const StickerPickerModal: React.FC<StickerPickerModalProps> = ({
   onClose,
   onSelect,
 }) => {
+  const theme = useTheme();
+  const t = useTranslation();
+  const styles = useMemo(() => createStyles(theme), [theme]);
   const [selectedCategory, setSelectedCategory] = useState('all');
+  const getCategoryLabel = (categoryId: string) => {
+    const labels = t.stickers.categories as Record<string, string>;
+    return labels[categoryId] || categoryId;
+  };
 
   const modalHeight = useMemo(() => {
     // Let the sheet cover most of the screen while leaving breathing room at the top
@@ -87,7 +96,7 @@ export const StickerPickerModal: React.FC<StickerPickerModalProps> = ({
             isSelected && styles.categoryTextSelected,
           ]}
         >
-          {category.label}
+          {getCategoryLabel(category.id)}
         </Text>
       </TouchableOpacity>
     );
@@ -114,7 +123,7 @@ export const StickerPickerModal: React.FC<StickerPickerModalProps> = ({
   return (
     <BottomSheet visible={visible} onClose={onClose} height={modalHeight}>
       <View style={styles.container}>
-        <Text style={styles.title}>Stickers</Text>
+        <Text style={styles.title}>{t.stickers.title}</Text>
 
         {/* Category Filter */}
         <ScrollView
@@ -137,7 +146,7 @@ export const StickerPickerModal: React.FC<StickerPickerModalProps> = ({
           ListEmptyComponent={
             <View style={styles.emptyState}>
               <Text style={styles.emptyText}>
-                No stickers in this category
+                {t.stickers.emptyCategory}
               </Text>
             </View>
           }
@@ -147,13 +156,14 @@ export const StickerPickerModal: React.FC<StickerPickerModalProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (theme: Theme) =>
+  StyleSheet.create({
   container: {
     flex: 1,
   },
   title: {
     ...Typography.display.h3,
-    color: Colors.text.primary,
+    color: theme.text.primary,
     marginBottom: Spacing.m,
   },
   categoriesScroll: {
@@ -168,7 +178,7 @@ const styles = StyleSheet.create({
   categoryPill: {
     paddingHorizontal: Spacing.m,
     paddingVertical: Spacing.xs,
-    backgroundColor: Colors.backgrounds.tertiary,
+    backgroundColor: theme.backgrounds.tertiary,
     borderRadius: 999,
     borderWidth: 2,
     borderColor: 'transparent',
@@ -180,12 +190,12 @@ const styles = StyleSheet.create({
     minWidth: 60,
   },
   categoryPillSelected: {
-    backgroundColor: Colors.backgrounds.primary,
-    borderColor: Colors.accent.primary,
+    backgroundColor: theme.backgrounds.primary,
+    borderColor: theme.accent.primary,
   },
   categoryText: {
     ...Typography.body.regular,
-    color: Colors.text.secondary,
+    color: theme.text.secondary,
     fontWeight: '600',
     lineHeight: Typography.body.regular.lineHeight,
     textAlign: 'center',
@@ -194,7 +204,7 @@ const styles = StyleSheet.create({
     paddingBottom: 2,
   },
   categoryTextSelected: {
-    color: Colors.accent.primary,
+    color: theme.accent.primary,
     fontWeight: '600',
   },
   grid: {
@@ -207,7 +217,7 @@ const styles = StyleSheet.create({
   },
   stickerContainer: {
     flex: 1,
-    backgroundColor: Colors.backgrounds.tertiary,
+    backgroundColor: theme.backgrounds.tertiary,
     borderRadius: 12,
     overflow: 'hidden',
     position: 'relative',
@@ -223,12 +233,12 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFillObject,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: theme.backgrounds.overlay,
   },
   crownBadge: {
     width: 32,
     height: 32,
-    backgroundColor: Colors.accent.primary,
+    backgroundColor: theme.accent.primary,
     borderRadius: 16,
     justifyContent: 'center',
     alignItems: 'center',
@@ -242,11 +252,11 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     ...Typography.body.regular,
-    color: Colors.text.tertiary,
+    color: theme.text.tertiary,
     textAlign: 'center',
   },
   proButton: {
-    backgroundColor: Colors.accent.primary,
+    backgroundColor: theme.accent.primary,
     borderRadius: 12,
     padding: Spacing.m,
     alignItems: 'center',
@@ -254,6 +264,6 @@ const styles = StyleSheet.create({
   },
   proButtonText: {
     ...Typography.ui.button,
-    color: Colors.backgrounds.primary,
+    color: theme.backgrounds.primary,
   },
-});
+  });

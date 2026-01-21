@@ -1,6 +1,6 @@
 // Watermark tool modal with preset configurations
 
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -21,12 +21,15 @@ import Animated, {
   Easing,
 } from 'react-native-reanimated';
 import { BottomSheet } from './BottomSheet';
-import { Colors } from '../../constants/colors';
+import { Theme } from '../../constants/themes';
+import { useTheme } from '../../hooks/useTheme';
+import { useTranslation } from '../../hooks/useTranslation';
 import { Typography } from '../../constants/typography';
 import { Spacing } from '../../constants/spacing';
 import { WATERMARK_PRESETS } from '../../constants/watermarkPresets';
 import { WatermarkPreset } from '../../types/watermark';
 import { haptics } from '../../utils/haptics';
+import { formatString } from '../../localization/format';
 
 const { width: screenWidth } = Dimensions.get('window');
 const GRID_COLUMNS = 2;
@@ -51,6 +54,8 @@ const GestureSlider: React.FC<GestureSliderProps> = ({
   onChange,
   formatValue,
 }) => {
+  const theme = useTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
   const trackWidth = useSharedValue(0);
   const thumbX = useSharedValue(0);
   const isDragging = useSharedValue(false);
@@ -140,7 +145,10 @@ export const WatermarkToolModal: React.FC<WatermarkToolModalProps> = ({
   onApplyPreset,
 }) => {
   const insets = useSafeAreaInsets();
-  const [watermarkText, setWatermarkText] = useState('© Your Brand');
+  const theme = useTheme();
+  const t = useTranslation();
+  const styles = useMemo(() => createStyles(theme), [theme]);
+  const [watermarkText, setWatermarkText] = useState(t.watermark.defaultText);
   const [selectedPresetId, setSelectedPresetId] = useState<string | null>(null);
   const [showCustomization, setShowCustomization] = useState(false);
 
@@ -191,6 +199,18 @@ export const WatermarkToolModal: React.FC<WatermarkToolModalProps> = ({
   const filteredPresets = WATERMARK_PRESETS.filter(preset => {
     return preset.category === 'pattern';
   });
+  const presetTranslations = t.watermark.presets as Record<
+    string,
+    { name: string; description: string }
+  >;
+  const densityTranslations = t.watermark.densities as Record<string, string>;
+  const getPresetCopy = (preset: WatermarkPreset) =>
+    presetTranslations[preset.id] || {
+      name: preset.name,
+      description: preset.description,
+    };
+  const getDensityLabel = (density: string) =>
+    densityTranslations[density] || density;
 
   const handlePresetPress = (preset: WatermarkPreset) => {
     setSelectedPresetId(preset.id);
@@ -217,6 +237,7 @@ export const WatermarkToolModal: React.FC<WatermarkToolModalProps> = ({
 
   const renderPreset = ({ item }: { item: WatermarkPreset }) => {
     const isSelected = selectedPresetId === item.id;
+    const presetCopy = getPresetCopy(item);
 
     return (
       <TouchableOpacity
@@ -304,12 +325,14 @@ export const WatermarkToolModal: React.FC<WatermarkToolModalProps> = ({
           </View>
         </View>
         <View style={styles.presetInfo}>
-          <Text style={styles.presetName}>{item.name}</Text>
-          <Text style={styles.presetDescription}>{item.description}</Text>
+          <Text style={styles.presetName}>{presetCopy.name}</Text>
+          <Text style={styles.presetDescription}>{presetCopy.description}</Text>
           <View style={styles.presetMeta}>
-            <Text style={styles.presetMetaText}>{item.config.count} marks</Text>
+            <Text style={styles.presetMetaText}>
+              {formatString(t.watermark.markCount, { count: item.config.count })}
+            </Text>
             <Text style={styles.presetMetaText}>•</Text>
-            <Text style={styles.presetMetaText}>{item.density}</Text>
+            <Text style={styles.presetMetaText}>{getDensityLabel(item.density)}</Text>
           </View>
         </View>
       </TouchableOpacity>
@@ -319,20 +342,20 @@ export const WatermarkToolModal: React.FC<WatermarkToolModalProps> = ({
   return (
     <BottomSheet visible={visible} onClose={onClose} snapPoints={[0.85, 0.95]}>
       <View style={styles.container}>
-        <Text style={styles.title}>💧 Watermark Tool</Text>
+        <Text style={styles.title}>{t.watermark.title}</Text>
 
         <View style={styles.viewContainer}>
           {/* Presets View */}
           <Animated.View style={[styles.animatedView, presetsViewStyle]}>
             {/* Watermark Text Input */}
             <View style={styles.textInputContainer}>
-              <Text style={styles.inputLabel}>Watermark Text</Text>
+              <Text style={styles.inputLabel}>{t.watermark.textLabel}</Text>
               <TextInput
                 style={styles.textInput}
                 value={watermarkText}
                 onChangeText={setWatermarkText}
-                placeholder="Enter your watermark text"
-                placeholderTextColor={Colors.text.tertiary}
+                placeholder={t.watermark.textPlaceholder}
+                placeholderTextColor={theme.text.tertiary}
               />
             </View>
 
@@ -365,7 +388,7 @@ export const WatermarkToolModal: React.FC<WatermarkToolModalProps> = ({
                   onPress={handleApply}
                   disabled={!watermarkText.trim()}
                 >
-                  <Text style={styles.applyButtonText}>Apply Watermark</Text>
+                  <Text style={styles.applyButtonText}>{t.watermark.apply}</Text>
                 </TouchableOpacity>
               </View>
             )}
@@ -381,18 +404,18 @@ export const WatermarkToolModal: React.FC<WatermarkToolModalProps> = ({
                 setSelectedPresetId(null);
               }}
             >
-              <Text style={styles.backButtonText}>‹ Back to Presets</Text>
+              <Text style={styles.backButtonText}>{t.watermark.backToPresets}</Text>
             </TouchableOpacity>
 
             {/* Watermark Text Input */}
             <View style={styles.textInputContainer}>
-              <Text style={styles.inputLabel}>Watermark Text</Text>
+              <Text style={styles.inputLabel}>{t.watermark.textLabel}</Text>
               <TextInput
                 style={styles.textInput}
                 value={watermarkText}
                 onChangeText={setWatermarkText}
-                placeholder="Enter your watermark text"
-                placeholderTextColor={Colors.text.tertiary}
+                placeholder={t.watermark.textPlaceholder}
+                placeholderTextColor={theme.text.tertiary}
               />
             </View>
 
@@ -405,11 +428,11 @@ export const WatermarkToolModal: React.FC<WatermarkToolModalProps> = ({
                 ]}
                 showsVerticalScrollIndicator={false}
               >
-                <Text style={styles.sectionTitle}>Global Adjustments</Text>
+                <Text style={styles.sectionTitle}>{t.watermark.globalAdjustments}</Text>
 
                 {/* Opacity Slider */}
                 <GestureSlider
-                  label="Opacity"
+                  label={t.watermark.opacity}
                   value={globalOpacity}
                   minValue={0.1}
                   maxValue={1}
@@ -419,7 +442,7 @@ export const WatermarkToolModal: React.FC<WatermarkToolModalProps> = ({
 
                 {/* Scale Slider */}
                 <GestureSlider
-                  label="Size"
+                  label={t.watermark.size}
                   value={globalScale}
                   minValue={0.5}
                   maxValue={2}
@@ -429,7 +452,7 @@ export const WatermarkToolModal: React.FC<WatermarkToolModalProps> = ({
 
                 {/* Rotation Slider */}
                 <GestureSlider
-                  label="Rotation"
+                  label={t.watermark.rotation}
                   value={globalRotation}
                   minValue={-45}
                   maxValue={45}
@@ -447,24 +470,24 @@ export const WatermarkToolModal: React.FC<WatermarkToolModalProps> = ({
                   disabled={!watermarkText.trim()}
                 >
                   <Text style={styles.applyButtonText}>
-                    Confirm Adjustments
+                    {t.watermark.confirmAdjustments}
                   </Text>
                 </TouchableOpacity>
 
                 {/* Preview Info */}
                 <View style={styles.previewInfo}>
-                  <Text style={styles.previewInfoTitle}>Selected Preset</Text>
+                  <Text style={styles.previewInfoTitle}>{t.watermark.selectedPreset}</Text>
                   <Text style={styles.previewInfoText}>
-                    {
-                      WATERMARK_PRESETS.find(p => p.id === selectedPresetId)
-                        ?.name
-                    }
+                    {(() => {
+                      const preset = WATERMARK_PRESETS.find(p => p.id === selectedPresetId);
+                      return preset ? getPresetCopy(preset).name : '';
+                    })()}
                   </Text>
                   <Text style={styles.previewInfoDescription}>
-                    {
-                      WATERMARK_PRESETS.find(p => p.id === selectedPresetId)
-                        ?.description
-                    }
+                    {(() => {
+                      const preset = WATERMARK_PRESETS.find(p => p.id === selectedPresetId);
+                      return preset ? getPresetCopy(preset).description : '';
+                    })()}
                   </Text>
                 </View>
               </ScrollView>
@@ -476,7 +499,8 @@ export const WatermarkToolModal: React.FC<WatermarkToolModalProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (theme: Theme) =>
+  StyleSheet.create({
   container: {
     flex: 1,
   },
@@ -489,7 +513,7 @@ const styles = StyleSheet.create({
   },
   title: {
     ...Typography.display.h3,
-    color: Colors.text.primary,
+    color: theme.text.primary,
     marginBottom: Spacing.m,
   },
   textInputContainer: {
@@ -497,16 +521,16 @@ const styles = StyleSheet.create({
   },
   inputLabel: {
     ...Typography.body.small,
-    color: Colors.text.secondary,
+    color: theme.text.secondary,
     marginBottom: Spacing.xs,
     fontWeight: '600',
   },
   textInput: {
-    backgroundColor: Colors.backgrounds.tertiary,
+    backgroundColor: theme.backgrounds.tertiary,
     borderRadius: 12,
     padding: Spacing.m,
     ...Typography.body.regular,
-    color: Colors.text.primary,
+    color: theme.text.primary,
     borderWidth: 2,
     borderColor: 'transparent',
   },
@@ -519,18 +543,18 @@ const styles = StyleSheet.create({
   },
   presetItem: {
     width: PRESET_WIDTH,
-    backgroundColor: Colors.backgrounds.tertiary,
+    backgroundColor: theme.backgrounds.tertiary,
     borderRadius: 12,
     overflow: 'hidden',
     borderWidth: 2,
     borderColor: 'transparent',
   },
   presetItemSelected: {
-    borderColor: Colors.accent.primary,
+    borderColor: theme.accent.primary,
   },
   presetPreview: {
     height: 100,
-    backgroundColor: Colors.backgrounds.secondary,
+    backgroundColor: theme.backgrounds.secondary,
     position: 'relative',
   },
   previewPattern: {
@@ -542,7 +566,7 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: Colors.accent.primary,
+    backgroundColor: theme.accent.primary,
     opacity: 0.6,
   },
   presetInfo: {
@@ -550,13 +574,13 @@ const styles = StyleSheet.create({
   },
   presetName: {
     ...Typography.body.regular,
-    color: Colors.text.primary,
+    color: theme.text.primary,
     fontWeight: '600',
     marginBottom: Spacing.xs / 2,
   },
   presetDescription: {
     ...Typography.body.small,
-    color: Colors.text.secondary,
+    color: theme.text.secondary,
     marginBottom: Spacing.xs,
   },
   presetMeta: {
@@ -566,7 +590,7 @@ const styles = StyleSheet.create({
   },
   presetMetaText: {
     ...Typography.body.small,
-    color: Colors.text.tertiary,
+    color: theme.text.tertiary,
     fontSize: 11,
   },
   backButton: {
@@ -574,7 +598,7 @@ const styles = StyleSheet.create({
   },
   backButtonText: {
     ...Typography.body.regular,
-    color: Colors.accent.primary,
+    color: theme.accent.primary,
     fontWeight: '600',
   },
   customizationPanel: {
@@ -588,7 +612,7 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     ...Typography.body.regular,
-    color: Colors.text.primary,
+    color: theme.text.primary,
     fontWeight: '600',
     marginBottom: Spacing.m,
   },
@@ -597,7 +621,7 @@ const styles = StyleSheet.create({
   },
   sliderLabel: {
     ...Typography.body.small,
-    color: Colors.text.secondary,
+    color: theme.text.secondary,
     marginBottom: Spacing.xs,
     fontWeight: '600',
   },
@@ -608,7 +632,7 @@ const styles = StyleSheet.create({
   },
   sliderValue: {
     ...Typography.body.small,
-    color: Colors.text.primary,
+    color: theme.text.primary,
     width: 50,
     fontWeight: '600',
   },
@@ -619,20 +643,20 @@ const styles = StyleSheet.create({
   },
   sliderTrack: {
     height: 6,
-    backgroundColor: Colors.backgrounds.tertiary,
+    backgroundColor: theme.backgrounds.tertiary,
     borderRadius: 3,
     overflow: 'hidden',
   },
   sliderFill: {
     height: '100%',
-    backgroundColor: Colors.accent.primary,
+    backgroundColor: theme.accent.primary,
   },
   sliderThumb: {
     position: 'absolute',
     width: THUMB_SIZE,
     height: THUMB_SIZE,
     borderRadius: THUMB_SIZE / 2,
-    backgroundColor: Colors.accent.primary,
+    backgroundColor: theme.accent.primary,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
@@ -640,29 +664,29 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
   previewInfo: {
-    backgroundColor: Colors.backgrounds.tertiary,
+    backgroundColor: theme.backgrounds.tertiary,
     borderRadius: 12,
     padding: Spacing.m,
     marginTop: Spacing.m,
   },
   previewInfoTitle: {
     ...Typography.body.small,
-    color: Colors.text.secondary,
+    color: theme.text.secondary,
     marginBottom: Spacing.xs / 2,
     fontWeight: '600',
   },
   previewInfoText: {
     ...Typography.body.regular,
-    color: Colors.text.primary,
+    color: theme.text.primary,
     fontWeight: '600',
     marginBottom: Spacing.xs / 2,
   },
   previewInfoDescription: {
     ...Typography.body.small,
-    color: Colors.text.secondary,
+    color: theme.text.secondary,
   },
   applyButton: {
-    backgroundColor: Colors.accent.primary,
+    backgroundColor: theme.accent.primary,
     borderRadius: 12,
     padding: Spacing.m,
     alignItems: 'center',
@@ -676,16 +700,16 @@ const styles = StyleSheet.create({
   },
   applyButtonText: {
     ...Typography.ui.button,
-    color: Colors.backgrounds.primary,
+    color: theme.backgrounds.primary,
   },
   quickApplyContainer: {
     paddingTop: Spacing.m,
   },
   quickApplyButton: {
-    backgroundColor: Colors.accent.primary,
+    backgroundColor: theme.accent.primary,
     borderRadius: 12,
     padding: Spacing.m,
     alignItems: 'center',
     marginBottom: Spacing.s,
   },
-});
+  });

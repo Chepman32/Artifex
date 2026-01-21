@@ -1,6 +1,6 @@
 // Image picker screen with proper iOS permissions
 
-import React, { useState, useEffect } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -15,9 +15,12 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { CameraRoll } from '@react-native-camera-roll/camera-roll';
-import { Colors } from '../constants/colors';
+import { Theme } from '../constants/themes';
+import { useTheme } from '../hooks/useTheme';
+import { useTranslation } from '../hooks/useTranslation';
 import { Typography } from '../constants/typography';
 import { Spacing } from '../constants/spacing';
+import { formatString } from '../localization/format';
 
 const { width: screenWidth } = Dimensions.get('window');
 const GRID_COLUMNS = 4;
@@ -80,6 +83,9 @@ const FALLBACK_PHOTOS: PhotoAsset[] = [
 
 const ImagePickerScreen: React.FC = () => {
   const navigation = useNavigation();
+  const theme = useTheme();
+  const t = useTranslation();
+  const styles = useMemo(() => createStyles(theme), [theme]);
   const [photos, setPhotos] = useState<PhotoAsset[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -180,16 +186,22 @@ const ImagePickerScreen: React.FC = () => {
 
       {/* Title */}
       <View style={styles.titleContainer}>
-        <Text style={styles.title}>Select Photo</Text>
+        <Text style={styles.title}>{t.imagePicker.title}</Text>
         <Text style={styles.subtitle}>
-          {loading ? 'Loading photos...' : `${photos.length} photos available`}
+          {loading
+            ? t.imagePicker.loadingSubtitle
+            : photos.length === 1
+              ? t.imagePicker.photoAvailable
+              : formatString(t.imagePicker.photosAvailable, {
+                  count: photos.length,
+                })}
         </Text>
       </View>
 
       {/* Photo Grid */}
       {loading ? (
         <View style={styles.loadingContainer}>
-          <Text style={styles.loadingText}>Loading your photos...</Text>
+          <Text style={styles.loadingText}>{t.imagePicker.loadingText}</Text>
         </View>
       ) : (
         <FlatList
@@ -205,10 +217,11 @@ const ImagePickerScreen: React.FC = () => {
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (theme: Theme) =>
+  StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.backgrounds.primary,
+    backgroundColor: theme.backgrounds.primary,
   },
   header: {
     flexDirection: 'row',
@@ -225,13 +238,13 @@ const styles = StyleSheet.create({
   },
   closeIcon: {
     fontSize: 24,
-    color: Colors.text.secondary,
+    color: theme.text.secondary,
     fontWeight: '300',
   },
   dragHandle: {
     width: 40,
     height: 5,
-    backgroundColor: Colors.backgrounds.tertiary,
+    backgroundColor: theme.backgrounds.tertiary,
     borderRadius: 2.5,
   },
   placeholder: {
@@ -245,12 +258,12 @@ const styles = StyleSheet.create({
   },
   title: {
     ...Typography.display.h3,
-    color: Colors.text.primary,
+    color: theme.text.primary,
     marginBottom: Spacing.xs,
   },
   subtitle: {
     ...Typography.body.regular,
-    color: Colors.text.secondary,
+    color: theme.text.secondary,
   },
   gridContainer: {
     padding: Spacing.xs,
@@ -264,7 +277,7 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
     borderRadius: 4,
-    backgroundColor: Colors.backgrounds.tertiary,
+    backgroundColor: theme.backgrounds.tertiary,
   },
   loadingContainer: {
     flex: 1,
@@ -273,8 +286,8 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     ...Typography.body.regular,
-    color: Colors.text.secondary,
+    color: theme.text.secondary,
   },
-});
+  });
 
 export default ImagePickerScreen;

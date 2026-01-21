@@ -1,6 +1,6 @@
 // Text tool modal for adding and editing text elements
 
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -10,7 +10,9 @@ import {
   ScrollView,
 } from 'react-native';
 import { BottomSheet } from './BottomSheet';
-import { Colors } from '../../constants/colors';
+import { Theme } from '../../constants/themes';
+import { useTheme } from '../../hooks/useTheme';
+import { useTranslation } from '../../hooks/useTranslation';
 import { Typography } from '../../constants/typography';
 import { Spacing } from '../../constants/spacing';
 
@@ -36,17 +38,6 @@ const FONTS = {
   ],
 };
 
-const COLORS = [
-  Colors.text.primary,
-  Colors.accent.primary,
-  '#FFFFFF',
-  '#000000',
-  '#FF0000',
-  '#00FF00',
-  '#0000FF',
-  '#FF00FF',
-];
-
 const FONT_SIZES = [12, 16, 20, 24, 32, 40, 48, 64];
 
 export const TextToolModal: React.FC<TextToolModalProps> = ({
@@ -56,12 +47,30 @@ export const TextToolModal: React.FC<TextToolModalProps> = ({
   initialText = '',
   initialFont = 'System',
   initialSize = 24,
-  initialColor = Colors.text.primary,
+  initialColor,
 }) => {
+  const theme = useTheme();
+  const t = useTranslation();
+  const styles = useMemo(() => createStyles(theme), [theme]);
+  const colorOptions = useMemo(
+    () => [
+      theme.text.primary,
+      theme.accent.primary,
+      '#FFFFFF',
+      '#000000',
+      '#FF0000',
+      '#00FF00',
+      '#0000FF',
+      '#FF00FF',
+    ],
+    [theme],
+  );
   const [text, setText] = useState(initialText);
   const [selectedFont, setSelectedFont] = useState(initialFont);
   const [selectedSize, setSelectedSize] = useState(initialSize);
-  const [selectedColor, setSelectedColor] = useState(initialColor);
+  const [selectedColor, setSelectedColor] = useState(
+    initialColor ?? theme.text.primary,
+  );
 
   const allFonts = [...FONTS.free, ...FONTS.pro];
 
@@ -83,7 +92,7 @@ export const TextToolModal: React.FC<TextToolModalProps> = ({
   return (
     <BottomSheet visible={visible} onClose={onClose} snapPoints={[0.7, 0.9]}>
       <ScrollView showsVerticalScrollIndicator={false}>
-        <Text style={styles.title}>Add Text</Text>
+        <Text style={styles.title}>{t.textTool.title}</Text>
 
         {/* Text input */}
         <TextInput
@@ -91,8 +100,8 @@ export const TextToolModal: React.FC<TextToolModalProps> = ({
             styles.textInput,
             { fontFamily: selectedFont, fontSize: selectedSize, color: selectedColor },
           ]}
-          placeholder="Enter your text..."
-          placeholderTextColor={Colors.text.tertiary}
+          placeholder={t.textTool.placeholder}
+          placeholderTextColor={theme.text.tertiary}
           value={text}
           onChangeText={setText}
           multiline
@@ -101,7 +110,7 @@ export const TextToolModal: React.FC<TextToolModalProps> = ({
 
         {/* Font selector */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Font</Text>
+          <Text style={styles.sectionTitle}>{t.textTool.fontLabel}</Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false}>
             <View style={styles.optionsRow}>
               {allFonts.map(font => (
@@ -130,7 +139,7 @@ export const TextToolModal: React.FC<TextToolModalProps> = ({
 
         {/* Size selector */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Size</Text>
+          <Text style={styles.sectionTitle}>{t.textTool.sizeLabel}</Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false}>
             <View style={styles.optionsRow}>
               {FONT_SIZES.map(size => (
@@ -158,9 +167,9 @@ export const TextToolModal: React.FC<TextToolModalProps> = ({
 
         {/* Color picker */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Color</Text>
+          <Text style={styles.sectionTitle}>{t.textTool.colorLabel}</Text>
           <View style={styles.colorRow}>
-            {COLORS.map(color => (
+            {colorOptions.map(color => (
               <TouchableOpacity
                 key={color}
                 style={[
@@ -180,21 +189,22 @@ export const TextToolModal: React.FC<TextToolModalProps> = ({
           onPress={handleAdd}
           disabled={!text.trim()}
         >
-          <Text style={styles.addButtonText}>Add to Canvas</Text>
+          <Text style={styles.addButtonText}>{t.textTool.addToCanvas}</Text>
         </TouchableOpacity>
       </ScrollView>
     </BottomSheet>
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (theme: Theme) =>
+  StyleSheet.create({
   title: {
     ...Typography.display.h3,
-    color: Colors.text.primary,
+    color: theme.text.primary,
     marginBottom: Spacing.m,
   },
   textInput: {
-    backgroundColor: Colors.backgrounds.tertiary,
+    backgroundColor: theme.backgrounds.tertiary,
     borderRadius: 12,
     padding: Spacing.m,
     minHeight: 100,
@@ -206,7 +216,7 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     ...Typography.body.regular,
-    color: Colors.text.secondary,
+    color: theme.text.secondary,
     marginBottom: Spacing.s,
     fontWeight: '600',
   },
@@ -217,21 +227,21 @@ const styles = StyleSheet.create({
   fontOption: {
     paddingHorizontal: Spacing.m,
     paddingVertical: Spacing.s,
-    backgroundColor: Colors.backgrounds.tertiary,
+    backgroundColor: theme.backgrounds.tertiary,
     borderRadius: 8,
     borderWidth: 2,
     borderColor: 'transparent',
   },
   fontOptionSelected: {
-    borderColor: Colors.accent.primary,
-    backgroundColor: Colors.backgrounds.primary,
+    borderColor: theme.accent.primary,
+    backgroundColor: theme.backgrounds.primary,
   },
   fontOptionText: {
     ...Typography.body.regular,
-    color: Colors.text.primary,
+    color: theme.text.primary,
   },
   fontOptionTextSelected: {
-    color: Colors.accent.primary,
+    color: theme.accent.primary,
   },
   proLabel: {
     fontSize: 10,
@@ -242,7 +252,7 @@ const styles = StyleSheet.create({
   sizeOption: {
     width: 50,
     height: 50,
-    backgroundColor: Colors.backgrounds.tertiary,
+    backgroundColor: theme.backgrounds.tertiary,
     borderRadius: 8,
     borderWidth: 2,
     borderColor: 'transparent',
@@ -250,15 +260,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   sizeOptionSelected: {
-    borderColor: Colors.accent.primary,
-    backgroundColor: Colors.backgrounds.primary,
+    borderColor: theme.accent.primary,
+    backgroundColor: theme.backgrounds.primary,
   },
   sizeOptionText: {
     ...Typography.body.regular,
-    color: Colors.text.primary,
+    color: theme.text.primary,
   },
   sizeOptionTextSelected: {
-    color: Colors.accent.primary,
+    color: theme.accent.primary,
     fontWeight: '600',
   },
   colorRow: {
@@ -274,10 +284,10 @@ const styles = StyleSheet.create({
     borderColor: 'transparent',
   },
   colorOptionSelected: {
-    borderColor: Colors.accent.primary,
+    borderColor: theme.accent.primary,
   },
   addButton: {
-    backgroundColor: Colors.accent.primary,
+    backgroundColor: theme.accent.primary,
     borderRadius: 12,
     padding: Spacing.m,
     alignItems: 'center',
@@ -288,6 +298,6 @@ const styles = StyleSheet.create({
   },
   addButtonText: {
     ...Typography.ui.button,
-    color: Colors.backgrounds.primary,
+    color: theme.backgrounds.primary,
   },
-});
+  });

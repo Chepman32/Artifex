@@ -10,7 +10,7 @@ import Animated, {
   interpolate,
 } from 'react-native-reanimated';
 // Note: Using simple animated view instead of LinearGradient to avoid external dependency
-import { Colors } from '../constants/colors';
+import { useTheme } from '../hooks/useTheme';
 
 interface ShimmerOverlayProps {
   children: React.ReactNode;
@@ -33,6 +33,7 @@ export const ShimmerOverlay: React.FC<ShimmerOverlayProps> = ({
   ],
   duration = 2000,
 }) => {
+  const theme = useTheme();
   const shimmerPosition = useSharedValue(-1);
 
   useEffect(() => {
@@ -85,7 +86,12 @@ export const ShimmerOverlay: React.FC<ShimmerOverlayProps> = ({
 
       {/* Lock icon */}
       <Animated.View style={[styles.lockContainer, overlayStyle]}>
-        <View style={styles.lockIcon}>
+        <View
+          style={[
+            styles.lockIcon,
+            { backgroundColor: theme.backgrounds.primary },
+          ]}
+        >
           <Text style={styles.lockText}>🔒</Text>
         </View>
       </Animated.View>
@@ -122,7 +128,6 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: Colors.backgrounds.primary,
     justifyContent: 'center',
     alignItems: 'center',
     shadowColor: '#000',

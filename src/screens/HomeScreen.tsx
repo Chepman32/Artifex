@@ -1,6 +1,6 @@
 // Home screen - Project gallery with FAB and staggered animations
 
-import React, { useState, useEffect } from 'react';
+import React, { useEffect } from 'react';
 import {
   View,
   Text,
@@ -24,25 +24,31 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { useCallback } from 'react';
 import { useProjectGalleryStore } from '../stores/projectGalleryStore';
-import { useAppStore } from '../stores/appStore';
-import { Colors } from '../constants/colors';
+import { useTheme } from '../hooks/useTheme';
+import { useCurrentLanguage, useTranslation } from '../hooks/useTranslation';
 import { Typography } from '../constants/typography';
 import { Spacing, Dimensions as AppDimensions } from '../constants/spacing';
 import { Shadows } from '../constants/colors';
 import { Project } from '../types';
+import { formatString } from '../localization/format';
+import { getLanguageLocale } from '../localization/deviceLanguage';
+import type { Translations } from '../localization/translations';
 
 const { width: screenWidth } = Dimensions.get('window');
-const GRID_COLUMNS = 3;
+const GRID_COLUMNS = 2;
 const GRID_ITEM_SIZE =
-  (screenWidth - Spacing.m * 2 - Spacing.m * 2) / GRID_COLUMNS;
+  (screenWidth - Spacing.m * 2 - Spacing.m) / GRID_COLUMNS;
 
 const HomeScreen: React.FC = () => {
   const navigation = useNavigation();
+  const theme = useTheme();
+  const t = useTranslation();
+  const language = useCurrentLanguage();
+  const locale = getLanguageLocale(language);
   const {
     projects,
     selectionMode,
     selectedIds,
-    isLoading,
     loadProjects,
     deleteProjects,
     duplicateProject,
@@ -87,12 +93,14 @@ const HomeScreen: React.FC = () => {
   const handleDeleteSelected = () => {
     const count = selectedIds.size;
     Alert.alert(
-      'Delete Projects',
-      `Delete ${count} project${count > 1 ? 's' : ''}? This cannot be undone.`,
+      t.home.deleteProjectsTitle,
+      count === 1
+        ? t.home.deleteProjectSingle
+        : formatString(t.home.deleteProjectMultiple, { count }),
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: t.common.cancel, style: 'cancel' },
         {
-          text: 'Delete',
+          text: t.common.delete,
           style: 'destructive',
           onPress: () => deleteProjects(Array.from(selectedIds)),
         },
@@ -156,7 +164,7 @@ const HomeScreen: React.FC = () => {
           onLongPress={() => handleProjectLongPress(item)}
           activeOpacity={0.8}
         >
-          <View style={styles.projectThumbnail}>
+          <View style={[styles.projectThumbnail, { backgroundColor: theme.backgrounds.tertiary }]}>
             {item.thumbnailPath ? (
               <Image
                 source={{ uri: item.thumbnailPath }}
@@ -170,8 +178,8 @@ const HomeScreen: React.FC = () => {
 
             {/* Timestamp badge */}
             <View style={styles.timestampBadge}>
-              <Text style={styles.timestampText}>
-                {formatTimestamp(item.updatedAt)}
+              <Text style={[styles.timestampText, { color: theme.text.primary }]}>
+                {formatTimestamp(item.updatedAt, t, locale)}
               </Text>
             </View>
 
@@ -180,10 +188,11 @@ const HomeScreen: React.FC = () => {
               <View
                 style={[
                   styles.selectionIndicator,
-                  isSelected && styles.selectionIndicatorSelected,
+                  { borderColor: theme.text.primary },
+                  isSelected && { backgroundColor: theme.accent.secondary, borderColor: theme.accent.secondary },
                 ]}
               >
-                {isSelected && <Text style={styles.checkmark}>✓</Text>}
+                {isSelected && <Text style={[styles.checkmark, { color: theme.text.primary }]}>✓</Text>}
               </View>
             )}
           </View>
@@ -201,41 +210,47 @@ const HomeScreen: React.FC = () => {
       <View style={styles.emptyStateIcon}>
         <Text style={styles.emptyStateIconText}>🖼️</Text>
       </View>
-      <Text style={styles.emptyStateTitle}>No Projects Yet</Text>
-      <Text style={styles.emptyStateSubtitle}>
-        Tap the + button to create your first masterpiece
+      <Text style={[styles.emptyStateTitle, { color: theme.text.primary }]}>
+        {t.home.emptyTitle}
+      </Text>
+      <Text style={[styles.emptyStateSubtitle, { color: theme.text.tertiary }]}>
+        {t.home.emptySubtitle}
       </Text>
     </View>
   );
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, { backgroundColor: theme.backgrounds.primary }]}>
       {/* Top Bar */}
       <View style={styles.topBar}>
         <TouchableOpacity
           style={styles.topBarButton}
           onPress={handleSettingsPress}
         >
-          <Image 
-            source={require('../assets/icons/settings.png')} 
+          <Image
+            source={require('../assets/icons/settings.png')}
             style={styles.topBarIcon}
             resizeMode="contain"
           />
         </TouchableOpacity>
 
-        <Text style={styles.title}>Stikaro</Text>
+        <Text style={[styles.title, { color: theme.text.primary }]}>Stikaro</Text>
 
         <View style={styles.topBarButton} />
       </View>
 
       {/* Selection Mode Top Bar */}
       {selectionMode && (
-        <View style={styles.selectionTopBar}>
+        <View style={[styles.selectionTopBar, { backgroundColor: theme.backgrounds.secondary }]}>
           <TouchableOpacity onPress={exitSelectionMode}>
-            <Text style={styles.selectionAction}>Cancel</Text>
+            <Text style={[styles.selectionAction, { color: theme.accent.secondary }]}>
+              {t.common.cancel}
+            </Text>
           </TouchableOpacity>
 
-          <Text style={styles.selectionTitle}>{selectedIds.size} Selected</Text>
+          <Text style={[styles.selectionTitle, { color: theme.text.primary }]}>
+            {formatString(t.home.selectionTitle, { count: selectedIds.size })}
+          </Text>
 
           <TouchableOpacity onPress={handleDeleteSelected}>
             <Text style={styles.deleteAction}>🗑️</Text>
@@ -257,33 +272,38 @@ const HomeScreen: React.FC = () => {
       {/* FAB */}
       <View style={styles.fab}>
         <TouchableOpacity
-          style={styles.fabButton}
+          style={[styles.fabButton, { backgroundColor: theme.accent.primary }]}
           onPress={selectionMode ? handleDuplicateSelected : handleFabPress}
           activeOpacity={0.8}
         >
-          <Text style={styles.fabIcon}>{selectionMode ? '📋' : '+'}</Text>
+          <Text style={[styles.fabIcon, { color: theme.backgrounds.primary }]}>{selectionMode ? '📋' : '+'}</Text>
         </TouchableOpacity>
       </View>
     </SafeAreaView>
   );
 };
 
-const formatTimestamp = (date: Date): string => {
+const formatTimestamp = (
+  date: Date,
+  t: Translations,
+  locale: string,
+): string => {
   const now = new Date();
   const diffMs = now.getTime() - date.getTime();
   const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
 
-  if (diffDays === 0) return 'Today';
-  if (diffDays === 1) return '1d ago';
-  if (diffDays < 7) return `${diffDays}d ago`;
+  if (diffDays === 0) return t.home.timestampToday;
+  if (diffDays === 1) return t.home.timestampDayAgo;
+  if (diffDays < 7) {
+    return formatString(t.home.timestampDaysAgo, { count: diffDays });
+  }
 
-  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  return date.toLocaleDateString(locale, { month: 'short', day: 'numeric' });
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.backgrounds.primary,
   },
   topBar: {
     flexDirection: 'row',
@@ -304,11 +324,7 @@ const styles = StyleSheet.create({
   },
   title: {
     ...Typography.display.h4,
-    color: Colors.text.primary,
     letterSpacing: 0.5,
-  },
-  crownIcon: {
-    fontSize: 20,
   },
   selectionTopBar: {
     flexDirection: 'row',
@@ -316,15 +332,12 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: Spacing.m,
     height: 44,
-    backgroundColor: Colors.backgrounds.secondary,
   },
   selectionAction: {
     ...Typography.body.regular,
-    color: Colors.accent.secondary,
   },
   selectionTitle: {
     ...Typography.body.regular,
-    color: Colors.text.primary,
     fontWeight: '600',
   },
   deleteAction: {
@@ -349,7 +362,6 @@ const styles = StyleSheet.create({
   projectThumbnail: {
     flex: 1,
     borderRadius: AppDimensions.cornerRadius.medium,
-    backgroundColor: Colors.backgrounds.tertiary,
     ...Shadows.level1,
     overflow: 'hidden',
   },
@@ -377,7 +389,6 @@ const styles = StyleSheet.create({
   },
   timestampText: {
     ...Typography.body.caption,
-    color: Colors.text.primary,
     fontSize: 10,
     fontWeight: '500',
   },
@@ -389,17 +400,11 @@ const styles = StyleSheet.create({
     height: 24,
     borderRadius: 12,
     borderWidth: 2,
-    borderColor: Colors.text.primary,
     backgroundColor: 'transparent',
     justifyContent: 'center',
     alignItems: 'center',
   },
-  selectionIndicatorSelected: {
-    backgroundColor: Colors.accent.secondary,
-    borderColor: Colors.accent.secondary,
-  },
   checkmark: {
-    color: Colors.text.primary,
     fontSize: 12,
     fontWeight: 'bold',
   },
@@ -422,12 +427,10 @@ const styles = StyleSheet.create({
   },
   emptyStateTitle: {
     ...Typography.display.h3,
-    color: Colors.text.primary,
     marginBottom: Spacing.s,
   },
   emptyStateSubtitle: {
     ...Typography.body.regular,
-    color: Colors.text.tertiary,
     textAlign: 'center',
   },
   fab: {
@@ -440,7 +443,6 @@ const styles = StyleSheet.create({
   fabButton: {
     width: '100%',
     height: '100%',
-    backgroundColor: Colors.accent.primary,
     borderRadius: AppDimensions.fab.cornerRadius,
     justifyContent: 'center',
     alignItems: 'center',
@@ -448,7 +450,6 @@ const styles = StyleSheet.create({
   },
   fabIcon: {
     fontSize: 28,
-    color: Colors.backgrounds.primary,
     fontWeight: 'bold',
   },
 });

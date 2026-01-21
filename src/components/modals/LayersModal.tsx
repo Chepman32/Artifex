@@ -1,6 +1,6 @@
 // Layers modal for managing canvas elements
 
-import React, { useState } from 'react';
+import React, { useMemo } from 'react';
 import {
   View,
   Text,
@@ -10,11 +10,15 @@ import {
   Image,
 } from 'react-native';
 import { BottomSheet } from './BottomSheet';
-import { Colors } from '../../constants/colors';
+import { Theme } from '../../constants/themes';
+import { useTheme } from '../../hooks/useTheme';
+import { useTranslation } from '../../hooks/useTranslation';
 import { Typography } from '../../constants/typography';
 import { Spacing } from '../../constants/spacing';
 import { useEditorStore } from '../../stores/editorStore';
 import { CanvasElement } from '../../types';
+import { formatString } from '../../localization/format';
+import type { Translations } from '../../localization/translations';
 
 // Import toolbar icons
 const stickerIcon = require('../../assets/icons/toolbar/sticker.png');
@@ -41,23 +45,37 @@ const getElementIcon = (type: CanvasElement['type']): { type: 'emoji' | 'image';
   }
 };
 
-const getElementName = (element: CanvasElement) => {
+const getElementName = (element: CanvasElement, t: Translations) => {
   switch (element.type) {
     case 'text':
-      return element.textContent || 'Text';
+      return element.textContent || t.layers.elementTypes.text;
     case 'sticker':
     case 'watermark':
     case 'stamp':
-      return element.type.charAt(0).toUpperCase() + element.type.slice(1);
+      return t.layers.elementTypes[element.type];
     default:
-      return 'Element';
+      return t.layers.elementTypes.element;
   }
+};
+
+const getElementTypeLabel = (
+  type: CanvasElement['type'],
+  t: Translations,
+) => {
+  if (type === 'text' || type === 'sticker' || type === 'watermark' || type === 'stamp') {
+    return t.layers.elementTypes[type];
+  }
+
+  return t.layers.elementTypes.element;
 };
 
 export const LayersModal: React.FC<LayersModalProps> = ({
   visible,
   onClose,
 }) => {
+  const theme = useTheme();
+  const t = useTranslation();
+  const styles = useMemo(() => createStyles(theme), [theme]);
   const {
     canvasElements,
     selectedElementIds,
@@ -67,6 +85,10 @@ export const LayersModal: React.FC<LayersModalProps> = ({
     moveElementUp,
     moveElementDown,
   } = useEditorStore();
+  const layerCountLabel =
+    canvasElements.length === 1
+      ? t.layers.layerCountSingle
+      : formatString(t.layers.layerCountMultiple, { count: canvasElements.length });
 
   // Sort elements by z-index (top to bottom in layers panel)
   const sortedElements = [...canvasElements].sort((a, b) => {
@@ -144,9 +166,9 @@ export const LayersModal: React.FC<LayersModalProps> = ({
                 !isVisible && styles.elementNameHidden,
               ]}
             >
-              {getElementName(item)}
+              {getElementName(item, t)}
             </Text>
-            <Text style={styles.elementType}>{item.type}</Text>
+            <Text style={styles.elementType}>{getElementTypeLabel(item.type, t)}</Text>
           </View>
 
           {/* Layer Controls */}
@@ -213,14 +235,14 @@ export const LayersModal: React.FC<LayersModalProps> = ({
   return (
     <BottomSheet visible={visible} onClose={onClose} snapPoints={[0.6, 0.8]}>
       <View style={styles.container}>
-        <Text style={styles.title}>Layers</Text>
+        <Text style={styles.title}>{t.layers.title}</Text>
 
         {canvasElements.length === 0 ? (
           <View style={styles.emptyState}>
             <Text style={styles.emptyStateIcon}>📄</Text>
-            <Text style={styles.emptyStateText}>No layers yet</Text>
+            <Text style={styles.emptyStateText}>{t.layers.emptyTitle}</Text>
             <Text style={styles.emptyStateSubtext}>
-              Add text, stickers, or stamps to see them here
+              {t.layers.emptySubtitle}
             </Text>
           </View>
         ) : (
@@ -237,10 +259,7 @@ export const LayersModal: React.FC<LayersModalProps> = ({
         {/* Layer Count */}
         {canvasElements.length > 0 && (
           <View style={styles.footer}>
-            <Text style={styles.layerCount}>
-              {canvasElements.length} layer
-              {canvasElements.length !== 1 ? 's' : ''}
-            </Text>
+            <Text style={styles.layerCount}>{layerCountLabel}</Text>
           </View>
         )}
       </View>
@@ -248,13 +267,14 @@ export const LayersModal: React.FC<LayersModalProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (theme: Theme) =>
+  StyleSheet.create({
   container: {
     flex: 1,
   },
   title: {
     ...Typography.display.h3,
-    color: Colors.text.primary,
+    color: theme.text.primary,
     marginBottom: Spacing.m,
   },
   layersContainer: {
@@ -265,15 +285,15 @@ const styles = StyleSheet.create({
     paddingBottom: Spacing.m,
   },
   layerItem: {
-    backgroundColor: Colors.backgrounds.tertiary,
+    backgroundColor: theme.backgrounds.tertiary,
     borderRadius: 12,
     marginBottom: Spacing.s,
     borderWidth: 2,
     borderColor: 'transparent',
   },
   layerItemSelected: {
-    borderColor: Colors.accent.primary,
-    backgroundColor: Colors.backgrounds.primary,
+    borderColor: theme.accent.primary,
+    backgroundColor: theme.backgrounds.primary,
   },
   layerContent: {
     flexDirection: 'row',
@@ -299,7 +319,7 @@ const styles = StyleSheet.create({
   },
   elementName: {
     ...Typography.body.regular,
-    color: Colors.text.primary,
+    color: theme.text.primary,
     fontWeight: '600',
     marginBottom: 2,
   },
@@ -308,7 +328,7 @@ const styles = StyleSheet.create({
   },
   elementType: {
     ...Typography.body.caption,
-    color: Colors.text.secondary,
+    color: theme.text.secondary,
     textTransform: 'capitalize',
   },
   layerControls: {
@@ -320,7 +340,7 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: Colors.backgrounds.secondary,
+    backgroundColor: theme.backgrounds.secondary,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -345,23 +365,23 @@ const styles = StyleSheet.create({
   },
   emptyStateText: {
     ...Typography.body.regular,
-    color: Colors.text.primary,
+    color: theme.text.primary,
     fontWeight: '600',
     marginBottom: Spacing.xs,
   },
   emptyStateSubtext: {
     ...Typography.body.small,
-    color: Colors.text.secondary,
+    color: theme.text.secondary,
     textAlign: 'center',
   },
   footer: {
     paddingTop: Spacing.m,
     borderTopWidth: 1,
-    borderTopColor: Colors.backgrounds.tertiary,
+    borderTopColor: theme.backgrounds.tertiary,
     alignItems: 'center',
   },
   layerCount: {
     ...Typography.body.caption,
-    color: Colors.text.secondary,
+    color: theme.text.secondary,
   },
-});
+  });
