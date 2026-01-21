@@ -11,6 +11,9 @@ import {
   Alert,
   Modal,
   Image,
+  ActivityIndicator,
+  Linking,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -22,6 +25,10 @@ import { Spacing, Dimensions as AppDimensions } from '../constants/spacing';
 import { ThemeType } from '../constants/themes';
 import { Language, languageNames } from '../localization';
 import { triggerHaptic } from '../utils/haptics';
+import { ProjectDatabase } from '../database/ProjectDatabase';
+import { exportCanvasToImage } from '../utils/imageExporter';
+import { CameraRoll } from '@react-native-camera-roll/camera-roll';
+import type { CanvasElement } from '../types';
 
 const SettingsScreen: React.FC = () => {
   const navigation = useNavigation();
@@ -30,6 +37,7 @@ const SettingsScreen: React.FC = () => {
   const { preferences, updatePreferences, resetOnboarding } = useAppStore();
   const [showThemeModal, setShowThemeModal] = useState(false);
   const [showLanguageModal, setShowLanguageModal] = useState(false);
+  const [isExportingAllProjects, setIsExportingAllProjects] = useState(false);
 
   const handleClose = () => {
     navigation.goBack();
@@ -62,11 +70,86 @@ const SettingsScreen: React.FC = () => {
     });
   };
 
-  const handleExportAllProjects = () => {
-    Alert.alert(
-      t.settings.exportAllProjects,
-      t.settings.exportAllProjectsAlertMessage,
-    );
+  const openCameraRoll = async () => {
+    const iosPhotosUrl = 'photos-redirect://';
+    const androidPhotosUrl = 'content://media/internal/images/media';
+    const targetUrl = Platform.OS === 'ios' ? iosPhotosUrl : androidPhotosUrl;
+    await Linking.openURL(targetUrl);
+  };
+
+  const handleExportAllProjects = async () => {
+    if (isExportingAllProjects) return;
+
+    if (preferences.hapticFeedback) {
+      triggerHaptic('selection');
+    }
+
+    setIsExportingAllProjects(true);
+
+    try {
+      const projects = await ProjectDatabase.getAll();
+      if (projects.length === 0) {
+        Alert.alert(t.settings.exportAllProjects, t.export.noImageToExport);
+        return;
+      }
+
+      let exportedCount = 0;
+
+      for (const project of projects) {
+        if (!project.sourceImagePath || !project.sourceImageDimensions) {
+          continue;
+        }
+
+        try {
+          const result = await exportCanvasToImage(
+            project.sourceImagePath,
+            project.sourceImageDimensions,
+            project.elements as CanvasElement[],
+            {
+              format: preferences.defaultExportFormat,
+              quality: preferences.defaultExportQuality,
+              addWatermark: true,
+              canvasSize: project.canvasSize,
+            },
+            null,
+          );
+
+          await CameraRoll.save(result.filepath, { type: 'photo' });
+          exportedCount += 1;
+        } catch (error) {
+          console.error('Failed to export project:', project.id, error);
+        }
+      }
+
+      if (exportedCount === 0) {
+        Alert.alert(t.common.error, t.export.failedToExport);
+        return;
+      }
+
+      Alert.alert(
+        t.export.savedToPhotos,
+        t.export.savedToPhotosDesc,
+        [
+          {
+            text: t.common.ok,
+            style: 'cancel',
+          },
+          {
+            text: t.export.viewInGallery,
+            onPress: () => {
+              openCameraRoll().catch(err =>
+                console.warn('Failed to open gallery:', err),
+              );
+            },
+          },
+        ],
+      );
+    } catch (error) {
+      console.error('Failed to export all projects:', error);
+      Alert.alert(t.common.error, t.export.failedToExport);
+    } finally {
+      setIsExportingAllProjects(false);
+    }
   };
 
   const handleRateApp = () => {
@@ -437,8 +520,10 @@ const SettingsScreen: React.FC = () => {
             {renderSettingRow(
               t.settings.exportAllProjects,
               t.settings.exportAllProjectsDesc,
-              undefined,
-              handleExportAllProjects,
+              isExportingAllProjects ? (
+                <ActivityIndicator size="small" color={theme.text.secondary} />
+              ) : undefined,
+              isExportingAllProjects ? undefined : handleExportAllProjects,
             )}
           </>,
         )}

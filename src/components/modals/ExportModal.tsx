@@ -188,6 +188,30 @@ export const ExportModal: React.FC<ExportModalProps> = ({
     try {
       setIsExporting(true);
 
+      if (Platform.OS === 'ios') {
+        try {
+          const savedUri = await CameraRoll.save(exportResult.filepath, { type: 'photo' });
+          const encodedMedia = encodeURIComponent(savedUri);
+          const encodedText = encodeURIComponent('');
+          const urlCandidates = [
+            `twitter://post?message=${encodedText}&media=${encodedMedia}`,
+            `x://post?text=${encodedText}&media=${encodedMedia}`,
+          ];
+
+          for (const targetUrl of urlCandidates) {
+            try {
+              await Linking.openURL(targetUrl);
+              onClose();
+              return;
+            } catch {
+              // Try the next URL scheme.
+            }
+          }
+        } catch (openError) {
+          console.warn('Failed to open X with saved media:', openError);
+        }
+      }
+
       const options = {
         url: `file://${exportResult.filepath}`,
         type: exportResult.mime,
