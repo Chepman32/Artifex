@@ -4,9 +4,9 @@ import React, { useEffect, useMemo, useState } from 'react';
 import {
   View,
   StyleSheet,
-  Dimensions,
   TouchableOpacity,
   Modal,
+  useWindowDimensions,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, {
@@ -21,8 +21,6 @@ import { PanGestureHandler } from 'react-native-gesture-handler';
 import { Theme } from '../../constants/themes';
 import { useTheme } from '../../hooks/useTheme';
 import { Spacing } from '../../constants/spacing';
-
-const { height: screenHeight } = Dimensions.get('window');
 
 interface BottomSheetProps {
   visible: boolean;
@@ -41,6 +39,7 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({
 }) => {
   const insets = useSafeAreaInsets();
   const theme = useTheme();
+  const { height: screenHeight } = useWindowDimensions();
   const styles = useMemo(() => createStyles(theme), [theme]);
   const [isRendered, setIsRendered] = useState(visible);
 

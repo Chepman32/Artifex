@@ -6,7 +6,6 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
-  Dimensions,
   Alert,
   TextInput,
   KeyboardAvoidingView,
@@ -14,6 +13,7 @@ import {
   Image,
   FlatList,
   Keyboard,
+  useWindowDimensions,
 } from 'react-native';
 
 // Toolbar icons are loaded directly with require() in the render calls
@@ -46,7 +46,6 @@ import { useTranslation } from '../hooks/useTranslation';
 import { Typography } from '../constants/typography';
 import { Spacing } from '../constants/spacing';
 
-const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 
 interface EditorRouteParams {
   projectId?: string;
@@ -76,6 +75,7 @@ const EditorScreen: React.FC = () => {
   const params = route.params as EditorRouteParams;
   const theme = useTheme();
   const t = useTranslation();
+  const { width: screenWidth, height: screenHeight } = useWindowDimensions();
   const styles = useMemo(() => createStyles(theme), [theme]);
   const filters = useMemo<FilterOption[]>(
     () => [

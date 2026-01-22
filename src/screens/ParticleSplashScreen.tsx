@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo } from 'react';
-import { Dimensions, StyleSheet, View } from 'react-native';
+import { StyleSheet, View, useWindowDimensions } from 'react-native';
 import Animated, {
   Easing,
   useFrameCallback,
@@ -9,8 +9,6 @@ import Animated, {
 import { Atlas, Canvas, Group, Skia, useImage } from '@shopify/react-native-skia';
 import { Theme } from '../constants/themes';
 import { useTheme } from '../hooks/useTheme';
-
-const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 
 const ICON_SRC_SIZE = 1024;
 const COLS = 20;
@@ -36,7 +34,11 @@ function clamp01(v: number) {
 
 const ParticleSplashScreen: React.FC = () => {
   const theme = useTheme();
-  const styles = useMemo(() => createStyles(theme), [theme]);
+  const { width: screenWidth, height: screenHeight } = useWindowDimensions();
+  const styles = useMemo(
+    () => createStyles(theme, screenWidth, screenHeight),
+    [theme, screenWidth, screenHeight],
+  );
   const icon = useImage(require('../assets/icons/appIcon.png'));
 
   const progressRaw = useSharedValue(0);
@@ -97,7 +99,7 @@ const ParticleSplashScreen: React.FC = () => {
       }
     }
     return out;
-  }, [iconTargetSize, destTileW, destTileH]);
+  }, [iconTargetSize, destTileW, destTileH, screenWidth, screenHeight]);
 
   const transforms = useSharedValue(
     new Array(COUNT).fill(0).map(() => Skia.RSXform(baseScale, 0, 0, 0))
@@ -177,15 +179,15 @@ const ParticleSplashScreen: React.FC = () => {
   );
 };
 
-const createStyles = (theme: Theme) =>
+const createStyles = (theme: Theme, width: number, height: number) =>
   StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: theme.backgrounds.primary,
   },
   canvas: {
-    width: screenWidth,
-    height: screenHeight,
+    width,
+    height,
   },
   });
 

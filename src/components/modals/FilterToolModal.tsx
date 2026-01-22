@@ -8,7 +8,7 @@ import {
   StyleSheet,
   FlatList,
   Image,
-  Dimensions,
+  useWindowDimensions,
 } from 'react-native';
 import { BottomSheet } from './BottomSheet';
 import { Theme } from '../../constants/themes';
@@ -17,10 +17,7 @@ import { useTranslation } from '../../hooks/useTranslation';
 import { Typography } from '../../constants/typography';
 import { Spacing } from '../../constants/spacing';
 
-const { width: screenWidth } = Dimensions.get('window');
 const FILTER_COLUMNS = 3;
-const FILTER_SIZE =
-  (screenWidth - Spacing.m * 2 - Spacing.s * 2) / FILTER_COLUMNS;
 
 // Get preview style for different filters
 const getFilterPreviewStyle = (filterId: string) => {
@@ -97,7 +94,12 @@ export const FilterToolModal: React.FC<FilterToolModalProps> = ({
 }) => {
   const theme = useTheme();
   const t = useTranslation();
-  const styles = useMemo(() => createStyles(theme), [theme]);
+  const { width: screenWidth } = useWindowDimensions();
+  const filterSize = useMemo(
+    () => (screenWidth - Spacing.m * 2 - Spacing.s * 2) / FILTER_COLUMNS,
+    [screenWidth],
+  );
+  const styles = useMemo(() => createStyles(theme, filterSize), [theme, filterSize]);
   const [selectedFilter, setSelectedFilter] = useState<string>('none');
   const [intensity, setIntensity] = useState<number>(1.0);
 
@@ -205,7 +207,7 @@ export const FilterToolModal: React.FC<FilterToolModalProps> = ({
   );
 };
 
-const createStyles = (theme: Theme) =>
+const createStyles = (theme: Theme, filterSize: number) =>
   StyleSheet.create({
   container: {
     flex: 1,
@@ -222,7 +224,7 @@ const createStyles = (theme: Theme) =>
     paddingBottom: Spacing.m,
   },
   filterItem: {
-    width: FILTER_SIZE,
+    width: filterSize,
     marginRight: Spacing.s,
     marginBottom: Spacing.m,
     alignItems: 'center',
@@ -231,8 +233,8 @@ const createStyles = (theme: Theme) =>
     // Selection handled by border on preview
   },
   filterPreview: {
-    width: FILTER_SIZE - 10,
-    height: FILTER_SIZE - 10,
+    width: filterSize - 10,
+    height: filterSize - 10,
     borderRadius: 12,
     overflow: 'hidden',
     position: 'relative',

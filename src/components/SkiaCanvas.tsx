@@ -1,7 +1,7 @@
 // Main interactive canvas component using Skia for high-performance rendering
 
 import React, { useCallback, useMemo } from 'react';
-import { View, StyleSheet, Dimensions, Image } from 'react-native';
+import { View, StyleSheet, Image } from 'react-native';
 import {
   Canvas,
   Image as SkiaImage,
@@ -15,8 +15,6 @@ import { TextElement } from './canvas/TextElement';
 import { StickerElement } from './canvas/StickerElement';
 import { useTheme } from '../hooks/useTheme';
 import { getFilterColorMatrix } from '../utils/colorMatrix';
-
-const { width: screenWidth } = Dimensions.get('window');
 
 // Fallback overlay styles for photo URIs (ph://) that don't support Skia
 const getImageOverlayStyle = (filter: any) => {

@@ -1,6 +1,6 @@
 // Home screen - Project gallery with FAB and staggered animations
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useMemo, useCallback } from 'react';
 import {
   View,
   Text,
@@ -9,7 +9,7 @@ import {
   FlatList,
   Image,
   Alert,
-  Dimensions,
+  useWindowDimensions,
 } from 'react-native';
 import Animated, {
   useSharedValue,
@@ -22,7 +22,6 @@ import Animated, {
 } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
-import { useCallback } from 'react';
 import { useProjectGalleryStore } from '../stores/projectGalleryStore';
 import { useTheme } from '../hooks/useTheme';
 import { useCurrentLanguage, useTranslation } from '../hooks/useTranslation';
@@ -34,15 +33,18 @@ import { formatString } from '../localization/format';
 import { getLanguageLocale } from '../localization/deviceLanguage';
 import type { Translations } from '../localization/translations';
 
-const { width: screenWidth } = Dimensions.get('window');
 const GRID_COLUMNS = 2;
-const GRID_ITEM_SIZE =
-  (screenWidth - Spacing.m * 2 - Spacing.m) / GRID_COLUMNS;
 
 const HomeScreen: React.FC = () => {
   const navigation = useNavigation();
   const theme = useTheme();
   const t = useTranslation();
+  const { width: screenWidth } = useWindowDimensions();
+  const gridItemSize = useMemo(
+    () => (screenWidth - Spacing.m * 2 - Spacing.m) / GRID_COLUMNS,
+    [screenWidth],
+  );
+  const styles = useMemo(() => createStyles(gridItemSize), [gridItemSize]);
   const language = useCurrentLanguage();
   const locale = getLanguageLocale(language);
   const {
@@ -301,7 +303,8 @@ const formatTimestamp = (
   return date.toLocaleDateString(locale, { month: 'short', day: 'numeric' });
 };
 
-const styles = StyleSheet.create({
+const createStyles = (gridItemSize: number) =>
+  StyleSheet.create({
   container: {
     flex: 1,
   },
@@ -348,8 +351,8 @@ const styles = StyleSheet.create({
     flexGrow: 1,
   },
   projectItem: {
-    width: GRID_ITEM_SIZE,
-    height: GRID_ITEM_SIZE,
+    width: gridItemSize,
+    height: gridItemSize,
     marginRight: Spacing.m,
     marginBottom: Spacing.m,
   },
@@ -452,6 +455,6 @@ const styles = StyleSheet.create({
     fontSize: 28,
     fontWeight: 'bold',
   },
-});
+  });
 
 export default HomeScreen;

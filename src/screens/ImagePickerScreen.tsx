@@ -8,9 +8,9 @@ import {
   TouchableOpacity,
   FlatList,
   Image,
-  Dimensions,
   Platform,
   PermissionsAndroid,
+  useWindowDimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -22,10 +22,7 @@ import { Typography } from '../constants/typography';
 import { Spacing } from '../constants/spacing';
 import { formatString } from '../localization/format';
 
-const { width: screenWidth } = Dimensions.get('window');
 const GRID_COLUMNS = 4;
-const GRID_ITEM_SIZE =
-  (screenWidth - Spacing.xs * (GRID_COLUMNS + 1)) / GRID_COLUMNS;
 
 interface PhotoAsset {
   uri: string;
@@ -85,7 +82,12 @@ const ImagePickerScreen: React.FC = () => {
   const navigation = useNavigation();
   const theme = useTheme();
   const t = useTranslation();
-  const styles = useMemo(() => createStyles(theme), [theme]);
+  const { width: screenWidth } = useWindowDimensions();
+  const gridItemSize = useMemo(
+    () => (screenWidth - Spacing.xs * (GRID_COLUMNS + 1)) / GRID_COLUMNS,
+    [screenWidth],
+  );
+  const styles = useMemo(() => createStyles(theme, gridItemSize), [theme, gridItemSize]);
   const [photos, setPhotos] = useState<PhotoAsset[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -217,7 +219,7 @@ const ImagePickerScreen: React.FC = () => {
   );
 };
 
-const createStyles = (theme: Theme) =>
+const createStyles = (theme: Theme, gridItemSize: number) =>
   StyleSheet.create({
   container: {
     flex: 1,
@@ -269,8 +271,8 @@ const createStyles = (theme: Theme) =>
     padding: Spacing.xs,
   },
   photoItem: {
-    width: GRID_ITEM_SIZE,
-    height: GRID_ITEM_SIZE,
+    width: gridItemSize,
+    height: gridItemSize,
     margin: Spacing.xs / 2,
   },
   photoImage: {

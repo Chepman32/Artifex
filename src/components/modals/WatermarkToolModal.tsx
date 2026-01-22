@@ -8,8 +8,8 @@ import {
   TouchableOpacity,
   FlatList,
   TextInput,
-  Dimensions,
   ScrollView,
+  useWindowDimensions,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
@@ -31,10 +31,7 @@ import { WatermarkPreset } from '../../types/watermark';
 import { haptics } from '../../utils/haptics';
 import { formatString } from '../../localization/format';
 
-const { width: screenWidth } = Dimensions.get('window');
 const GRID_COLUMNS = 2;
-const PRESET_WIDTH = (screenWidth - Spacing.m * 2 - Spacing.m) / GRID_COLUMNS;
-
 const THUMB_SIZE = 24;
 
 interface GestureSliderProps {
@@ -147,7 +144,12 @@ export const WatermarkToolModal: React.FC<WatermarkToolModalProps> = ({
   const insets = useSafeAreaInsets();
   const theme = useTheme();
   const t = useTranslation();
-  const styles = useMemo(() => createStyles(theme), [theme]);
+  const { width: screenWidth } = useWindowDimensions();
+  const presetWidth = useMemo(
+    () => (screenWidth - Spacing.m * 2 - Spacing.m) / GRID_COLUMNS,
+    [screenWidth],
+  );
+  const styles = useMemo(() => createStyles(theme, presetWidth), [theme, presetWidth]);
   const [watermarkText, setWatermarkText] = useState(t.watermark.defaultText);
   const [selectedPresetId, setSelectedPresetId] = useState<string | null>(null);
   const [showCustomization, setShowCustomization] = useState(false);
@@ -499,7 +501,7 @@ export const WatermarkToolModal: React.FC<WatermarkToolModalProps> = ({
   );
 };
 
-const createStyles = (theme: Theme) =>
+const createStyles = (theme: Theme, presetWidth: number) =>
   StyleSheet.create({
   container: {
     flex: 1,
@@ -542,7 +544,7 @@ const createStyles = (theme: Theme) =>
     marginBottom: Spacing.m,
   },
   presetItem: {
-    width: PRESET_WIDTH,
+    width: presetWidth,
     backgroundColor: theme.backgrounds.tertiary,
     borderRadius: 12,
     overflow: 'hidden',

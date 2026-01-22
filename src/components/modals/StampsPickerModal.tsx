@@ -8,8 +8,8 @@ import {
   TouchableOpacity,
   FlatList,
   Image,
-  Dimensions,
   ScrollView,
+  useWindowDimensions,
 } from 'react-native';
 import { BottomSheet } from './BottomSheet';
 import { Theme } from '../../constants/themes';
@@ -19,12 +19,8 @@ import { Typography } from '../../constants/typography';
 import { Spacing } from '../../constants/spacing';
 import { STAMPS, STAMP_CATEGORIES } from '../../constants/assets';
 
-const { width: screenWidth, height: initialScreenHeight } =
-  Dimensions.get('window');
 const GRID_COLUMNS = 3;
 const GRID_GAP = Spacing.xs;
-const STAMP_SIZE =
-  (screenWidth - Spacing.m * 2 - GRID_GAP * (GRID_COLUMNS - 1)) / GRID_COLUMNS;
 
 interface Stamp {
   id: string;
@@ -54,7 +50,14 @@ export const StampsPickerModal: React.FC<StampsPickerModalProps> = ({
 }) => {
   const theme = useTheme();
   const t = useTranslation();
-  const styles = useMemo(() => createStyles(theme), [theme]);
+  const { width: screenWidth, height: screenHeight } = useWindowDimensions();
+  const stampSize = useMemo(
+    () =>
+      (screenWidth - Spacing.m * 2 - GRID_GAP * (GRID_COLUMNS - 1)) /
+      GRID_COLUMNS,
+    [screenWidth],
+  );
+  const styles = useMemo(() => createStyles(theme, stampSize), [theme, stampSize]);
   const [selectedCategory, setSelectedCategory] = useState('all');
   const getCategoryLabel = (categoryId: string) => {
     const labels = t.stamps.categories as Record<string, string>;
@@ -63,8 +66,8 @@ export const StampsPickerModal: React.FC<StampsPickerModalProps> = ({
 
   const modalHeight = useMemo(() => {
     // Let the sheet cover most of the screen while leaving breathing room at the top
-    return Math.min(initialScreenHeight * 0.9, initialScreenHeight - 80);
-  }, []);
+    return Math.min(screenHeight * 0.9, screenHeight - 80);
+  }, [screenHeight]);
 
   const filteredStamps = ALL_STAMPS.filter(stamp => {
     if (selectedCategory === 'all') {
@@ -156,7 +159,7 @@ export const StampsPickerModal: React.FC<StampsPickerModalProps> = ({
   );
 };
 
-const createStyles = (theme: Theme) =>
+const createStyles = (theme: Theme, stampSize: number) =>
   StyleSheet.create({
   container: {
     flex: 1,
@@ -209,8 +212,8 @@ const createStyles = (theme: Theme) =>
     paddingBottom: Spacing.l,
   },
   stampItem: {
-    width: STAMP_SIZE,
-    height: STAMP_SIZE,
+    width: stampSize,
+    height: stampSize,
     padding: GRID_GAP / 2,
   },
   stampContainer: {
