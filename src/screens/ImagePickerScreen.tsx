@@ -90,15 +90,17 @@ const ImagePickerScreen: React.FC = () => {
   const styles = useMemo(() => createStyles(theme, gridItemSize), [theme, gridItemSize]);
   const [photos, setPhotos] = useState<PhotoAsset[]>([]);
   const [loading, setLoading] = useState(true);
+  const [hasMore, setHasMore] = useState(true);
+  const [endCursor, setEndCursor] = useState<string | undefined>();
 
   useEffect(() => {
     loadPhotos();
   }, []);
 
-  const loadPhotos = async () => {
+  const loadPhotos = async (loadMore = false) => {
     try {
       // Request permissions first
-      if (Platform.OS === 'android') {
+      if (Platform.OS === 'android' && !loadMore) {
         const permission = PermissionsAndroid.PERMISSIONS.READ_EXTERNAL_STORAGE;
         const granted = await PermissionsAndroid.request(permission);
 
@@ -112,7 +114,8 @@ const ImagePickerScreen: React.FC = () => {
 
       // Try to load real photos with file URIs
       const result = await CameraRoll.getPhotos({
-        first: 20,
+        first: 1000000,
+        after: loadMore ? endCursor : undefined,
         assetType: 'Photos',
         include: ['filename', 'imageSize'], // Request additional info
       });
@@ -126,14 +129,20 @@ const ImagePickerScreen: React.FC = () => {
           timestamp: new Date(edge.node.timestamp * 1000),
         }));
 
-        setPhotos(devicePhotos);
+        setPhotos(prev => loadMore ? [...prev, ...devicePhotos] : devicePhotos);
+        setEndCursor(result.page_info.end_cursor);
+        setHasMore(result.page_info.has_next_page);
       } else {
         // No photos found, use fallback
-        setPhotos(FALLBACK_PHOTOS);
+        if (!loadMore) {
+          setPhotos(FALLBACK_PHOTOS);
+        }
       }
     } catch (error) {
       console.log('Failed to load photos, using fallback:', error);
-      setPhotos(FALLBACK_PHOTOS);
+      if (!loadMore) {
+        setPhotos(FALLBACK_PHOTOS);
+      }
     } finally {
       setLoading(false);
     }
@@ -157,6 +166,12 @@ const ImagePickerScreen: React.FC = () => {
 
   const handleClose = () => {
     navigation.goBack();
+  };
+
+  const handleLoadMore = () => {
+    if (hasMore && !loading) {
+      loadPhotos(true);
+    }
   };
 
   const renderPhoto = ({ item }: { item: PhotoAsset }) => (
@@ -213,6 +228,8 @@ const ImagePickerScreen: React.FC = () => {
           numColumns={GRID_COLUMNS}
           contentContainerStyle={styles.gridContainer}
           showsVerticalScrollIndicator={false}
+          onEndReached={handleLoadMore}
+          onEndReachedThreshold={0.5}
         />
       )}
     </SafeAreaView>

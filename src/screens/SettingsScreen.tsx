@@ -34,7 +34,8 @@ const SettingsScreen: React.FC = () => {
   const navigation = useNavigation();
   const theme = useTheme();
   const t = useTranslation();
-  const { preferences, updatePreferences } = useAppStore();
+  const preferences = useAppStore(state => state.preferences);
+  const updatePreferences = useAppStore(state => state.updatePreferences);
   const [showThemeModal, setShowThemeModal] = useState(false);
   const [showLanguageModal, setShowLanguageModal] = useState(false);
   const [isExportingAllProjects, setIsExportingAllProjects] = useState(false);

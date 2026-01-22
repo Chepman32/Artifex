@@ -1,6 +1,6 @@
 // Filter tool modal with Skia shader effects
 
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -124,6 +124,15 @@ export const FilterToolModal: React.FC<FilterToolModalProps> = ({
     onClose();
   };
 
+  const getFilterItemLayout = useCallback(
+    (_: Filter[] | null, index: number) => ({
+      length: filterSize + Spacing.m,
+      offset: Math.floor(index / FILTER_COLUMNS) * (filterSize + Spacing.m),
+      index,
+    }),
+    [filterSize],
+  );
+
   const renderFilter = ({ item }: { item: Filter }) => {
     const isSelected = selectedFilter === item.id;
     const displayName = getFilterName(item.id);
@@ -189,6 +198,12 @@ export const FilterToolModal: React.FC<FilterToolModalProps> = ({
           contentContainerStyle={styles.grid}
           showsVerticalScrollIndicator={false}
           style={styles.filterList}
+          getItemLayout={getFilterItemLayout}
+          initialNumToRender={8}
+          maxToRenderPerBatch={12}
+          updateCellsBatchingPeriod={50}
+          windowSize={5}
+          removeClippedSubviews
         />
 
         {/* Intensity Control */}

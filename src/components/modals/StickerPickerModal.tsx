@@ -1,6 +1,6 @@
 // Sticker picker modal with free and pro assets
 
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -78,6 +78,15 @@ export const StickerPickerModal: React.FC<StickerPickerModalProps> = ({
     }
     return sticker.category === selectedCategory;
   });
+
+  const getStickerItemLayout = useCallback(
+    (_: Sticker[] | null, index: number) => ({
+      length: stickerSize + GRID_GAP,
+      offset: Math.floor(index / GRID_COLUMNS) * (stickerSize + GRID_GAP),
+      index,
+    }),
+    [stickerSize],
+  );
 
   const handleStickerPress = (sticker: Sticker) => {
     if (hapticsEnabled) {
@@ -159,6 +168,12 @@ export const StickerPickerModal: React.FC<StickerPickerModalProps> = ({
               </Text>
             </View>
           }
+          getItemLayout={getStickerItemLayout}
+          initialNumToRender={12}
+          maxToRenderPerBatch={18}
+          updateCellsBatchingPeriod={50}
+          windowSize={5}
+          removeClippedSubviews
         />
       </View>
     </BottomSheet>

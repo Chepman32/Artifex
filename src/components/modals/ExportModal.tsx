@@ -46,13 +46,11 @@ export const ExportModal: React.FC<ExportModalProps> = ({
   const [quality, _setQuality] = useState<number>(100);
   const [isExporting, setIsExporting] = useState(false);
 
-  const {
-    canvasElements,
-    sourceImagePath,
-    sourceImageDimensions,
-    canvasSize: storedCanvasSize,
-    appliedFilter,
-  } = useEditorStore();
+  const canvasElements = useEditorStore(state => state.canvasElements);
+  const sourceImagePath = useEditorStore(state => state.sourceImagePath);
+  const sourceImageDimensions = useEditorStore(state => state.sourceImageDimensions);
+  const storedCanvasSize = useEditorStore(state => state.canvasSize);
+  const appliedFilter = useEditorStore(state => state.appliedFilter);
 
   const openCameraRoll = async () => {
     const iosPhotosUrl = 'photos-redirect://';

@@ -16,6 +16,7 @@ import { useTranslation } from '../../hooks/useTranslation';
 import { Typography } from '../../constants/typography';
 import { Spacing } from '../../constants/spacing';
 import { useEditorStore } from '../../stores/editorStore';
+import { shallow } from 'zustand/shallow';
 import { CanvasElement } from '../../types';
 import { formatString } from '../../localization/format';
 import type { Translations } from '../../localization/translations';
@@ -76,26 +77,39 @@ export const LayersModal: React.FC<LayersModalProps> = ({
   const theme = useTheme();
   const t = useTranslation();
   const styles = useMemo(() => createStyles(theme), [theme]);
+  const { canvasElements, selectedElementIds } = useEditorStore(
+    state => ({
+      canvasElements: state.canvasElements,
+      selectedElementIds: state.selectedElementIds,
+    }),
+    shallow,
+  );
   const {
-    canvasElements,
-    selectedElementIds,
     selectElement,
     updateElement,
     deleteElement,
     moveElementUp,
     moveElementDown,
-  } = useEditorStore();
+  } = useEditorStore(
+    state => ({
+      selectElement: state.selectElement,
+      updateElement: state.updateElement,
+      deleteElement: state.deleteElement,
+      moveElementUp: state.moveElementUp,
+      moveElementDown: state.moveElementDown,
+    }),
+    shallow,
+  );
   const layerCountLabel =
     canvasElements.length === 1
       ? t.layers.layerCountSingle
       : formatString(t.layers.layerCountMultiple, { count: canvasElements.length });
 
   // Sort elements by z-index (top to bottom in layers panel)
-  const sortedElements = [...canvasElements].sort((a, b) => {
-    const aIndex = canvasElements.indexOf(a);
-    const bIndex = canvasElements.indexOf(b);
-    return bIndex - aIndex; // Reverse order (newest first)
-  });
+  const sortedElements = useMemo(
+    () => [...canvasElements].reverse(),
+    [canvasElements],
+  );
 
   const handleElementSelect = (elementId: string) => {
     selectElement(elementId);

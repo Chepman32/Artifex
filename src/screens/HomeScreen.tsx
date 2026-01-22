@@ -34,8 +34,127 @@ import { formatString } from '../localization/format';
 import { getLanguageLocale } from '../localization/deviceLanguage';
 import type { Translations } from '../localization/translations';
 import { triggerHaptic } from '../utils/haptics';
+import { shallow } from 'zustand/shallow';
 
 const GRID_COLUMNS = 2;
+
+type ThemeColors = {
+  backgroundTertiary: string;
+  textPrimary: string;
+  accentSecondary: string;
+};
+
+interface AnimatedProjectItemProps {
+  project: Project;
+  index: number;
+  styles: ReturnType<typeof createStyles>;
+  selectionMode: boolean;
+  isSelected: boolean;
+  themeColors: ThemeColors;
+  onProjectPress: (project: Project) => void;
+  onProjectLongPress: (project: Project) => void;
+  formatProjectTimestamp: (date: Date) => string;
+}
+
+const AnimatedProjectItem = React.memo(
+  ({
+    project,
+    index,
+    styles,
+    selectionMode,
+    isSelected,
+    themeColors,
+    onProjectPress,
+    onProjectLongPress,
+    formatProjectTimestamp,
+  }: AnimatedProjectItemProps) => {
+    const opacity = useSharedValue(0);
+    const translateY = useSharedValue(20);
+    const scale = useSharedValue(0.9);
+
+    React.useEffect(() => {
+      opacity.value = withDelay(index * 50, withTiming(1, { duration: 400 }));
+      translateY.value = withDelay(
+        index * 50,
+        withSpring(0, { damping: 15, stiffness: 100 }),
+      );
+      scale.value = withDelay(
+        index * 50,
+        withSpring(1, { damping: 12, stiffness: 80 }),
+      );
+    }, [index, opacity, scale, translateY]);
+
+    const animatedStyle = useAnimatedStyle(() => ({
+      opacity: opacity.value,
+      transform: [{ translateY: translateY.value }, { scale: scale.value }],
+    }));
+
+    return (
+      <Animated.View
+        style={[styles.projectItem, animatedStyle]}
+        layout={Layout.springify()}
+        exiting={FadeOut.duration(200)}
+      >
+        <TouchableOpacity
+          style={[
+            styles.touchable,
+            isSelected && styles.projectItemSelected,
+          ]}
+          onPress={() => onProjectPress(project)}
+          onLongPress={() => onProjectLongPress(project)}
+          activeOpacity={0.8}
+        >
+          <View style={[styles.projectThumbnail, { backgroundColor: themeColors.backgroundTertiary }]}>
+            {project.thumbnailPath ? (
+              <Image
+                source={{ uri: project.thumbnailPath }}
+                style={styles.thumbnailImage}
+              />
+            ) : (
+              <View style={styles.thumbnailPlaceholder}>
+                <Text style={styles.thumbnailPlaceholderText}>📷</Text>
+              </View>
+            )}
+
+            <View style={styles.timestampBadge}>
+              <Text style={[styles.timestampText, { color: themeColors.textPrimary }]}>
+                {formatProjectTimestamp(project.updatedAt)}
+              </Text>
+            </View>
+
+            {selectionMode && (
+              <View
+                style={[
+                  styles.selectionIndicator,
+                  {
+                    borderColor: themeColors.textPrimary,
+                    backgroundColor: isSelected
+                      ? themeColors.accentSecondary
+                      : 'transparent',
+                  },
+                ]}
+              >
+                {isSelected && (
+                  <Text style={[styles.checkmark, { color: themeColors.textPrimary }]}>✓</Text>
+                )}
+              </View>
+            )}
+          </View>
+        </TouchableOpacity>
+      </Animated.View>
+    );
+  },
+  (prev, next) =>
+    prev.project.id === next.project.id &&
+    prev.project.thumbnailPath === next.project.thumbnailPath &&
+    prev.project.updatedAt.getTime() === next.project.updatedAt.getTime() &&
+    prev.isSelected === next.isSelected &&
+    prev.selectionMode === next.selectionMode &&
+    prev.themeColors.backgroundTertiary === next.themeColors.backgroundTertiary &&
+    prev.themeColors.textPrimary === next.themeColors.textPrimary &&
+    prev.themeColors.accentSecondary === next.themeColors.accentSecondary &&
+    prev.styles === next.styles,
+);
 
 const HomeScreen: React.FC = () => {
   const navigation = useNavigation();
@@ -60,7 +179,32 @@ const HomeScreen: React.FC = () => {
     enterSelectionMode,
     exitSelectionMode,
     toggleSelection,
-  } = useProjectGalleryStore();
+  } = useProjectGalleryStore(
+    state => ({
+      projects: state.projects,
+      selectionMode: state.selectionMode,
+      selectedIds: state.selectedIds,
+      loadProjects: state.loadProjects,
+      deleteProjects: state.deleteProjects,
+      duplicateProject: state.duplicateProject,
+      enterSelectionMode: state.enterSelectionMode,
+      exitSelectionMode: state.exitSelectionMode,
+      toggleSelection: state.toggleSelection,
+    }),
+    shallow,
+  );
+  const themeColors = useMemo<ThemeColors>(
+    () => ({
+      backgroundTertiary: theme.backgrounds.tertiary,
+      textPrimary: theme.text.primary,
+      accentSecondary: theme.accent.secondary,
+    }),
+    [theme],
+  );
+  const formatProjectTimestamp = useCallback(
+    (date: Date) => formatTimestamp(date, t, locale),
+    [locale, t],
+  );
 
   useFocusEffect(
     useCallback(() => {
@@ -138,89 +282,28 @@ const HomeScreen: React.FC = () => {
     navigation.navigate('Settings' as never);
   };
 
-
-  // Animated project item component
-  const AnimatedProjectItem = ({
-    item,
-    index,
-  }: {
-    item: Project;
-    index: number;
-  }) => {
-    const opacity = useSharedValue(0);
-    const translateY = useSharedValue(20);
-    const scale = useSharedValue(0.9);
-    const isSelected = selectedIds.has(item.id);
-
-    useEffect(() => {
-      // Staggered entrance animation
-      opacity.value = withDelay(index * 50, withTiming(1, { duration: 400 }));
-      translateY.value = withDelay(
-        index * 50,
-        withSpring(0, { damping: 15, stiffness: 100 }),
-      );
-      scale.value = withDelay(
-        index * 50,
-        withSpring(1, { damping: 12, stiffness: 80 }),
-      );
-    }, []);
-
-    const animatedStyle = useAnimatedStyle(() => ({
-      opacity: opacity.value,
-      transform: [{ translateY: translateY.value }, { scale: scale.value }],
-    }));
-
-    return (
-      <Animated.View
-        style={[styles.projectItem, animatedStyle]}
-        layout={Layout.springify()}
-        exiting={FadeOut.duration(200)}
-      >
-        <TouchableOpacity
-          style={[styles.touchable, isSelected && styles.projectItemSelected]}
-          onPress={() => handleProjectPress(item)}
-          onLongPress={() => handleProjectLongPress(item)}
-          activeOpacity={0.8}
-        >
-          <View style={[styles.projectThumbnail, { backgroundColor: theme.backgrounds.tertiary }]}>
-            {item.thumbnailPath ? (
-              <Image
-                source={{ uri: item.thumbnailPath }}
-                style={styles.thumbnailImage}
-              />
-            ) : (
-              <View style={styles.thumbnailPlaceholder}>
-                <Text style={styles.thumbnailPlaceholderText}>📷</Text>
-              </View>
-            )}
-
-            {/* Timestamp badge */}
-            <View style={styles.timestampBadge}>
-              <Text style={[styles.timestampText, { color: theme.text.primary }]}>
-                {formatTimestamp(item.updatedAt, t, locale)}
-              </Text>
-            </View>
-
-            {/* Selection indicator */}
-            {selectionMode && (
-              <View
-                style={[
-                  styles.selectionIndicator,
-                  { borderColor: theme.text.primary },
-                  isSelected && { backgroundColor: theme.accent.secondary, borderColor: theme.accent.secondary },
-                ]}
-              >
-                {isSelected && <Text style={[styles.checkmark, { color: theme.text.primary }]}>✓</Text>}
-              </View>
-            )}
-          </View>
-        </TouchableOpacity>
-      </Animated.View>
-    );
-  };
+  const rowHeight = gridItemSize + Spacing.m;
+  const getProjectItemLayout = useCallback(
+    (_: Project[] | null, index: number) => ({
+      length: rowHeight,
+      offset: Math.floor(index / GRID_COLUMNS) * rowHeight,
+      index,
+    }),
+    [rowHeight],
+  );
 
   const renderProject = ({ item, index }: { item: Project; index: number }) => (
-    <AnimatedProjectItem item={item} index={index} />
+    <AnimatedProjectItem
+      project={item}
+      index={index}
+      styles={styles}
+      selectionMode={selectionMode}
+      isSelected={selectedIds.has(item.id)}
+      themeColors={themeColors}
+      onProjectPress={handleProjectPress}
+      onProjectLongPress={handleProjectLongPress}
+      formatProjectTimestamp={formatProjectTimestamp}
+    />
   );
 
   const renderEmptyState = () => (
@@ -285,6 +368,12 @@ const HomeScreen: React.FC = () => {
         contentContainerStyle={styles.gridContainer}
         ListEmptyComponent={renderEmptyState}
         showsVerticalScrollIndicator={false}
+        getItemLayout={getProjectItemLayout}
+        initialNumToRender={6}
+        maxToRenderPerBatch={8}
+        updateCellsBatchingPeriod={50}
+        windowSize={5}
+        removeClippedSubviews
       />
 
       {/* FAB */}

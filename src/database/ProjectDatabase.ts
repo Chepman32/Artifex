@@ -54,16 +54,32 @@ export class ProjectDatabase {
   static async getAll(): Promise<Project[]> {
     try {
       const projectIds = await this.getProjectIds();
+      if (projectIds.length === 0) {
+        return [];
+      }
+
+      const keys = projectIds.map(id => PROJECT_PREFIX + id);
+      const entries = await AsyncStorage.multiGet(keys);
+      const entryMap = new Map(entries);
+
       const projects: Project[] = [];
 
       for (const id of projectIds) {
-        const project = await this.getById(id);
-        if (project) {
+        const serialized = entryMap.get(PROJECT_PREFIX + id);
+        if (!serialized) {
+          continue;
+        }
+
+        try {
+          const project = JSON.parse(serialized);
+          project.createdAt = new Date(project.createdAt);
+          project.updatedAt = new Date(project.updatedAt);
           projects.push(project);
+        } catch (error) {
+          console.error('Failed to parse project:', id, error);
         }
       }
 
-      // Sort by updatedAt descending (newest first)
       return projects.sort(
         (a, b) => b.updatedAt.getTime() - a.updatedAt.getTime(),
       );

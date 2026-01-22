@@ -1,6 +1,6 @@
 // Stamps picker modal with free and pro assets
 
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -78,6 +78,15 @@ export const StampsPickerModal: React.FC<StampsPickerModalProps> = ({
     }
     return stamp.category === selectedCategory;
   });
+
+  const getStampItemLayout = useCallback(
+    (_: Stamp[] | null, index: number) => ({
+      length: stampSize + GRID_GAP,
+      offset: Math.floor(index / GRID_COLUMNS) * (stampSize + GRID_GAP),
+      index,
+    }),
+    [stampSize],
+  );
 
   const handleStampPress = (stamp: Stamp) => {
     if (hapticsEnabled) {
@@ -159,6 +168,12 @@ export const StampsPickerModal: React.FC<StampsPickerModalProps> = ({
               </Text>
             </View>
           }
+          getItemLayout={getStampItemLayout}
+          initialNumToRender={12}
+          maxToRenderPerBatch={18}
+          updateCellsBatchingPeriod={50}
+          windowSize={5}
+          removeClippedSubviews
         />
       </View>
     </BottomSheet>

@@ -125,14 +125,12 @@ export const SkiaCanvas: React.FC<SkiaCanvasProps> = ({
   onCanvasBackgroundTap,
 }) => {
   const theme = useTheme();
-  const {
-    canvasElements,
-    selectedElementIds,
-    appliedFilter,
-    selectElement,
-    updateElement,
-    deselectElement,
-  } = useEditorStore();
+  const canvasElements = useEditorStore(state => state.canvasElements);
+  const selectedElementIds = useEditorStore(state => state.selectedElementIds);
+  const appliedFilter = useEditorStore(state => state.appliedFilter);
+  const selectElement = useEditorStore(state => state.selectElement);
+  const updateElement = useEditorStore(state => state.updateElement);
+  const deselectElement = useEditorStore(state => state.deselectElement);
   const selectedIds = useMemo(
     () => new Set(selectedElementIds),
     [selectedElementIds],

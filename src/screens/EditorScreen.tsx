@@ -28,6 +28,7 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 import { useEditorStore } from '../stores/editorStore';
 import { useAppStore } from '../stores/appStore';
 import { SkiaCanvas } from '../components/SkiaCanvas';
+import { shallow } from 'zustand/shallow';
 
 import { StickerPickerModal } from '../components/modals/StickerPickerModal';
 import { StampsPickerModal } from '../components/modals/StampsPickerModal';
@@ -197,9 +198,25 @@ const EditorScreen: React.FC = () => {
     selectedElementIds,
     sourceImagePath,
     sourceImageDimensions,
-    appliedFilter, // Used in SkiaCanvas via store and filter toolbar
+    appliedFilter,
     canUndo,
     canRedo,
+    hasChanges,
+  } = useEditorStore(
+    state => ({
+      canvasElements: state.canvasElements,
+      selectedElementId: state.selectedElementId,
+      selectedElementIds: state.selectedElementIds,
+      sourceImagePath: state.sourceImagePath,
+      sourceImageDimensions: state.sourceImageDimensions,
+      appliedFilter: state.appliedFilter,
+      canUndo: state.canUndo,
+      canRedo: state.canRedo,
+      hasChanges: state.hasChanges,
+    }),
+    shallow,
+  );
+  const {
     undo,
     redo,
     loadProject,
@@ -214,8 +231,25 @@ const EditorScreen: React.FC = () => {
     selectAllElements,
     applyFilter,
     removeFilter,
-    hasChanges,
-  } = useEditorStore();
+  } = useEditorStore(
+    state => ({
+      undo: state.undo,
+      redo: state.redo,
+      loadProject: state.loadProject,
+      initializeProject: state.initializeProject,
+      saveProject: state.saveProject,
+      addElement: state.addElement,
+      addElements: state.addElements,
+      updateElement: state.updateElement,
+      updateElementWithoutHistory: state.updateElementWithoutHistory,
+      deleteElement: state.deleteElement,
+      selectElement: state.selectElement,
+      selectAllElements: state.selectAllElements,
+      applyFilter: state.applyFilter,
+      removeFilter: state.removeFilter,
+    }),
+    shallow,
+  );
 
   const [activeToolbar, setActiveToolbar] = useState<
     'watermark' | 'sticker' | 'stamps' | 'filter' | 'layers' | null

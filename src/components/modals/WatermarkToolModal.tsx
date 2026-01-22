@@ -1,6 +1,6 @@
 // Watermark tool modal with preset configurations
 
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -57,6 +57,9 @@ const GestureSlider: React.FC<GestureSliderProps> = ({
   const thumbX = useSharedValue(0);
   const isDragging = useSharedValue(false);
   const isLayoutReady = React.useRef(false);
+  const pendingValue = useSharedValue(value);
+  const lastEmit = useSharedValue(0);
+  const EMIT_INTERVAL_MS = 80;
 
   // Calculate and update thumb position from value
   React.useEffect(() => {
@@ -64,24 +67,36 @@ const GestureSlider: React.FC<GestureSliderProps> = ({
       const normalized = (value - minValue) / (maxValue - minValue);
       thumbX.value = normalized * (trackWidth.value - THUMB_SIZE);
     }
+    pendingValue.value = value;
   }, [value, minValue, maxValue]);
 
   const panGesture = Gesture.Pan()
     .onStart(() => {
       isDragging.value = true;
       runOnJS(haptics.light)();
+      pendingValue.value = value;
+      lastEmit.value = Date.now();
+      runOnJS(onChange)(value);
     })
     .onUpdate((event) => {
+      'worklet';
       const newX = Math.max(0, Math.min(event.x - THUMB_SIZE / 2, trackWidth.value - THUMB_SIZE));
       thumbX.value = newX;
 
       const normalized = newX / (trackWidth.value - THUMB_SIZE);
       const newValue = minValue + normalized * (maxValue - minValue);
-      runOnJS(onChange)(newValue);
+      pendingValue.value = newValue;
+      const now = Date.now();
+      if (now - lastEmit.value >= EMIT_INTERVAL_MS) {
+        lastEmit.value = now;
+        runOnJS(onChange)(newValue);
+      }
     })
     .onEnd(() => {
       isDragging.value = false;
       runOnJS(haptics.light)();
+      lastEmit.value = Date.now();
+      runOnJS(onChange)(pendingValue.value);
     });
 
   const thumbStyle = useAnimatedStyle(() => ({
@@ -206,6 +221,15 @@ export const WatermarkToolModal: React.FC<WatermarkToolModalProps> = ({
     { name: string; description: string }
   >;
   const densityTranslations = t.watermark.densities as Record<string, string>;
+  const presetRowHeight = presetWidth + Spacing.m;
+  const getPresetItemLayout = useCallback(
+    (_: WatermarkPreset[] | null, index: number) => ({
+      length: presetRowHeight,
+      offset: Math.floor(index / GRID_COLUMNS) * presetRowHeight,
+      index,
+    }),
+    [presetRowHeight],
+  );
   const getPresetCopy = (preset: WatermarkPreset) =>
     presetTranslations[preset.id] || {
       name: preset.name,
@@ -371,6 +395,12 @@ export const WatermarkToolModal: React.FC<WatermarkToolModalProps> = ({
                 contentContainerStyle={styles.grid}
                 showsVerticalScrollIndicator={false}
                 columnWrapperStyle={styles.columnWrapper}
+                getItemLayout={getPresetItemLayout}
+                initialNumToRender={6}
+                maxToRenderPerBatch={10}
+                updateCellsBatchingPeriod={50}
+                windowSize={4}
+                removeClippedSubviews
               />
             </View>
 
