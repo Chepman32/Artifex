@@ -23,6 +23,7 @@ import Animated, {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { useProjectGalleryStore } from '../stores/projectGalleryStore';
+import { useAppStore } from '../stores/appStore';
 import { useTheme } from '../hooks/useTheme';
 import { useCurrentLanguage, useTranslation } from '../hooks/useTranslation';
 import { Typography } from '../constants/typography';
@@ -32,6 +33,7 @@ import { Project } from '../types';
 import { formatString } from '../localization/format';
 import { getLanguageLocale } from '../localization/deviceLanguage';
 import type { Translations } from '../localization/translations';
+import { triggerHaptic } from '../utils/haptics';
 
 const GRID_COLUMNS = 2;
 
@@ -47,6 +49,7 @@ const HomeScreen: React.FC = () => {
   const styles = useMemo(() => createStyles(gridItemSize), [gridItemSize]);
   const language = useCurrentLanguage();
   const locale = getLanguageLocale(language);
+  const hapticsEnabled = useAppStore(state => state.preferences.hapticFeedback);
   const {
     projects,
     selectionMode,
@@ -72,6 +75,19 @@ const HomeScreen: React.FC = () => {
     } catch (error) {
       console.error('Navigation error:', error);
     }
+  };
+
+  const handleFabAction = () => {
+    if (hapticsEnabled) {
+      triggerHaptic('selection');
+    }
+
+    if (selectionMode) {
+      handleDuplicateSelected();
+      return;
+    }
+
+    handleFabPress();
   };
 
   const handleProjectPress = (project: Project) => {
@@ -275,7 +291,7 @@ const HomeScreen: React.FC = () => {
       <View style={styles.fab}>
         <TouchableOpacity
           style={[styles.fabButton, { backgroundColor: theme.accent.primary }]}
-          onPress={selectionMode ? handleDuplicateSelected : handleFabPress}
+          onPress={handleFabAction}
           activeOpacity={0.8}
         >
           <Text style={[styles.fabIcon, { color: theme.backgrounds.primary }]}>{selectionMode ? '📋' : '+'}</Text>

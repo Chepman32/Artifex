@@ -29,6 +29,7 @@ import { useTheme } from '../hooks/useTheme';
 import { useTranslation } from '../hooks/useTranslation';
 import { Spacing, Dimensions as AppDimensions } from '../constants/spacing';
 import { Shadows } from '../constants/colors';
+import { triggerHaptic } from '../utils/haptics';
 
 const PANEL_COUNT = 3;
 const PANEL_COLORS = [
@@ -424,6 +425,7 @@ const PanelFree: React.FC<PanelProps> = ({
 const OnboardingScreen: React.FC = () => {
   const navigation = useNavigation();
   const setOnboardingSeen = useAppStore(state => state.setOnboardingSeen);
+  const hapticsEnabled = useAppStore(state => state.preferences.hapticFeedback);
   const theme = useTheme();
   const t = useTranslation();
   const insets = useSafeAreaInsets();
@@ -467,12 +469,18 @@ const OnboardingScreen: React.FC = () => {
   });
 
   const handleFinish = () => {
+    if (hapticsEnabled) {
+      triggerHaptic('selection');
+    }
     setOnboardingSeen();
     navigation.navigate('Home' as never);
   };
 
   const handleNext = () => {
     if (currentIndex < PANEL_COUNT - 1) {
+      if (hapticsEnabled) {
+        triggerHaptic('selection');
+      }
       const nextIndex = currentIndex + 1;
       scrollViewRef.current?.scrollTo({
         x: nextIndex * screenWidth,
@@ -742,6 +750,7 @@ const createStyles = (theme: Theme) =>
     ctaButton: {
       height: AppDimensions.button.height,
       paddingHorizontal: Spacing.xxl,
+      width: '95%',
       borderRadius: AppDimensions.button.cornerRadius,
       alignItems: 'center',
       justifyContent: 'center',

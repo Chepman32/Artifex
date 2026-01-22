@@ -34,7 +34,7 @@ const SettingsScreen: React.FC = () => {
   const navigation = useNavigation();
   const theme = useTheme();
   const t = useTranslation();
-  const { preferences, updatePreferences, resetOnboarding } = useAppStore();
+  const { preferences, updatePreferences } = useAppStore();
   const [showThemeModal, setShowThemeModal] = useState(false);
   const [showLanguageModal, setShowLanguageModal] = useState(false);
   const [isExportingAllProjects, setIsExportingAllProjects] = useState(false);
@@ -57,17 +57,6 @@ const SettingsScreen: React.FC = () => {
     }
     updatePreferences({ language: newLanguage });
     setShowLanguageModal(false);
-  };
-
-  const handleResetOnboarding = () => {
-    if (preferences.hapticFeedback) {
-      triggerHaptic('selection');
-    }
-    resetOnboarding();
-    navigation.reset({
-      index: 0,
-      routes: [{ name: 'Onboarding' as never }],
-    });
   };
 
   const openCameraRoll = async () => {
@@ -461,26 +450,6 @@ const SettingsScreen: React.FC = () => {
               () => setShowThemeModal(true),
             )}
             {renderSettingRow(
-              t.settings.sound,
-              preferences.soundEnabled
-                ? t.settings.soundOn
-                : t.settings.soundOff,
-              <Switch
-                value={preferences.soundEnabled}
-                onValueChange={value => {
-                  if (preferences.hapticFeedback) {
-                    triggerHaptic('selection');
-                  }
-                  updatePreferences({ soundEnabled: value });
-                }}
-                trackColor={{
-                  false: theme.backgrounds.tertiary,
-                  true: theme.accent.primary,
-                }}
-                thumbColor={theme.text.primary}
-              />,
-            )}
-            {renderSettingRow(
               t.settings.haptics,
               preferences.hapticFeedback
                 ? t.settings.hapticsOn
@@ -488,7 +457,7 @@ const SettingsScreen: React.FC = () => {
               <Switch
                 value={preferences.hapticFeedback}
                 onValueChange={value => {
-                  if (value) {
+                  if (preferences.hapticFeedback || value) {
                     triggerHaptic('selection');
                   }
                   updatePreferences({ hapticFeedback: value });
@@ -567,12 +536,6 @@ const SettingsScreen: React.FC = () => {
                 }}
                 thumbColor={theme.text.primary}
               />,
-            )}
-            {renderSettingRow(
-              t.settings.resetOnboarding,
-              undefined,
-              undefined,
-              handleResetOnboarding,
             )}
           </>,
         )}

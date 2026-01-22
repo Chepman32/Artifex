@@ -18,6 +18,8 @@ import { useTranslation } from '../../hooks/useTranslation';
 import { Typography } from '../../constants/typography';
 import { Spacing } from '../../constants/spacing';
 import { STICKERS, STICKER_CATEGORIES } from '../../constants/assets';
+import { useAppStore } from '../../stores/appStore';
+import { triggerHaptic } from '../../utils/haptics';
 
 const GRID_COLUMNS = 3;
 const GRID_GAP = Spacing.xs;
@@ -51,6 +53,7 @@ export const StickerPickerModal: React.FC<StickerPickerModalProps> = ({
   const theme = useTheme();
   const t = useTranslation();
   const { width: screenWidth, height: screenHeight } = useWindowDimensions();
+  const hapticsEnabled = useAppStore(state => state.preferences.hapticFeedback);
   const stickerSize = useMemo(
     () =>
       (screenWidth - Spacing.m * 2 - GRID_GAP * (GRID_COLUMNS - 1)) /
@@ -77,6 +80,9 @@ export const StickerPickerModal: React.FC<StickerPickerModalProps> = ({
   });
 
   const handleStickerPress = (sticker: Sticker) => {
+    if (hapticsEnabled) {
+      triggerHaptic('selection');
+    }
     // Select the sticker - use file if available, otherwise uri
     const stickerSource = sticker.file || sticker.uri || '';
     onSelect(stickerSource, sticker.width || 100, sticker.height || 100);

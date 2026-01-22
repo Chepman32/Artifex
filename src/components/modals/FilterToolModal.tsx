@@ -16,6 +16,8 @@ import { useTheme } from '../../hooks/useTheme';
 import { useTranslation } from '../../hooks/useTranslation';
 import { Typography } from '../../constants/typography';
 import { Spacing } from '../../constants/spacing';
+import { useAppStore } from '../../stores/appStore';
+import { triggerHaptic } from '../../utils/haptics';
 
 const FILTER_COLUMNS = 3;
 
@@ -95,6 +97,7 @@ export const FilterToolModal: React.FC<FilterToolModalProps> = ({
   const theme = useTheme();
   const t = useTranslation();
   const { width: screenWidth } = useWindowDimensions();
+  const hapticsEnabled = useAppStore(state => state.preferences.hapticFeedback);
   const filterSize = useMemo(
     () => (screenWidth - Spacing.m * 2 - Spacing.s * 2) / FILTER_COLUMNS,
     [screenWidth],
@@ -110,6 +113,9 @@ export const FilterToolModal: React.FC<FilterToolModalProps> = ({
   };
 
   const handleFilterPress = (filter: Filter) => {
+    if (hapticsEnabled) {
+      triggerHaptic('selection');
+    }
     setSelectedFilter(filter.id);
   };
 
