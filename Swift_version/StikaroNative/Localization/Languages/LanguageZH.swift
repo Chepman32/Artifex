@@ -1,0 +1,276 @@
+import Foundation
+
+enum LanguageZH {
+    static let translations = Translations(
+        common: .init(
+            cancel: "取消",
+            save: "保存",
+            delete: "删除",
+            close: "关闭",
+            done: "完成",
+            back: "返回",
+            ok: "OK",
+            error: "错误",
+            clear: "清除",
+            discard: "丢弃",
+            loading: "加载中..."
+        ),
+        settings: .init(
+            title: "设置",
+            theme: "主题",
+            themeLight: "浅色",
+            themeDark: "深色",
+            themeSolar: "太阳",
+            themeMono: "单色",
+            sound: "声音",
+            soundOn: "开启",
+            soundOff: "关闭",
+            haptics: "触觉",
+            hapticsOn: "开启",
+            hapticsOff: "关闭",
+            language: "语言",
+            account: "账户",
+            preferences: "偏好设置",
+            appearance: "外观",
+            about: "关于",
+            dangerZone: "危险区域",
+            restorePurchases: "恢复购买",
+            restorePurchasesDesc: "适用于在其他设备上购买Pro的用户",
+            exportAllProjects: "导出所有项目",
+            exportAllProjectsDesc: "批量导出所有项目到照片",
+            defaultExportFormat: "默认导出格式",
+            defaultExportQuality: "默认导出质量",
+            autoSaveProjects: "自动保存项目",
+            autoSaveProjectsDesc: "每30秒自动保存",
+            hapticFeedback: "触觉反馈",
+            hapticFeedbackDesc: "交互振动",
+            version: "版本",
+            rateApp: "评价Stikaro",
+            rateAppDesc: "通过您的反馈帮助我们改进",
+            contactSupport: "联系支持",
+            contactSupportDesc: "获取帮助或报告问题",
+            privacyPolicy: "隐私政策",
+            privacyPolicyDesc: "查看我们的隐私政策",
+            termsOfService: "服务条款",
+            termsOfServiceDesc: "查看服务条款",
+            clearCache: "清除缓存",
+            clearCacheDesc: "删除缓存的缩略图和临时文件",
+            clearCacheAlertMessage: "这将删除缓存的缩略图和临时文件。继续？",
+            clearCacheSuccess: "缓存已清除",
+            deleteAllProjects: "删除所有项目",
+            deleteAllProjectsDesc: "永久删除所有项目",
+            deleteAllProjectsAlertMessage: "这将永久删除所有项目，无法撤销。继续？",
+            deleteAllProjectsSuccess: "已删除所有项目",
+            resetOnboarding: "重置新手引导",
+            exportAllProjectsAlertMessage: "该 Pro 功能将会实现",
+            rateAppAlertMessage: "将打开 App Store 评分对话框",
+            contactSupportAlertMessage: "将打开发送至 support@stikaro.app 的邮件编辑器",
+            privacyPolicyAlertMessage: "将打开 stikaro.app/privacy",
+            termsOfServiceAlertMessage: "将打开 stikaro.app/terms"
+        ),
+        export: .init(
+            saveToDevice: "保存到设备",
+            shareOnInstagram: "分享到 Instagram",
+            shareOnX: "分享到 X",
+            savedToPhotos: "已保存到照片",
+            savedToPhotosDesc: "你的图片已保存到相册。",
+            viewInGallery: "在相册中查看",
+            noImageToExport: "没有可导出的图片",
+            failedToExport: "导出图片失败",
+            failedToSave: "保存到照片失败",
+            couldNotShareInstagram: "无法分享到 Instagram。",
+            couldNotShareX: "无法分享到 X。"
+        ),
+        onboarding: .init(
+            skip: "跳过",
+            panel1HeroTitle: "咖啡店照片",
+            panel1HeroWatermark: "烘焙与发布 ☕",
+            panel1Title: "留下你的印记",
+            panel1Body: "使用优雅的水印、印章和签名保护作品并打造品牌。",
+            panel2GestureLabel: "捏合 • 旋转 • 拖动",
+            panel2SampleText: "你的文字",
+            panel2Title: "手势驱动编辑",
+            panel2Body: "捏合、旋转、拖动来完善构图。没有繁琐菜单——只有自然流畅的控制。",
+            panel3Title: "完全免费",
+            panel3Body: "所有功能解锁。没有付费墙、没有订阅、没有限制。尽情创作。",
+            panel3FeatureAssets: "100+ 素材",
+            panel3FeatureTools: "全部工具解锁",
+            panel3FeatureNoWatermarks: "无水印",
+            getStarted: "开始使用"
+        ),
+        home: .init(
+            emptyTitle: "暂无项目",
+            emptySubtitle: "点击 + 按钮创建你的第一个作品",
+            selectionTitle: "已选 {count} 项",
+            deleteProjectsTitle: "删除项目",
+            deleteProjectSingle: "删除此项目？此操作无法撤销。",
+            deleteProjectMultiple: "删除 {count} 个项目？此操作无法撤销。",
+            timestampToday: "今天",
+            timestampDayAgo: "1 天前",
+            timestampDaysAgo: "{count} 天前"
+        ),
+        imagePicker: .init(
+            title: "选择照片",
+            loadingSubtitle: "正在加载照片...",
+            photoAvailable: "可用 1 张照片",
+            photosAvailable: "可用 {count} 张照片",
+            loadingText: "正在加载你的照片..."
+        ),
+        editor: .init(
+            backToGallery: "相册",
+            export: "导出",
+            saveChangesTitle: "保存更改？",
+            saveChangesMessage: "你有未保存的更改。离开前要保存此项目吗？",
+            noImageLoaded: "未加载图片",
+            paramsLabel: "参数："
+        ),
+        filters: .init(
+            title: "滤镜",
+            intensity: "强度",
+            apply: "应用滤镜",
+            names: .init(
+                none: "原图",
+                bw: "黑白",
+                sepia: "棕褐色",
+                vintage: "复古",
+                cool: "冷色",
+                warm: "暖色",
+                juno: "Juno",
+                gingham: "Gingham",
+                clarendon: "Clarendon",
+                lark: "Lark",
+                ludwig: "Ludwig",
+                xproii: "X-Pro II",
+                lofi: "Lo-Fi",
+                mayfair: "Mayfair",
+                sierra: "Sierra",
+                tattoo: "纹身",
+                inkwell: "墨水",
+                rise: "Rise",
+                cinematic: "电影感",
+                film: "胶片颗粒",
+                hdr: "HDR",
+                portrait: "人像",
+                landscape: "风景",
+                neon: "霓虹",
+                cyberpunk: "赛博朋克",
+                retro: "复古波"
+            )
+        ),
+        textToolbar: .init(
+            fonts: .init(
+                system: "系统",
+                archivo: "Archivo",
+                bitcount: "Bitcount",
+                firaSans: "Fira Sans",
+                homemade: "Homemade"
+            ),
+            colors: .init(
+                white: "白色",
+                black: "黑色",
+                red: "红色",
+                orange: "橙色",
+                yellow: "黄色",
+                green: "绿色",
+                blue: "蓝色",
+                purple: "紫色",
+                pink: "粉色"
+            ),
+            effects: .init(
+                none: "无",
+                neon: "霓虹",
+                glow: "发光",
+                shadow: "阴影",
+                outline: "描边"
+            ),
+            backgrounds: .init(
+                none: "无",
+                black: "黑色",
+                white: "白色",
+                gray: "灰色",
+                red: "红色",
+                blue: "蓝色"
+            )
+        ),
+        textTool: .init(
+            title: "添加文字",
+            placeholder: "输入你的文字...",
+            fontLabel: "字体",
+            sizeLabel: "大小",
+            colorLabel: "颜色",
+            addToCanvas: "添加到画布"
+        ),
+        stickers: .init(
+            title: "贴纸",
+            emptyCategory: "该类别暂无贴纸",
+            categories: .init(
+                all: "全部",
+                emoji: "表情",
+                socialMedia: "社交媒体",
+                textLabels: "文字与标签",
+                seasonal: "季节",
+                brandIcons: "品牌图标",
+                food: "食物",
+                miscellaneous: "杂项"
+            )
+        ),
+        stamps: .init(
+            title: "印章",
+            emptyCategory: "该类别暂无印章",
+            categories: .init(
+                all: "全部",
+                approval: "审批",
+                labels: "标签",
+                seals: "封印"
+            )
+        ),
+        watermark: .init(
+            title: "水印工具",
+            defaultText: "© 你的品牌",
+            textLabel: "水印文字",
+            textPlaceholder: "输入水印文字",
+            apply: "应用水印",
+            backToPresets: "返回预设",
+            globalAdjustments: "全局调整",
+            opacity: "不透明度",
+            size: "大小",
+            rotation: "旋转",
+            confirmAdjustments: "确认调整",
+            selectedPreset: "已选预设",
+            markCount: "{count} 个水印",
+            densities: .init(
+                dense: "密集",
+                moderate: "适中",
+                sparse: "稀疏"
+            ),
+            presets: .init(
+                tilePattern: .init(name: "平铺图案", description: "覆盖整张图片的密集网格"),
+                cornerBranding: .init(name: "角落标记", description: "四个角各一个水印"),
+                diagonalStripe: .init(name: "对角条纹", description: "沿对角线排列的水印"),
+                scatteredProtection: .init(name: "散点保护", description: "随机分布且大小不同"),
+                minimalSingle: .init(name: "极简", description: "居中单个水印"),
+                borderGuard: .init(name: "边缘守护", description: "沿图像边缘排列水印"),
+                photographerStyle: .init(name: "摄影师风格", description: "右下角小签名"),
+                denseGrid: .init(name: "密集网格", description: "最大覆盖保护"),
+                moderateCoverage: .init(name: "适中覆盖", description: "均衡保护"),
+                largeWatermarks: .init(name: "大号", description: "大而醒目的水印"),
+                smallWatermarks: .init(name: "小号", description: "低调的小水印"),
+                microWatermarks: .init(name: "微型", description: "非常小、几乎不可见的水印")
+            )
+        ),
+        layers: .init(
+            title: "图层",
+            emptyTitle: "暂无图层",
+            emptySubtitle: "添加文字、贴纸或印章即可在此查看",
+            layerCountSingle: "1 个图层",
+            layerCountMultiple: "{count} 个图层",
+            elementTypes: .init(
+                text: "文字",
+                sticker: "贴纸",
+                watermark: "水印",
+                stamp: "印章",
+                element: "元素"
+            )
+        )
+    )
+}

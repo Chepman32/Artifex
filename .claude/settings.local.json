@@ -1,0 +1,40 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(yarn install)",
+      "Bash(yarn add:*)",
+      "Bash(export LANG=en_US.UTF-8)",
+      "Bash(pod install:*)",
+      "Bash(yarn start:*)",
+      "Bash(for file in /Users/antonchepur/Artifex/src/localization/languages/*.ts)",
+      "Bash(do)",
+      "Bash(if grep -q \"error:\" \"$file\")",
+      "Bash(then)",
+      "Bash(else)",
+      "Bash(fi)",
+      "Bash(done)",
+      "Bash(if grep -q \"export:\" \"$file\")",
+      "Bash(npx tsc:*)",
+      "Bash(ls:*)",
+      "Bash(node generateCorrectParticleImports.js:*)",
+      "Bash(cat:*)",
+      "Bash(fastlane ios upload_metadata:*)",
+      "Bash(identify -verbose:*)",
+      "Bash(cd:*)",
+      "Bash(for f in IMG_*.png IMG_*.PNG)",
+      "Bash(do sips -g pixelHeight -g pixelWidth \"$f\")",
+      "Bash(__NEW_LINE_615b00f7a8575eb0__ echo \"=== ar-SA ===\")",
+      "Bash(__NEW_LINE_615b00f7a8575eb0__ echo \"\")",
+      "Bash(sips:*)",
+      "Bash(bundle exec fastlane:*)",
+      "Bash(fastlane upload_new_screenshots:*)",
+      "Bash(xcodebuild:*)",
+      "Bash(md5:*)",
+      "Bash(sort:*)",
+      "Bash(fastlane download_all_screenshots:*)",
+      "Bash(find:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
