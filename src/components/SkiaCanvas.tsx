@@ -16,7 +16,7 @@ import { StickerElement } from './canvas/StickerElement';
 import { useTheme } from '../hooks/useTheme';
 import { getFilterColorMatrix } from '../utils/colorMatrix';
 
-// Fallback overlay styles for photo URIs (ph://) that don't support Skia
+// Fallback overlay styles for native photo URIs that don't support Skia
 const getImageOverlayStyle = (filter: any) => {
   switch (filter.type) {
     case 'bw':
@@ -179,6 +179,9 @@ export const SkiaCanvas: React.FC<SkiaCanvasProps> = ({
   const colorMatrix = appliedFilter
     ? getFilterColorMatrix(appliedFilter)
     : null;
+  const shouldUseNativeImage =
+    sourceImageUri.startsWith('ph://') ||
+    sourceImageUri.startsWith('content://');
 
   return (
     <View
@@ -192,7 +195,7 @@ export const SkiaCanvas: React.FC<SkiaCanvasProps> = ({
       ]}
     >
       {/* Background image layer with filter effects */}
-      {sourceImageUri.startsWith('ph://') ? (
+      {shouldUseNativeImage ? (
         <View
           style={{
             position: 'relative',

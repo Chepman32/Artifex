@@ -9,6 +9,7 @@ import {
 } from '../types';
 import { ProjectDatabase } from '../database/ProjectDatabase';
 import { generateThumbnail } from '../utils/imageExporter';
+import { materializePhotoForEditing } from '../utils/photoImport';
 
 interface EditorState {
   canvasElements: CanvasElement[];
@@ -431,6 +432,27 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       const project = await ProjectDatabase.getById(projectId);
       if (!project) return;
 
+      let sourceImagePath = project.sourceImagePath;
+      try {
+        const materializedSourceImagePath = await materializePhotoForEditing(
+          project.sourceImagePath,
+        );
+        if (materializedSourceImagePath !== project.sourceImagePath) {
+          sourceImagePath = materializedSourceImagePath;
+          if (
+            !project.thumbnailPath ||
+            project.thumbnailPath === project.sourceImagePath ||
+            project.thumbnailPath.startsWith('content://')
+          ) {
+            project.thumbnailPath = sourceImagePath;
+          }
+          project.sourceImagePath = sourceImagePath;
+          await ProjectDatabase.save(project);
+        }
+      } catch (error) {
+        console.warn('Failed to prepare saved project image for Skia:', error);
+      }
+
       const elements = project.elements as CanvasElement[];
       set({
         canvasElements: elements,
@@ -442,7 +464,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
         history: [],
         historyIndex: -1,
         currentProjectId: projectId,
-        sourceImagePath: project.sourceImagePath,
+        sourceImagePath,
         sourceImageDimensions: project.sourceImageDimensions,
         canvasSize: project.canvasSize || null,
       });
@@ -500,7 +522,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     }
   },
 
-  exportProject: async options => {
+  exportProject: async _options => {
     // This will be implemented with the ImageExporter
     // For now, return a placeholder
     return Promise.resolve('exported-image-path');

@@ -23,6 +23,7 @@ import { Typography } from '../constants/typography';
 import { Spacing } from '../constants/spacing';
 import { formatString } from '../localization/format';
 import type { RootStackParamList } from '../navigation/AppNavigator';
+import { materializePhotoForEditing } from '../utils/photoImport';
 
 const GRID_COLUMNS = 4;
 const PHOTO_PAGE_SIZE = 80;
@@ -154,10 +155,16 @@ const ImagePickerScreen: React.FC = () => {
     () => (screenWidth - Spacing.xs * (GRID_COLUMNS + 1)) / GRID_COLUMNS,
     [screenWidth],
   );
-  const styles = useMemo(() => createStyles(theme, gridItemSize), [theme, gridItemSize]);
+  const styles = useMemo(
+    () => createStyles(theme, gridItemSize),
+    [theme, gridItemSize],
+  );
   const [photos, setPhotos] = useState<PhotoAsset[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
+  const [selectingPhotoUri, setSelectingPhotoUri] = useState<string | null>(
+    null,
+  );
   const [hasMore, setHasMore] = useState(true);
   const [endCursor, setEndCursor] = useState<string | undefined>();
 
@@ -231,17 +238,42 @@ const ImagePickerScreen: React.FC = () => {
     loadPhotos();
   }, [loadPhotos]);
 
-  const handlePhotoSelect = (photo: PhotoAsset) => {
-    // Close the modal first, then navigate to Editor
-    navigation.goBack();
+  const handlePhotoSelect = async (photo: PhotoAsset) => {
+    if (selectingPhotoUri) {
+      return;
+    }
 
-    // Small delay to ensure smooth modal dismissal
-    setTimeout(() => {
-      navigation.navigate('Editor', {
-        imageUri: photo.uri,
-        imageDimensions: { width: photo.width, height: photo.height },
-      });
-    }, 150);
+    setSelectingPhotoUri(photo.uri);
+
+    try {
+      const editableUri = await materializePhotoForEditing(
+        photo.uri,
+        photo.filename,
+      );
+
+      // Close the modal first, then navigate to Editor
+      navigation.goBack();
+
+      // Small delay to ensure smooth modal dismissal
+      setTimeout(() => {
+        navigation.navigate('Editor', {
+          imageUri: editableUri,
+          imageDimensions: { width: photo.width, height: photo.height },
+        });
+      }, 150);
+    } catch (error) {
+      console.warn('Failed to prepare selected photo for editing:', error);
+      navigation.goBack();
+
+      setTimeout(() => {
+        navigation.navigate('Editor', {
+          imageUri: photo.uri,
+          imageDimensions: { width: photo.width, height: photo.height },
+        });
+      }, 150);
+    } finally {
+      setSelectingPhotoUri(null);
+    }
   };
 
   const handleClose = () => {
@@ -258,6 +290,7 @@ const ImagePickerScreen: React.FC = () => {
     <TouchableOpacity
       style={styles.photoItem}
       onPress={() => handlePhotoSelect(item)}
+      disabled={!!selectingPhotoUri}
       activeOpacity={0.8}
     >
       <Image

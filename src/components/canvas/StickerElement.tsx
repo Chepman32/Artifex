@@ -28,6 +28,14 @@ interface StickerElementProps {
   }) => void;
 }
 
+const normalizeImageUri = (value: string): string => {
+  if (value.startsWith('/')) {
+    return `file://${value}`;
+  }
+
+  return value;
+};
+
 export const StickerElement: React.FC<StickerElementProps> = ({
   uri,
   x,
@@ -68,7 +76,11 @@ export const StickerElement: React.FC<StickerElementProps> = ({
       <Animated.View
         style={[styles.container, { width, height, opacity }, animatedStyle]}
       >
-        <Image source={{ uri }} style={styles.image} resizeMode="contain" />
+        <Image
+          source={{ uri: normalizeImageUri(uri) }}
+          style={styles.image}
+          resizeMode="contain"
+        />
 
         {/* Selection indicators */}
         {isSelected && (

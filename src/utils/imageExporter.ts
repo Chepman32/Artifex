@@ -62,6 +62,90 @@ const stripFileScheme = (value: string): string => {
   return value;
 };
 
+const stripUrlMetadata = (value: string): string =>
+  value.split('?')[0].split('#')[0];
+
+const guessImageExtension = (
+  value: string,
+  fallback: 'png' | 'jpg' | 'webp' = 'png',
+): 'png' | 'jpg' | 'jpeg' | 'webp' => {
+  const match = stripUrlMetadata(value).match(/\.([a-zA-Z0-9]+)$/);
+  const extension = match?.[1]?.toLowerCase();
+
+  if (
+    extension === 'png' ||
+    extension === 'jpg' ||
+    extension === 'jpeg' ||
+    extension === 'webp'
+  ) {
+    return extension;
+  }
+
+  return fallback;
+};
+
+const hasImageExtension = (value: string): boolean =>
+  /\.(png|jpe?g|webp)$/i.test(stripUrlMetadata(value));
+
+const isAndroidDrawableResourceName = (value: string): boolean => {
+  return (
+    Platform.OS === 'android' &&
+    /^[a-z0-9_]+(?:\.(?:png|jpe?g|webp))?$/i.test(value) &&
+    !value.startsWith('data:')
+  );
+};
+
+const copyAndroidDrawableResource = async (
+  resourceName: string,
+): Promise<string | null> => {
+  if (!isAndroidDrawableResourceName(resourceName)) {
+    return null;
+  }
+
+  const baseName = stripUrlMetadata(resourceName);
+  const filenames = hasImageExtension(baseName)
+    ? [baseName]
+    : ['png', 'webp', 'jpg', 'jpeg'].map(ext => `${baseName}.${ext}`);
+  const tempDir = await getTempDir();
+
+  for (const filename of filenames) {
+    try {
+      const extension = guessImageExtension(filename);
+      const dest = `${tempDir}/stikaro_res_${Date.now()}_${Math.random()
+        .toString(36)
+        .slice(2, 8)}.${extension}`;
+
+      await RNFS.copyFileRes(filename, dest);
+
+      if (await RNFS.exists(dest)) {
+        return dest;
+      }
+    } catch {
+      // Try the next possible drawable extension.
+    }
+  }
+
+  return null;
+};
+
+const getDownloadUrlCandidates = (uri: string): string[] => {
+  if (Platform.OS !== 'android') {
+    return [uri];
+  }
+
+  const candidates = [uri];
+  const androidLoopback = uri.replace(
+    /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?/i,
+    match => match.replace(/localhost|127\.0\.0\.1/i, '10.0.2.2'),
+  );
+
+  if (androidLoopback !== uri) {
+    candidates.unshift(androidLoopback);
+  }
+
+  return [...new Set(candidates)];
+};
+
 interface CanvasScale {
   x: number;
   y: number;
@@ -263,10 +347,15 @@ const resolveImageUriToPath = async (
     // Handle Android asset URIs
     if (Platform.OS === 'android' && uri.startsWith('file:///android_asset/')) {
       const assetPath = uri.replace('file:///android_asset/', '');
-      const ext = uri.endsWith('.png') ? 'png' : 'jpg';
+      const ext = guessImageExtension(uri, 'jpg');
       const dest = `${RNFS.CachesDirectoryPath}/stikaro_asset_${Date.now()}.${ext}`;
       await RNFS.copyFileAssets(assetPath, dest);
       return dest;
+    }
+
+    const drawablePath = await copyAndroidDrawableResource(uri);
+    if (drawablePath) {
+      return drawablePath;
     }
 
     // Handle Metro dev-server URLs
@@ -347,25 +436,30 @@ const resolveImageUriToPath = async (
       }
       
       // Fallback: try HTTP download for all Metro URLs
-      const ext = uri.endsWith('.png') ? 'png' : 'jpg';
+      const ext = guessImageExtension(uri, 'jpg');
       const tempDir = await getTempDir();
       const dest = `${tempDir}/stikaro_remote_${Date.now()}.${ext}`;
+      let lastError: unknown = null;
 
-      try {
-        const result = await RNFS.downloadFile({
-          fromUrl: uri,
-          toFile: dest,
-        }).promise;
+      for (const fromUrl of getDownloadUrlCandidates(uri)) {
+        try {
+          const result = await RNFS.downloadFile({
+            fromUrl,
+            toFile: dest,
+          }).promise;
 
-        if (result.statusCode && result.statusCode >= 400) {
-          throw new Error(`Download failed with status ${result.statusCode}`);
+          if (result.statusCode && result.statusCode >= 400) {
+            throw new Error(`Download failed with status ${result.statusCode}`);
+          }
+          console.log(`[imageExporter] Successfully downloaded from: ${fromUrl}`);
+          return dest;
+        } catch (error) {
+          lastError = error;
+          console.log(`[imageExporter] Download failed for ${fromUrl}: ${error}`);
         }
-        console.log(`[imageExporter] Successfully downloaded from: ${uri}`);
-        return dest;
-      } catch (error) {
-        console.log(`[imageExporter] Download failed for ${uri}: ${error}`);
-        throw error;
       }
+
+      throw lastError ?? new Error('Image download failed');
     }
 
     // Handle local files
