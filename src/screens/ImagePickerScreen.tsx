@@ -1,6 +1,6 @@
 // Image picker screen with proper iOS permissions
 
-import React, { useMemo, useState, useEffect } from 'react';
+import React, { useCallback, useMemo, useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -14,6 +14,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { CameraRoll } from '@react-native-camera-roll/camera-roll';
 import { Theme } from '../constants/themes';
 import { useTheme } from '../hooks/useTheme';
@@ -21,8 +22,73 @@ import { useTranslation } from '../hooks/useTranslation';
 import { Typography } from '../constants/typography';
 import { Spacing } from '../constants/spacing';
 import { formatString } from '../localization/format';
+import type { RootStackParamList } from '../navigation/AppNavigator';
 
 const GRID_COLUMNS = 4;
+const PHOTO_PAGE_SIZE = 80;
+const PHOTO_LOAD_TIMEOUT_MS = 12000;
+
+const getAndroidApiLevel = () =>
+  typeof Platform.Version === 'number'
+    ? Platform.Version
+    : Number.parseInt(Platform.Version, 10) || 0;
+
+const withTimeout = async <T,>(
+  promise: Promise<T>,
+  timeoutMs: number,
+  label: string,
+): Promise<T> => {
+  let timeoutId: ReturnType<typeof setTimeout> | undefined;
+
+  try {
+    return await Promise.race([
+      promise,
+      new Promise<T>((_, reject) => {
+        timeoutId = setTimeout(
+          () => reject(new Error(`${label} timed out`)),
+          timeoutMs,
+        );
+      }),
+    ]);
+  } finally {
+    if (timeoutId) {
+      clearTimeout(timeoutId);
+    }
+  }
+};
+
+const requestAndroidPhotoPermission = async () => {
+  const apiLevel = getAndroidApiLevel();
+
+  if (apiLevel >= 34) {
+    const statuses = await PermissionsAndroid.requestMultiple([
+      PermissionsAndroid.PERMISSIONS.READ_MEDIA_IMAGES,
+      PermissionsAndroid.PERMISSIONS.READ_MEDIA_VISUAL_USER_SELECTED,
+    ]);
+
+    return (
+      statuses[PermissionsAndroid.PERMISSIONS.READ_MEDIA_IMAGES] ===
+        PermissionsAndroid.RESULTS.GRANTED ||
+      statuses[
+        PermissionsAndroid.PERMISSIONS.READ_MEDIA_VISUAL_USER_SELECTED
+      ] === PermissionsAndroid.RESULTS.GRANTED
+    );
+  }
+
+  if (apiLevel >= 33) {
+    const granted = await PermissionsAndroid.request(
+      PermissionsAndroid.PERMISSIONS.READ_MEDIA_IMAGES,
+    );
+
+    return granted === PermissionsAndroid.RESULTS.GRANTED;
+  }
+
+  const granted = await PermissionsAndroid.request(
+    PermissionsAndroid.PERMISSIONS.READ_EXTERNAL_STORAGE,
+  );
+
+  return granted === PermissionsAndroid.RESULTS.GRANTED;
+};
 
 interface PhotoAsset {
   uri: string;
@@ -79,7 +145,8 @@ const FALLBACK_PHOTOS: PhotoAsset[] = [
 ];
 
 const ImagePickerScreen: React.FC = () => {
-  const navigation = useNavigation();
+  const navigation =
+    useNavigation<NativeStackNavigationProp<RootStackParamList, 'ImagePicker'>>();
   const theme = useTheme();
   const t = useTranslation();
   const { width: screenWidth } = useWindowDimensions();
@@ -90,35 +157,41 @@ const ImagePickerScreen: React.FC = () => {
   const styles = useMemo(() => createStyles(theme, gridItemSize), [theme, gridItemSize]);
   const [photos, setPhotos] = useState<PhotoAsset[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(true);
   const [endCursor, setEndCursor] = useState<string | undefined>();
 
-  useEffect(() => {
-    loadPhotos();
-  }, []);
+  const loadPhotos = useCallback(async (loadMore = false, cursor?: string) => {
+    if (loadMore) {
+      setLoadingMore(true);
+    } else {
+      setLoading(true);
+    }
 
-  const loadPhotos = async (loadMore = false) => {
     try {
       // Request permissions first
       if (Platform.OS === 'android' && !loadMore) {
-        const permission = PermissionsAndroid.PERMISSIONS.READ_EXTERNAL_STORAGE;
-        const granted = await PermissionsAndroid.request(permission);
+        const granted = await requestAndroidPhotoPermission();
 
-        if (granted !== PermissionsAndroid.RESULTS.GRANTED) {
+        if (!granted) {
           console.log('Android permission denied, using fallback photos');
           setPhotos(FALLBACK_PHOTOS);
-          setLoading(false);
+          setHasMore(false);
           return;
         }
       }
 
       // Try to load real photos with file URIs
-      const result = await CameraRoll.getPhotos({
-        first: 1000000,
-        after: loadMore ? endCursor : undefined,
-        assetType: 'Photos',
-        include: ['filename', 'imageSize'], // Request additional info
-      });
+      const result = await withTimeout(
+        CameraRoll.getPhotos({
+          first: PHOTO_PAGE_SIZE,
+          after: loadMore ? cursor : undefined,
+          assetType: 'Photos',
+          include: ['filename', 'imageSize'], // Request additional info
+        }),
+        PHOTO_LOAD_TIMEOUT_MS,
+        'Photo library load',
+      );
 
       if (result.edges && result.edges.length > 0) {
         const devicePhotos: PhotoAsset[] = result.edges.map(edge => ({
@@ -137,16 +210,26 @@ const ImagePickerScreen: React.FC = () => {
         if (!loadMore) {
           setPhotos(FALLBACK_PHOTOS);
         }
+        setHasMore(false);
       }
     } catch (error) {
       console.log('Failed to load photos, using fallback:', error);
       if (!loadMore) {
         setPhotos(FALLBACK_PHOTOS);
       }
+      setHasMore(false);
     } finally {
-      setLoading(false);
+      if (loadMore) {
+        setLoadingMore(false);
+      } else {
+        setLoading(false);
+      }
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    loadPhotos();
+  }, [loadPhotos]);
 
   const handlePhotoSelect = (photo: PhotoAsset) => {
     // Close the modal first, then navigate to Editor
@@ -154,13 +237,10 @@ const ImagePickerScreen: React.FC = () => {
 
     // Small delay to ensure smooth modal dismissal
     setTimeout(() => {
-      navigation.navigate(
-        'Editor' as never,
-        {
-          imageUri: photo.uri,
-          imageDimensions: { width: photo.width, height: photo.height },
-        } as never,
-      );
+      navigation.navigate('Editor', {
+        imageUri: photo.uri,
+        imageDimensions: { width: photo.width, height: photo.height },
+      });
     }, 150);
   };
 
@@ -169,8 +249,8 @@ const ImagePickerScreen: React.FC = () => {
   };
 
   const handleLoadMore = () => {
-    if (hasMore && !loading) {
-      loadPhotos(true);
+    if (hasMore && !loading && !loadingMore) {
+      loadPhotos(true, endCursor);
     }
   };
 
