@@ -205,7 +205,7 @@ Clean, reusable code for common operations.
 ### Priority 2: Export System (2-3 hours)
 1. **ImageExporter utility** - Render canvas to high-res image with Skia
 2. **ExportModal** - Settings (format, quality) + animated loader
-3. **Add "Made with Stikaro" watermark for free users**
+3. **Add "Stikaro" watermark for free users**
 4. **Save to Photos & Share functionality**
 
 ### Priority 3: Polish & Animations (1-2 hours)

@@ -45,7 +45,7 @@ export interface ExportOptions {
   canvasSize?: { width: number; height: number };
 }
 
-const STIKARO_WATERMARK_TEXT = 'Made with Stikaro';
+const STIKARO_WATERMARK_TEXT = 'Stikaro';
 const WATERMARK_FONT_SIZE = 14;
 const WATERMARK_OPACITY = 0.6;
 const WATERMARK_PADDING = 12;

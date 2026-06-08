@@ -130,7 +130,7 @@
 // - Apply all transformations
 // - Export at native resolution (4K support)
 // - Save to Photos or Share
-// - Add "Made with Stikaro" watermark for free users
+// - Add "Stikaro" watermark for free users
 ```
 
 **Implementation Plan**:

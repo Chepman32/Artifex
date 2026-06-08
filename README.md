@@ -17,7 +17,7 @@ Stikaro is a premium iOS photo annotation app built with React Native, designed 
 - ✅ 8 fonts, 30 stickers, 10 watermark templates, 8 stamps
 - ✅ Full gesture editing capabilities
 - ✅ Unlimited project saves
-- ⚠️ Exported photos include small "Made with Stikaro" watermark
+- ⚠️ Exported photos include small "Stikaro" watermark
 
 ### Pro Tier ($9.99 one-time purchase)
 

@@ -310,7 +310,7 @@ yarn ios
 - Render canvas to high-res image with Skia
 - Format selection (PNG/JPG)
 - Quality selection (90%/100%)
-- Add "Made with Stikaro" watermark (free users)
+- Add "Stikaro" watermark (free users)
 - Save to Photos library
 - Share functionality
 

@@ -9,7 +9,7 @@ enum ImageExporter {
 
     // MARK: - Constants
 
-    private static let stikaroWatermarkText = "Made with Stikaro"
+    private static let stikaroWatermarkText = "Stikaro"
     private static let watermarkFontSize: CGFloat = 14
     private static let watermarkOpacity: CGFloat = 0.6
     private static let watermarkPadding: CGFloat = 12
@@ -368,7 +368,7 @@ enum ImageExporter {
                 drawElement(element, in: cgContext, scale: scale)
             }
 
-            // Draw built-in "Made with Stikaro" watermark
+            // Draw built-in "Stikaro" watermark
             if addWatermark {
                 drawBuiltInWatermark(in: cgContext, exportSize: exportSize, scale: scale)
             }

@@ -87,7 +87,7 @@ Located in `src/utils/imageExporter.ts`:
 1. Creates Skia surface matching source image dimensions
 2. Draws source image with optional filter (Skia ColorMatrix)
 3. Draws all canvas elements using Skia primitives
-4. Optionally adds "Made with Stikaro" watermark for free users
+4. Optionally adds "Stikaro" watermark for free users
 5. Encodes to PNG/JPEG and saves to temp directory
 6. Returns file path for sharing/saving to Photos
 

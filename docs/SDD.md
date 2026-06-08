@@ -95,10 +95,10 @@ Describe the complete user journey, screen by screen. For each screen, detail it
    - **5.1. Model:** Freemium with a one-time purchase ("Stikaro Pro").
    - **5.2. Free Tier:**
       - Access to a limited set of stickers, fonts, and stamps.
-      - A small, non-intrusive "Made with Stikaro" watermark is automatically added on export (can be removed by watching a rewarded ad, if we decide to add that later, but the primary goal is the IAP).
+      - A small, non-intrusive "Stikaro" watermark is automatically added on export (can be removed by watching a rewarded ad, if we decide to add that later, but the primary goal is the IAP).
    - **5.3. Pro Tier (Unlocked via IAP):**
       - Access to all premium asset packs (100+ exclusive stickers, 30+ pro fonts, etc.).
-      - Removal of the "Made with Stikaro" watermark.
+      - Removal of the "Stikaro" watermark.
       - Access to advanced features like custom font installation and saving personal watermarks as templates.
    - **5.4. "Go Pro" UI/UX:**
       - **Paywall Screen:** A beautifully designed screen explaining the benefits of Pro. It should not be intrusive but accessible from key points (e.g., a crown icon in the UI).
