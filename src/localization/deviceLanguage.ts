@@ -26,7 +26,7 @@ const getLocalizeLocale = (): string | null => {
           : typeof primary?.languageCode === 'string'
             ? primary.languageCode
             : null;
-      return cachedLocalizeLocale;
+      return cachedLocalizeLocale ?? null;
     }
   } catch {
     cachedLocalizeLocale = null;

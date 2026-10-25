@@ -44,7 +44,7 @@ export const fil: Translations = {
     hapticFeedback: 'Haptic Feedback',
     hapticFeedbackDesc: 'Vibration para sa mga interaksyon',
     version: 'Bersyon',
-    rateApp: 'I-rate ang Stikaro',
+    rateApp: 'I-rate ang Marqo',
     rateAppDesc: 'Tulungan kaming mamahala sa iyong feedback',
     contactSupport: 'Kontakin ang Support',
     contactSupportDesc: 'Kumuha ng tulong o iulat ang mga problema',

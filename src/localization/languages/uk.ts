@@ -45,7 +45,7 @@ export const uk: Translations = {
     hapticFeedback: "Тактильний зворотний зв'язок",
     hapticFeedbackDesc: 'Вібрація при взаємодії',
     version: 'Версія',
-    rateApp: 'Оцінити Stikaro',
+    rateApp: 'Оцінити Marqo',
     rateAppDesc: 'Допоможіть нам покращитися з вашим відгуком',
     contactSupport: "Зв'язатися з підтримкою",
     contactSupportDesc: 'Отримати допомогу або повідомити про проблему',

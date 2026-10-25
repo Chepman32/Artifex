@@ -45,7 +45,7 @@ export const ro: Translations = {
     hapticFeedback: 'Feedback haptic',
     hapticFeedbackDesc: 'Vibrații pentru interacțiuni',
     version: 'Versiune',
-    rateApp: 'Evaluează Stikaro',
+    rateApp: 'Evaluează Marqo',
     rateAppDesc: 'Ajută-ne să ne îmbunătățim cu feedback-ul tău',
     contactSupport: 'Contactează suportul',
     contactSupportDesc: 'Obține ajutor sau raportează probleme',

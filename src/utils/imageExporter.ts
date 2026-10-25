@@ -1,11 +1,13 @@
 // Image export functionality using Skia for high-quality rendering
 import { Skia, type SkCanvas, type SkImage } from '@shopify/react-native-skia';
 import { CameraRoll } from '@react-native-camera-roll/camera-roll';
-import { Platform } from 'react-native';
+import { Image, Platform } from 'react-native';
 import RNFS from 'react-native-fs';
 import { CanvasElement, ImageFilter } from '../types';
 import { getFilterColorMatrix } from './colorMatrix';
 import { rasterizeTextElementToWatermark } from './textRasterizer';
+import { refreshEntitlement } from '../services/subscriptions';
+import { getExportLogoRect, ProRequiredError, requiresProForExport } from './proExportPolicy';
 
 const getTempDir = async () => {
   const dir = `${RNFS.CachesDirectoryPath}/stikaro_temp`;
@@ -41,14 +43,11 @@ interface RNFSWithIOS {
 export interface ExportOptions {
   format: 'png' | 'jpg';
   quality: number; // 0-100
-  addWatermark: boolean;
+  purpose?: 'thumbnail';
   canvasSize?: { width: number; height: number };
 }
 
-const STIKARO_WATERMARK_TEXT = 'Stikaro';
-const WATERMARK_FONT_SIZE = 14;
-const WATERMARK_OPACITY = 0.6;
-const WATERMARK_PADDING = 12;
+const EXPORT_LOGO = require('../assets/icons/appIcon.png');
 
 const stripFileScheme = (value: string): string => {
   if (value.startsWith('file://')) {
@@ -567,7 +566,11 @@ export const exportCanvasToImage = async (
   filter?: ImageFilter | null,
 ): Promise<{ filepath: string; format: 'png' | 'jpg'; mime: string }> => {
   const { width, height } = sourceImageDimensions;
-  const { format, quality, addWatermark, canvasSize } = options;
+  const { format, quality, canvasSize, purpose } = options;
+  const proActive = purpose === 'thumbnail' ? false : await refreshEntitlement();
+  if (purpose !== 'thumbnail' && !proActive && requiresProForExport(canvasElements)) {
+    throw new ProRequiredError();
+  }
 
   try {
     const surface = Skia.Surface.Make(Math.round(width), Math.round(height));
@@ -640,50 +643,21 @@ export const exportCanvasToImage = async (
       await drawCanvasElement(canvas, element, canvasScale);
     }
 
-    // Add built-in watermark as a sticker element (rasterized at export resolution)
-    if (addWatermark) {
-      try {
-        const scaleFactor = Math.max(canvasScale.x, canvasScale.y);
-        const exportFontSize = Math.round(WATERMARK_FONT_SIZE * scaleFactor);
-
-        // Rasterize watermark text at export resolution
-        const rasterized = await rasterizeTextElementToWatermark({
-          id: `builtin-watermark-${Date.now()}`,
-          type: 'text',
-          textContent: STIKARO_WATERMARK_TEXT,
-          fontFamily: 'System',
-          fontSize: exportFontSize,
-          color: '#FFFFFF',
-          position: { x: 0, y: 0 },
-          scale: 1,
-          rotation: 0,
-          opacity: WATERMARK_OPACITY,
-        });
-
-        if (rasterized.assetPath) {
-          const watermarkWidth = rasterized.width ?? exportFontSize * 10;
-          const watermarkHeight = rasterized.height ?? exportFontSize * 2;
-
-          // Position in EXPORT coordinates (bottom-right with scaled padding)
-          const paddingScaled = WATERMARK_PADDING * scaleFactor;
-          const exportX = width - watermarkWidth - paddingScaled;
-          const exportY = height - watermarkHeight - paddingScaled;
-
-          // Draw watermark directly at export coordinates (no scaling needed)
-          const watermarkImage = await loadImage(rasterized.assetPath);
-          if (watermarkImage) {
-            const paint = Skia.Paint();
-            paint.setAntiAlias(true);
-            // Opacity is already baked into the rasterized image
-
-            const srcRect = Skia.XYWHRect(0, 0, watermarkImage.width(), watermarkImage.height());
-            const dstRect = Skia.XYWHRect(exportX, exportY, watermarkWidth, watermarkHeight);
-            canvas.drawImageRect(watermarkImage, srcRect, dstRect, paint);
-          }
-        }
-      } catch (error) {
-        console.error('[imageExporter] Failed to draw watermark:', error);
-      }
+    // Draw the real bundled app logo last, in source-image coordinates. A free
+    // export must fail if its logo cannot load, rather than silently omit it.
+    if (purpose !== 'thumbnail' && !proActive) {
+      const logoURI = Image.resolveAssetSource(EXPORT_LOGO).uri;
+      const logo = await loadImage(logoURI);
+      if (!logo) throw new Error('Failed to load the export logo');
+      const rect = getExportLogoRect(width, height);
+      const paint = Skia.Paint();
+      paint.setAntiAlias(true);
+      canvas.drawImageRect(
+        logo,
+        Skia.XYWHRect(0, 0, logo.width(), logo.height()),
+        Skia.XYWHRect(rect.x, rect.y, rect.width, rect.height),
+        paint,
+      );
     }
 
     // Encode and save
@@ -761,7 +735,7 @@ export const generateThumbnail = async (
     {
       format: 'jpg',
       quality: 80,
-      addWatermark: false,
+      purpose: 'thumbnail',
       canvasSize: canvasSize || undefined,
     },
     filter,

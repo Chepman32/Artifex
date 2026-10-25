@@ -44,7 +44,7 @@ export const tr: Translations = {
     hapticFeedback: 'Haptik Geri Bildirim',
     hapticFeedbackDesc: 'Etkileşimler için titreşim',
     version: 'Sürüm',
-    rateApp: 'Stikaro\'i Değerlendir',
+    rateApp: 'Marqo\'i Değerlendir',
     rateAppDesc: 'Geri bildiriminizle bize yardımcı olun',
     contactSupport: 'Destek İle İletişime Geç',
     contactSupportDesc: 'Yardım alın veya sorunları bildirin',

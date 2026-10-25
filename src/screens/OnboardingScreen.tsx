@@ -30,6 +30,8 @@ import { useTranslation } from '../hooks/useTranslation';
 import { Spacing, Dimensions as AppDimensions } from '../constants/spacing';
 import { Shadows } from '../constants/colors';
 import { triggerHaptic } from '../utils/haptics';
+import { useCurrentLanguage } from '../hooks/useTranslation';
+import { getProCopy } from '../localization/pro';
 
 const PANEL_COUNT = 3;
 const PANEL_COLORS = [
@@ -299,6 +301,7 @@ const PanelFree: React.FC<PanelProps> = ({
   onFinish,
 }) => {
   const t = useTranslation();
+  const copy = getProCopy(useCurrentLanguage());
   const palette = PANEL_COLORS[index];
   const cardWidth = Math.min(width * 0.8, 330);
   const cardHeight = cardWidth * 0.68;
@@ -383,14 +386,14 @@ const PanelFree: React.FC<PanelProps> = ({
       </View>
 
       <View style={styles.textBlock}>
-        <Text style={styles.headline}>{t.onboarding.panel3Title}</Text>
-        <Text style={styles.body}>{t.onboarding.panel3Body}</Text>
+        <Text style={styles.headline}>{copy.onboardingTitle}</Text>
+        <Text style={styles.body}>{copy.onboardingBody}</Text>
         <View style={styles.featurePills}>
           <Animated.View style={[styles.featurePill, featureStyle1]}>
             <Svg width={18} height={18} viewBox="0 0 20 20">
               <Path d={STAR_PATH} fill={palette.primary} />
             </Svg>
-            <Text style={styles.featureText}>{t.onboarding.panel3FeatureAssets}</Text>
+            <Text style={styles.featureText}>{copy.freeAssets}</Text>
           </Animated.View>
           <Animated.View style={[styles.featurePill, featureStyle2]}>
             <Svg width={18} height={18} viewBox="0 0 20 20">
@@ -399,7 +402,7 @@ const PanelFree: React.FC<PanelProps> = ({
               <Circle cx="7" cy="6" r="3" fill="#FFFFFF" />
               <Circle cx="13" cy="14" r="3" fill="#FFFFFF" />
             </Svg>
-            <Text style={styles.featureText}>{t.onboarding.panel3FeatureTools}</Text>
+            <Text style={styles.featureText}>{copy.freeTools}</Text>
           </Animated.View>
           <Animated.View style={[styles.featurePill, featureStyle3]}>
             <Svg width={18} height={18} viewBox="0 0 20 20">
@@ -408,7 +411,7 @@ const PanelFree: React.FC<PanelProps> = ({
                 fill={palette.accent}
               />
             </Svg>
-            <Text style={styles.featureText}>{t.onboarding.panel3FeatureNoWatermarks}</Text>
+            <Text style={styles.featureText}>{copy.proExports}</Text>
           </Animated.View>
         </View>
       </View>
@@ -513,7 +516,7 @@ const OnboardingScreen: React.FC = () => {
         </Svg>
       </Animated.View>
 
-      <TouchableOpacity style={[stylesMemo.skipButton, { top: insets.top + Spacing.l }]} onPress={handleFinish}>
+      <TouchableOpacity testID="onboarding-skip" style={[stylesMemo.skipButton, { top: insets.top + Spacing.l }]} onPress={handleFinish}>
         <Text style={stylesMemo.skipText}>{t.onboarding.skip}</Text>
       </TouchableOpacity>
 

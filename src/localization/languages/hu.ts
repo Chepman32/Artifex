@@ -45,7 +45,7 @@ export const hu: Translations = {
     hapticFeedback: 'Haptikus visszajelzés',
     hapticFeedbackDesc: 'Rezgés az interakciókhoz',
     version: 'Verzió',
-    rateApp: 'Stikaro értékelése',
+    rateApp: 'Marqo értékelése',
     rateAppDesc: 'Segítsen nekünk javítani az visszajelzésével',
     contactSupport: 'Kapcsolat a támogatással',
     contactSupportDesc: 'Segítség kérése vagy problémák jelentése',

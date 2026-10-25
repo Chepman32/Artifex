@@ -286,8 +286,9 @@ const ImagePickerScreen: React.FC = () => {
     }
   };
 
-  const renderPhoto = ({ item }: { item: PhotoAsset }) => (
+  const renderPhoto = ({ item, index }: { item: PhotoAsset; index: number }) => (
     <TouchableOpacity
+      testID={`image-picker-photo-${index}`}
       style={styles.photoItem}
       onPress={() => handlePhotoSelect(item)}
       disabled={!!selectingPhotoUri}
@@ -305,7 +306,7 @@ const ImagePickerScreen: React.FC = () => {
     <SafeAreaView style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity style={styles.closeButton} onPress={handleClose}>
+        <TouchableOpacity testID="image-picker-close" style={styles.closeButton} onPress={handleClose}>
           <Text style={styles.closeIcon}>✕</Text>
         </TouchableOpacity>
 

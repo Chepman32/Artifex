@@ -11,23 +11,13 @@ export interface Project {
   updatedAt: Date;
 }
 
-export interface SerializedElement {
-  id: string;
-  type: 'text' | 'sticker' | 'watermark' | 'stamp';
-  position: { x: number; y: number }; // Normalized 0-1
-  scale: number;
-  rotation: number; // Degrees
-  opacity: number; // 0-1
-  zIndex: number;
-
-  // Type-specific properties
-  textContent?: string;
+// Projects and history persist canvas elements directly. Array order is the
+// current layer order; these optional fields also accept older project data.
+export interface SerializedElement extends CanvasElement {
+  zIndex?: number;
   font?: string;
-  fontSize?: number;
-  color?: string;
   strokeWidth?: number;
   strokeColor?: string;
-  assetPath?: string;
   originalSize?: { width: number; height: number };
   tint?: string;
 }
@@ -50,6 +40,7 @@ export interface CanvasElement {
   textEffect?: 'none' | 'neon' | 'glow' | 'shadow' | 'outline';
   textBackground?: string | null;
   assetPath?: string;
+  assetId?: string;
 }
 
 export interface ImageFilter {

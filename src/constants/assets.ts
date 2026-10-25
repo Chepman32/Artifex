@@ -1,10 +1,13 @@
 // Asset definitions for stickers, fonts, watermarks, and stamps
 
+import type { ImageSourcePropType } from 'react-native';
+import { PREMIUM_STICKERS, PREMIUM_STAMPS } from './premiumAssets';
+
 export interface AssetItem {
   id: string;
   name: string;
   uri?: string;
-  file?: string;
+  file?: ImageSourcePropType;
   category: string;
   isPro: boolean;
   width?: number;
@@ -315,9 +318,7 @@ export const STICKERS: { free: AssetItem[]; pro: AssetItem[] } = {
       isPro: false,
     },
   ],
-  pro: [
-    // Premium stickers - can be added later
-  ],
+  pro: PREMIUM_STICKERS,
 };
 
 // Watermark templates
@@ -524,6 +525,7 @@ export const STAMPS: { free: AssetItem[]; pro: AssetItem[] } = {
     },
   ],
   pro: [
+    ...PREMIUM_STAMPS,
     {
       id: 'best-seller',
       name: 'Best Seller',
@@ -638,6 +640,7 @@ export const STAMPS: { free: AssetItem[]; pro: AssetItem[] } = {
 // Asset categories for filtering
 export const STICKER_CATEGORIES = [
   { id: 'all', label: 'All' },
+  { id: 'pro', label: 'Pro Collection' },
   { id: 'emoji', label: 'Emoji' },
   { id: 'social-media', label: 'Social Media' },
   { id: 'text-labels', label: 'Text & Labels' },
@@ -657,6 +660,7 @@ export const WATERMARK_CATEGORIES = [
 
 export const STAMP_CATEGORIES = [
   { id: 'all', label: 'All' },
+  { id: 'pro', label: 'Pro Collection' },
   { id: 'approval', label: 'Approval' },
   { id: 'labels', label: 'Labels' },
   { id: 'seals', label: 'Seals' },

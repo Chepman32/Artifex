@@ -45,7 +45,7 @@ export const cs: Translations = {
     hapticFeedback: 'Haptická zpětná vazba',
     hapticFeedbackDesc: 'Vibrace pro interakce',
     version: 'Verze',
-    rateApp: 'Ohodnotit Stikaro',
+    rateApp: 'Ohodnotit Marqo',
     rateAppDesc: 'Pomozte nám zlepšit se vaší zpětnou vazbou',
     contactSupport: 'Kontaktovat podporu',
     contactSupportDesc: 'Získejte pomoc nebo nahlaste problémy',

@@ -44,7 +44,7 @@ export const hi: Translations = {
     hapticFeedback: 'हैप्टिक फीडबैक',
     hapticFeedbackDesc: 'इंटरैक्शन के लिए कंपन',
     version: 'संस्करण',
-    rateApp: 'Stikaro को रेट करें',
+    rateApp: 'Marqo को रेट करें',
     rateAppDesc: 'अपनी फीडबैक से हमें बेहतर बनाने में मदद करें',
     contactSupport: 'सपोर्ट से संपर्क करें',
     contactSupportDesc: 'सहायता प्राप्त करें या समस्याएं रिपोर्ट करें',

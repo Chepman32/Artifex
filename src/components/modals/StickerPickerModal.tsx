@@ -1,6 +1,6 @@
 // Sticker picker modal with free and pro assets
 
-import React, { useMemo, useState, useCallback } from 'react';
+import React, { useMemo, useState, useCallback, useEffect } from 'react';
 import {
   View,
   Text,
@@ -10,39 +10,39 @@ import {
   Image,
   ScrollView,
   useWindowDimensions,
+  type ImageSourcePropType,
 } from 'react-native';
 import { BottomSheet } from './BottomSheet';
 import { Theme } from '../../constants/themes';
 import { useTheme } from '../../hooks/useTheme';
-import { useTranslation } from '../../hooks/useTranslation';
+import { useCurrentLanguage, useTranslation } from '../../hooks/useTranslation';
 import { Typography } from '../../constants/typography';
 import { Spacing } from '../../constants/spacing';
-import { STICKERS, STICKER_CATEGORIES } from '../../constants/assets';
+import { STICKER_CATEGORIES, type AssetItem } from '../../constants/assets';
+import { getLocalizedStickers } from '../../constants/localizedAssets';
 import { useAppStore } from '../../stores/appStore';
 import { triggerHaptic } from '../../utils/haptics';
+import { PaywallContent } from '../PaywallContent';
+import { ProBadge } from '../ProBadge';
+import { refreshEntitlement } from '../../services/subscriptions';
+import { hasProEntitlement, useSubscriptionStore } from '../../stores/subscriptionStore';
+import { getProCopy } from '../../localization/pro';
 
 const GRID_COLUMNS = 3;
 const GRID_GAP = Spacing.xs;
 
-interface Sticker {
-  id: string;
-  name: string;
-  uri?: string;
-  file?: any;
-  category: string;
-  isPro: boolean;
-  width?: number;
-  height?: number;
-}
-
-// Combine free and pro stickers
-const ALL_STICKERS = [...STICKERS.free, ...STICKERS.pro];
+type Sticker = AssetItem;
 type StickerCategory = (typeof STICKER_CATEGORIES)[number];
 
 interface StickerPickerModalProps {
   visible: boolean;
   onClose: () => void;
-  onSelect: (stickerUri: string, width: number, height: number) => void;
+  onSelect: (
+    stickerSource: string | ImageSourcePropType,
+    width: number,
+    height: number,
+    assetId?: string,
+  ) => void;
 }
 
 export const StickerPickerModal: React.FC<StickerPickerModalProps> = ({
@@ -52,6 +52,13 @@ export const StickerPickerModal: React.FC<StickerPickerModalProps> = ({
 }) => {
   const theme = useTheme();
   const t = useTranslation();
+  const language = useCurrentLanguage();
+  const copy = getProCopy(language);
+  const entitlement = useSubscriptionStore(state => state.entitlement);
+  const isPro = hasProEntitlement(entitlement);
+  const [showPaywall, setShowPaywall] = useState(false);
+  useEffect(() => { if (!visible) setShowPaywall(false); }, [visible]);
+  const stickers = useMemo(() => getLocalizedStickers(language), [language]);
   const { width: screenWidth, height: screenHeight } = useWindowDimensions();
   const hapticsEnabled = useAppStore(state => state.preferences.hapticFeedback);
   const stickerSize = useMemo(
@@ -60,9 +67,13 @@ export const StickerPickerModal: React.FC<StickerPickerModalProps> = ({
       GRID_COLUMNS,
     [screenWidth],
   );
-  const styles = useMemo(() => createStyles(theme, stickerSize), [theme, stickerSize]);
+  const styles = useMemo(
+    () => createStyles(theme, stickerSize),
+    [theme, stickerSize],
+  );
   const [selectedCategory, setSelectedCategory] = useState('all');
   const getCategoryLabel = (categoryId: string) => {
+    if (categoryId === 'pro') return copy.collection;
     const labels = t.stickers.categories as Record<string, string>;
     return labels[categoryId] || categoryId;
   };
@@ -72,7 +83,7 @@ export const StickerPickerModal: React.FC<StickerPickerModalProps> = ({
     return Math.min(screenHeight * 0.9, screenHeight - 80);
   }, [screenHeight]);
 
-  const filteredStickers = ALL_STICKERS.filter(sticker => {
+  const filteredStickers = stickers.filter(sticker => {
     if (selectedCategory === 'all') {
       return true;
     }
@@ -80,7 +91,7 @@ export const StickerPickerModal: React.FC<StickerPickerModalProps> = ({
   });
 
   const getStickerItemLayout = useCallback(
-    (_: Sticker[] | null, index: number) => ({
+    (_: ArrayLike<Sticker> | null | undefined, index: number) => ({
       length: stickerSize + GRID_GAP,
       offset: Math.floor(index / GRID_COLUMNS) * (stickerSize + GRID_GAP),
       index,
@@ -88,13 +99,21 @@ export const StickerPickerModal: React.FC<StickerPickerModalProps> = ({
     [stickerSize],
   );
 
-  const handleStickerPress = (sticker: Sticker) => {
+  const handleStickerPress = async (sticker: Sticker) => {
+    if (sticker.isPro && !(await refreshEntitlement())) {
+      setShowPaywall(true);
+      return;
+    }
     if (hapticsEnabled) {
       triggerHaptic('selection');
     }
     // Select the sticker - use file if available, otherwise uri
     const stickerSource = sticker.file || sticker.uri || '';
-    onSelect(stickerSource, sticker.width || 100, sticker.height || 100);
+    if (sticker.isPro) {
+      onSelect(stickerSource, sticker.width || 100, sticker.height || 100, sticker.id);
+    } else {
+      onSelect(stickerSource, sticker.width || 100, sticker.height || 100);
+    }
     onClose();
   };
 
@@ -104,6 +123,7 @@ export const StickerPickerModal: React.FC<StickerPickerModalProps> = ({
     return (
       <TouchableOpacity
         key={category.id}
+        testID={`sticker-category-${category.id}`}
         style={[styles.categoryPill, isSelected && styles.categoryPillSelected]}
         onPress={() => setSelectedCategory(category.id)}
         activeOpacity={0.8}
@@ -124,6 +144,10 @@ export const StickerPickerModal: React.FC<StickerPickerModalProps> = ({
     return (
       <TouchableOpacity
         style={styles.stickerItem}
+        accessibilityRole="button"
+        accessibilityLabel={item.isPro ? `${item.name}, ${copy.collection}` : item.name}
+        accessibilityHint={item.isPro && !isPro ? copy.subscribe : undefined}
+        testID={`asset-${item.id}`}
         onPress={() => handleStickerPress(item)}
         activeOpacity={0.7}
       >
@@ -133,13 +157,15 @@ export const StickerPickerModal: React.FC<StickerPickerModalProps> = ({
             style={styles.stickerImage}
             resizeMode="contain"
           />
+          {item.isPro && <ProBadge locked={!isPro} />}
         </View>
       </TouchableOpacity>
     );
   };
 
   return (
-    <BottomSheet visible={visible} onClose={onClose} height={modalHeight}>
+    <BottomSheet visible={visible} onClose={onClose} height={modalHeight} dragFromHandleOnly={showPaywall}>
+      {showPaywall ? <PaywallContent onClose={() => setShowPaywall(false)} onUnlocked={() => setShowPaywall(false)} /> : (
       <View style={styles.container}>
         <Text style={styles.title}>{t.stickers.title}</Text>
 
@@ -163,9 +189,7 @@ export const StickerPickerModal: React.FC<StickerPickerModalProps> = ({
           showsVerticalScrollIndicator={false}
           ListEmptyComponent={
             <View style={styles.emptyState}>
-              <Text style={styles.emptyText}>
-                {t.stickers.emptyCategory}
-              </Text>
+              <Text style={styles.emptyText}>{t.stickers.emptyCategory}</Text>
             </View>
           }
           getItemLayout={getStickerItemLayout}
@@ -176,6 +200,7 @@ export const StickerPickerModal: React.FC<StickerPickerModalProps> = ({
           removeClippedSubviews
         />
       </View>
+      )}
     </BottomSheet>
   );
 };

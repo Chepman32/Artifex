@@ -39,8 +39,11 @@ jest.mock('../src/stores/editorStore', () => {
   };
 });
 
+jest.mock('../src/hooks/useTheme', () => ({ useTheme: () => require('../src/constants/themes').themes.dark }));
+
 jest.mock('../src/hooks/useTranslation', () => {
   return {
+    useCurrentLanguage: () => 'en',
     useTranslation: () => ({
       common: {
         error: 'Error',
@@ -63,21 +66,11 @@ jest.mock('../src/hooks/useTranslation', () => {
   };
 });
 
-jest.mock('react-native', () => {
-  const rn = jest.requireActual('react-native');
-  return {
-    ...rn,
-    Alert: {
-      alert: jest.fn(),
-    },
-  };
-});
-
 import { exportCanvasToImage } from '../src/utils/imageExporter';
 import { ExportModal } from '../src/components/modals/ExportModal';
 
-describe('ExportModal watermarking', () => {
-  it('passes addWatermark=true when exporting', async () => {
+describe('ExportModal subscription export policy', () => {
+  it('shows free export branding and delegates branding policy to the exporter', async () => {
     const { getByText } = render(
       <ExportModal
         visible
@@ -95,10 +88,7 @@ describe('ExportModal watermarking', () => {
     const call = (exportCanvasToImage as jest.Mock).mock.calls[0];
     const options = call[3];
 
-    expect(options).toEqual(
-      expect.objectContaining({
-        addWatermark: true,
-      }),
-    );
+    expect(options.purpose).toBeUndefined();
+    expect(options).not.toHaveProperty('addWatermark');
   });
 });

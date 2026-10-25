@@ -59,16 +59,18 @@ export const SizeSlider: React.FC<SizeSliderProps> = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialValue]);
 
-  const startY = useSharedValue(0);
-
   const panGesture = Gesture.Pan()
-    .onStart(() => {
+    .minDistance(0)
+    .onStart(event => {
       isDragging.value = true;
-      startY.value = translateY.value;
+      const y = Math.max(0, Math.min(event.y, SLIDER_HEIGHT));
+      translateY.value = y - THUMB_SIZE / 2;
+      scale.value = MIN_SCALE + (1 - y / SLIDER_HEIGHT) * (MAX_SCALE - MIN_SCALE);
+      runOnJS(onValueChange)(scale.value);
       runOnJS(haptics.light)();
     })
     .onUpdate(event => {
-      const newY = startY.value + event.translationY;
+      const newY = event.y - THUMB_SIZE / 2;
       // Center thumb on track endpoints (thumb center reaches track top/bottom)
       const minY = -THUMB_SIZE / 2;
       const maxY = SLIDER_HEIGHT - THUMB_SIZE / 2;
@@ -84,7 +86,8 @@ export const SizeSlider: React.FC<SizeSliderProps> = ({
       // Call onValueChange for live preview
       runOnJS(onValueChange)(newScale);
     })
-    .onEnd(() => {
+    .onFinalize(() => {
+      if (!isDragging.value) return;
       isDragging.value = false;
       runOnJS(haptics.light)();
       // Call onChangeEnd to save to history
@@ -111,21 +114,21 @@ export const SizeSlider: React.FC<SizeSliderProps> = ({
   }
 
   return (
-    <Animated.View style={[styles.container, containerStyle]}>
+    <GestureDetector gesture={panGesture}>
+    <Animated.View testID="element-size-slider" style={[styles.container, containerStyle]}>
       {/* Background Track */}
       <View
         style={[styles.track, { backgroundColor: theme.backgrounds.tertiary }]}
       />
 
       {/* Draggable Thumb */}
-      <GestureDetector gesture={panGesture}>
         <Animated.View style={[styles.thumb, thumbStyle]}>
           <View
             style={[styles.thumbInner, { backgroundColor: theme.accent.primary }]}
           />
         </Animated.View>
-      </GestureDetector>
     </Animated.View>
+    </GestureDetector>
   );
 };
 

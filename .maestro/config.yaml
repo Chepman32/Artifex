@@ -1,0 +1,5 @@
+flows:
+  - pro-paywall.yaml
+  - pro-assets-export.yaml
+  - pro-theme-layout.yaml
+  - pro-checkout-cancel.yaml

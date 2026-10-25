@@ -22,6 +22,8 @@ import Animated, {
 } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import type { RootStackParamList } from '../navigation/AppNavigator';
 import { useProjectGalleryStore } from '../stores/projectGalleryStore';
 import { useAppStore } from '../stores/appStore';
 import { useTheme } from '../hooks/useTheme';
@@ -157,7 +159,7 @@ const AnimatedProjectItem = React.memo(
 );
 
 const HomeScreen: React.FC = () => {
-  const navigation = useNavigation();
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const theme = useTheme();
   const t = useTranslation();
   const { width: screenWidth } = useWindowDimensions();
@@ -215,7 +217,7 @@ const HomeScreen: React.FC = () => {
   const handleFabPress = () => {
     try {
       // Navigate to Image Picker
-      navigation.navigate('ImagePicker' as never);
+      navigation.navigate('ImagePicker');
     } catch (error) {
       console.error('Navigation error:', error);
     }
@@ -239,8 +241,8 @@ const HomeScreen: React.FC = () => {
       toggleSelection(project.id);
     } else {
       navigation.navigate(
-        'Editor' as never,
-        { projectId: project.id } as never,
+        'Editor',
+        { projectId: project.id },
       );
     }
   };
@@ -279,12 +281,12 @@ const HomeScreen: React.FC = () => {
   };
 
   const handleSettingsPress = () => {
-    navigation.navigate('Settings' as never);
+    navigation.navigate('Settings');
   };
 
   const rowHeight = gridItemSize + Spacing.m;
   const getProjectItemLayout = useCallback(
-    (_: Project[] | null, index: number) => ({
+    (_: ArrayLike<Project> | null | undefined, index: number) => ({
       length: rowHeight,
       offset: Math.floor(index / GRID_COLUMNS) * rowHeight,
       index,
@@ -325,6 +327,7 @@ const HomeScreen: React.FC = () => {
       {/* Top Bar */}
       <View style={styles.topBar}>
         <TouchableOpacity
+          testID="home-settings"
           style={styles.topBarButton}
           onPress={handleSettingsPress}
         >
@@ -335,7 +338,7 @@ const HomeScreen: React.FC = () => {
           />
         </TouchableOpacity>
 
-        <Text style={[styles.title, { color: theme.text.primary }]}>Stikaro</Text>
+        <Text style={[styles.title, { color: theme.text.primary }]}>Marqo</Text>
 
         <View style={styles.topBarButton} />
       </View>
@@ -379,6 +382,7 @@ const HomeScreen: React.FC = () => {
       {/* FAB */}
       <View style={styles.fab}>
         <TouchableOpacity
+          testID="home-new-project"
           style={[styles.fabButton, { backgroundColor: theme.accent.primary }]}
           onPress={handleFabAction}
           activeOpacity={0.8}

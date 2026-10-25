@@ -44,7 +44,7 @@ export const ar: Translations = {
     hapticFeedback: 'الرد الاهتزازي',
     hapticFeedbackDesc: 'اهتزاز للتفاعلات',
     version: 'الإصدار',
-    rateApp: 'قيّم Stikaro',
+    rateApp: 'قيّم Marqo',
     rateAppDesc: 'ساعدنا على التحسين بملاحظاتك',
     contactSupport: 'تواصل مع الدعم',
     contactSupportDesc: 'احصل على المساعدة أو أبلغ عن مشاكل',

@@ -1,0 +1,120 @@
+import type { AssetItem } from './assets';
+
+// Original, transparent artwork. Text-free designs work in every app language.
+export const PREMIUM_STICKERS: AssetItem[] = [
+  {
+    id: 'pro-crystal-heart',
+    name: 'Crystal Heart',
+    file: require('../assets/premium/stickers/crystal-heart.png'),
+    category: 'pro',
+    isPro: true,
+    width: 140,
+    height: 140,
+  },
+  {
+    id: 'pro-moon-bloom',
+    name: 'Moon Bloom',
+    file: require('../assets/premium/stickers/moon-bloom.png'),
+    category: 'pro',
+    isPro: true,
+    width: 140,
+    height: 140,
+  },
+  {
+    id: 'pro-cosmic-planet',
+    name: 'Cosmic Planet',
+    file: require('../assets/premium/stickers/cosmic-planet.png'),
+    category: 'pro',
+    isPro: true,
+    width: 140,
+    height: 140,
+  },
+  {
+    id: 'pro-golden-butterfly',
+    name: 'Golden Butterfly',
+    file: require('../assets/premium/stickers/golden-butterfly.png'),
+    category: 'pro',
+    isPro: true,
+    width: 140,
+    height: 140,
+  },
+  {
+    id: 'pro-sun-charm',
+    name: 'Sun Charm',
+    file: require('../assets/premium/stickers/sun-charm.png'),
+    category: 'pro',
+    isPro: true,
+    width: 140,
+    height: 140,
+  },
+  {
+    id: 'pro-vintage-camera',
+    name: 'Vintage Camera',
+    file: require('../assets/premium/stickers/vintage-camera.png'),
+    category: 'pro',
+    isPro: true,
+    width: 140,
+    height: 140,
+  },
+];
+
+export const PREMIUM_STAMPS: AssetItem[] = [
+  {
+    id: 'pro-laurel-star',
+    name: 'Laurel Star',
+    file: require('../assets/premium/stamps/laurel-star.png'),
+    category: 'pro',
+    isPro: true,
+    width: 120,
+    height: 120,
+  },
+  {
+    id: 'pro-wax-heart',
+    name: 'Wax Heart',
+    file: require('../assets/premium/stamps/wax-heart.png'),
+    category: 'pro',
+    isPro: true,
+    width: 120,
+    height: 120,
+  },
+  {
+    id: 'pro-celestial-seal',
+    name: 'Celestial Seal',
+    file: require('../assets/premium/stamps/celestial-seal.png'),
+    category: 'pro',
+    isPro: true,
+    width: 120,
+    height: 120,
+  },
+  {
+    id: 'pro-botanical-seal',
+    name: 'Botanical Seal',
+    file: require('../assets/premium/stamps/botanical-seal.png'),
+    category: 'pro',
+    isPro: true,
+    width: 120,
+    height: 120,
+  },
+  {
+    id: 'pro-diamond-seal',
+    name: 'Diamond Seal',
+    file: require('../assets/premium/stamps/diamond-seal.png'),
+    category: 'pro',
+    isPro: true,
+    width: 120,
+    height: 120,
+  },
+  {
+    id: 'pro-butterfly-seal',
+    name: 'Butterfly Seal',
+    file: require('../assets/premium/stamps/butterfly-seal.png'),
+    category: 'pro',
+    isPro: true,
+    width: 120,
+    height: 120,
+  },
+];
+
+export const PREMIUM_ASSET_IDS = new Set(
+  [...PREMIUM_STICKERS, ...PREMIUM_STAMPS].map(a => a.id),
+);

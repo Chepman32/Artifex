@@ -1,0 +1,35 @@
+# Open native Apple checkout and cancel without subscribing.
+# A sandbox account is not required; a sign-in prompt is also cancellable.
+appId: com.artifex.app
+tags: [pro, checkout, ios]
+---
+- runFlow: flows/launch.yaml
+- tapOn:
+    id: home-settings
+- tapOn:
+    id: settings-pro
+- tapOn:
+    id: subscribe-pro
+- extendedWaitUntil:
+    visible: "Cancel|Отмена|Отменить"
+    timeout: 20000
+- takeScreenshot: checkout-native-open
+- tapOn:
+    text: "Cancel|Отмена|Отменить"
+    retryTapIfNoChange: true
+- extendedWaitUntil:
+    visible:
+      id: subscribe-pro
+      enabled: true
+    timeout: 15000
+- tapOn:
+    id: paywall-close
+- tapOn:
+    id: settings-pro
+- assertVisible:
+    id: pro-paywall
+- takeScreenshot: checkout-cancelled-free
+- tapOn:
+    id: paywall-close
+- tapOn:
+    id: settings-close

@@ -28,6 +28,7 @@ interface BottomSheetProps {
   children: React.ReactNode;
   height?: number;
   snapPoints?: number[]; // Heights where sheet can snap (as percentages of screen)
+  dragFromHandleOnly?: boolean;
 }
 
 export const BottomSheet: React.FC<BottomSheetProps> = ({
@@ -36,6 +37,7 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({
   children,
   height,
   snapPoints = [0.5, 0.9],
+  dragFromHandleOnly = false,
 }) => {
   const insets = useSafeAreaInsets();
   const theme = useTheme();
@@ -112,6 +114,12 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({
     return null;
   }
 
+  const dragHandle = (
+    <View style={styles.handleContainer} collapsable={false}>
+      <View style={styles.handle} />
+    </View>
+  );
+
   return (
     <Modal
       transparent
@@ -130,12 +138,14 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({
         </TouchableOpacity>
 
         {/* Sheet */}
-        <PanGestureHandler onGestureEvent={gestureHandler}>
+        <PanGestureHandler enabled={!dragFromHandleOnly} onGestureEvent={gestureHandler}>
           <Animated.View style={[styles.sheet, { height: sheetHeight }, sheetStyle]}>
             {/* Drag handle */}
-            <View style={styles.handleContainer}>
-              <View style={styles.handle} />
-            </View>
+            {dragFromHandleOnly ? (
+              <PanGestureHandler onGestureEvent={gestureHandler}>
+                {dragHandle}
+              </PanGestureHandler>
+            ) : dragHandle}
 
             {/* Content */}
             <View

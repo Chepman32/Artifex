@@ -37,6 +37,7 @@ import { WatermarkToolModal } from '../components/modals/WatermarkToolModal';
 import { LayersModal } from '../components/modals/LayersModal';
 
 import { SizeSlider } from '../components/SizeSlider';
+import { TextToolbar } from '../components/TextToolbar';
 import { createStickerElement, createStampElement } from '../utils/canvasElements';
 import { rasterizeTextElementToWatermark } from '../utils/textRasterizer';
 import { WatermarkManager } from '../utils/watermarkManager';
@@ -252,7 +253,7 @@ const EditorScreen: React.FC = () => {
   );
 
   const [activeToolbar, setActiveToolbar] = useState<
-    'watermark' | 'sticker' | 'stamps' | 'filter' | 'layers' | null
+    'watermark' | 'sticker' | 'stamps' | 'filter' | 'layers' | 'text' | null
   >(null);
   const hasSelection = selectedElementIds.length > 0;
   const hasSingleSelection = selectedElementIds.length === 1;
@@ -623,6 +624,7 @@ const EditorScreen: React.FC = () => {
     source: string | any,
     width: number,
     height: number,
+    assetId?: string,
   ) => {
     const canvasSize = calculateCanvasSize();
 
@@ -636,14 +638,19 @@ const EditorScreen: React.FC = () => {
       stickerUri = resolvedAsset.uri;
     }
 
+    const longestEdge = Math.max(width, height, 1);
+    const fit = Math.min(1, Math.min(canvasSize.width, canvasSize.height) * 0.3 / longestEdge);
+    const fittedWidth = Math.max(1, width * fit);
+    const fittedHeight = Math.max(1, height * fit);
+    const offset = (canvasElements.filter(item => item.type === 'sticker').length % 5) * 20;
     const element = createStickerElement(
       stickerUri,
-      canvasSize.width / 2 - width / 2,
-      canvasSize.height / 2 - height / 2,
-      width,
-      height,
+      Math.min(canvasSize.width - fittedWidth, canvasSize.width / 2 - fittedWidth / 2 + offset),
+      Math.min(canvasSize.height - fittedHeight, canvasSize.height / 2 - fittedHeight / 2 + offset),
+      fittedWidth,
+      fittedHeight,
     );
-    addElement(element);
+    addElement({ ...element, assetId });
   };
 
   const handleAddStamp = (stampRequire: any) => {
@@ -676,6 +683,7 @@ const EditorScreen: React.FC = () => {
     stampSource: string | any,
     width: number,
     height: number,
+    assetId?: string,
   ) => {
     const canvasSize = calculateCanvasSize();
 
@@ -696,7 +704,7 @@ const EditorScreen: React.FC = () => {
       width,
       height,
     );
-    addElement(element);
+    addElement({ ...element, assetId });
   };
 
   const handleFilterSelect = (filterId: string) => {
@@ -991,6 +999,7 @@ const EditorScreen: React.FC = () => {
     iconSource: any,
   ) => (
     <TouchableOpacity
+      testID={`editor-tool-${tool}`}
       style={[
         styles.toolButton,
         activeToolbar === tool && styles.toolButtonActive,
@@ -1014,7 +1023,7 @@ const EditorScreen: React.FC = () => {
       {/* Top Bar */}
       <View style={styles.topBar}>
         <View style={styles.topBarLeft}>
-          <TouchableOpacity style={styles.backButton} onPress={handleBack}>
+          <TouchableOpacity testID="editor-back" style={styles.backButton} onPress={handleBack}>
             <Text style={styles.backIcon}>‹</Text>
             <Text style={styles.backText}>{t.editor.backToGallery}</Text>
           </TouchableOpacity>
@@ -1072,7 +1081,7 @@ const EditorScreen: React.FC = () => {
           )}
         </View>
 
-        <TouchableOpacity style={styles.exportButton} onPress={handleExport}>
+        <TouchableOpacity testID="editor-export" style={styles.exportButton} onPress={handleExport}>
           <Text style={styles.exportText}>{t.editor.export}</Text>
         </TouchableOpacity>
       </View>

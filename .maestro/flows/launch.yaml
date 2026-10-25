@@ -1,0 +1,18 @@
+# Existing simulator state is retained; Marqo has no account sign-in.
+appId: com.artifex.app
+---
+- launchApp
+- swipe:
+    direction: DOWN
+    duration: 100
+- runFlow:
+    when:
+      visible:
+        id: onboarding-skip
+    commands:
+      - tapOn:
+          id: onboarding-skip
+- extendedWaitUntil:
+    visible:
+      id: home-settings
+    timeout: 20000

@@ -1,0 +1,45 @@
+# Native paywall: settings entry, plan selection, scrolling/legal controls,
+# dismissal, and safe handling of an unavailable App Store catalog.
+# Prerequisite: iOS simulator with Marqo installed. No paid purchase is made.
+appId: com.artifex.app
+tags: [smoke, pro, ios]
+---
+- runFlow: flows/launch.yaml
+- tapOn:
+    id: home-settings
+- tapOn:
+    id: settings-pro
+- extendedWaitUntil:
+    visible:
+      id: pro-paywall
+    timeout: 15000
+- assertVisible:
+    id: paywall-close
+- assertVisible:
+    id: restore-purchases
+- takeScreenshot: output/marqo-pro/maestro/paywall-native-top
+- scrollUntilVisible:
+    element:
+      id: plan-monthly
+    direction: DOWN
+    timeout: 10000
+- tapOn:
+    id: plan-monthly
+- scrollUntilVisible:
+    element:
+      id: paywall-privacy
+    direction: DOWN
+    timeout: 10000
+- assertVisible:
+    id: paywall-terms
+- assertVisible:
+    id: subscribe-pro
+- takeScreenshot: output/marqo-pro/maestro/paywall-native-monthly
+- tapOn:
+    id: paywall-close
+- assertVisible:
+    id: settings-pro
+- tapOn:
+    id: settings-close
+- assertVisible:
+    id: home-settings

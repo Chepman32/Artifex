@@ -44,7 +44,7 @@ export const vi: Translations = {
     hapticFeedback: 'Phản hồi rung',
     hapticFeedbackDesc: 'Rung khi tương tác',
     version: 'Phiên bản',
-    rateApp: 'Đánh giá Stikaro',
+    rateApp: 'Đánh giá Marqo',
     rateAppDesc: 'Giúp chúng tôi cải thiện với phản hồi của bạn',
     contactSupport: 'Liên hệ hỗ trợ',
     contactSupportDesc: 'Nhận trợ giúp hoặc báo cáo sự cố',

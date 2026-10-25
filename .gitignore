@@ -60,6 +60,9 @@ yarn-error.log
 # Bundle artifact
 *.jsbundle
 
+# Generated release exports and media; retain these locally, outside Git.
+/output/
+
 # Ruby / CocoaPods
 **/Pods/
 /vendor/bundle/

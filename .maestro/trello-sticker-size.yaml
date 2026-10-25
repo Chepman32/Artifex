@@ -1,0 +1,59 @@
+appId: com.artifex.app
+name: Marqo stickers track resizing and export
+---
+- runFlow: flows/launch.yaml
+- tapOn:
+    id: home-settings
+- tapOn:
+    id: settings-language
+- tapOn:
+    id: settings-language-en
+- tapOn:
+    id: settings-close
+- tapOn:
+    id: home-new-project
+- tapOn:
+    text: "Allow Full Access|Разрешить полный доступ"
+    optional: true
+- tapOn:
+    id: image-picker-photo-0
+- assertVisible:
+    id: editor-export
+- tapOn:
+    id: editor-tool-sticker
+- tapOn:
+    id: asset-s1
+- assertVisible:
+    id: element-size-slider
+- takeScreenshot: marqo-small-initial-sticker
+- swipe:
+    from:
+      id: element-size-slider
+      point: "50%, 85%"
+    direction: UP
+    duration: 600
+- takeScreenshot: marqo-sticker-enlarged
+- swipe:
+    from:
+      id: element-size-slider
+      point: "50%, 15%"
+    direction: DOWN
+    duration: 600
+- takeScreenshot: marqo-sticker-reduced
+- tapOn:
+    id: editor-tool-sticker
+- tapOn:
+    id: asset-s2
+- takeScreenshot: marqo-second-sticker-offset
+- tapOn:
+    id: editor-export
+- tapOn:
+    id: export-save
+- tapOn:
+    text: "Allow Access to All Photos|Allow Full Access|Разрешить полный доступ"
+    optional: true
+- extendedWaitUntil:
+    visible: "Saved to Photos"
+    timeout: 30000
+- takeScreenshot: marqo-export-saved
+- tapOn: "OK"

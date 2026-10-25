@@ -45,7 +45,7 @@ export const ru: Translations = {
     hapticFeedback: 'Тактильная обратная связь',
     hapticFeedbackDesc: 'Вибрация при взаимодействии',
     version: 'Версия',
-    rateApp: 'Оценить Stikaro',
+    rateApp: 'Оценить Marqo',
     rateAppDesc: 'Помогите нам улучшиться с вашим отзывом',
     contactSupport: 'Связаться с поддержкой',
     contactSupportDesc: 'Получить помощь или сообщить о проблеме',

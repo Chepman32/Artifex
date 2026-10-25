@@ -29,11 +29,22 @@ import { ProjectDatabase } from '../database/ProjectDatabase';
 import { exportCanvasToImage } from '../utils/imageExporter';
 import { CameraRoll } from '@react-native-camera-roll/camera-roll';
 import type { CanvasElement } from '../types';
+import { PaywallModal } from '../components/modals/PaywallModal';
+import { useCurrentLanguage } from '../hooks/useTranslation';
+import { getProCopy } from '../localization/pro';
+import { hasProEntitlement, useSubscriptionStore } from '../stores/subscriptionStore';
+import { restorePro } from '../services/subscriptions';
+import { MANAGE_SUBSCRIPTIONS_URL, PRIVACY_URL, TERMS_URL } from '../constants/subscriptions';
+import { ProRequiredError } from '../utils/proExportPolicy';
 
 const SettingsScreen: React.FC = () => {
   const navigation = useNavigation();
   const theme = useTheme();
   const t = useTranslation();
+  const copy = getProCopy(useCurrentLanguage());
+  const entitlement = useSubscriptionStore(state => state.entitlement);
+  const isPro = hasProEntitlement(entitlement);
+  const [showPaywall, setShowPaywall] = useState(false);
   const preferences = useAppStore(state => state.preferences);
   const updatePreferences = useAppStore(state => state.updatePreferences);
   const [showThemeModal, setShowThemeModal] = useState(false);
@@ -98,8 +109,7 @@ const SettingsScreen: React.FC = () => {
             {
               format: preferences.defaultExportFormat,
               quality: preferences.defaultExportQuality,
-              addWatermark: true,
-              canvasSize: project.canvasSize,
+                  canvasSize: project.canvasSize,
             },
             null,
           );
@@ -107,6 +117,10 @@ const SettingsScreen: React.FC = () => {
           await CameraRoll.save(result.filepath, { type: 'photo' });
           exportedCount += 1;
         } catch (error) {
+          if (error instanceof ProRequiredError) {
+            setShowPaywall(true);
+            return;
+          }
           console.error('Failed to export project:', project.id, error);
         }
       }
@@ -147,9 +161,8 @@ const SettingsScreen: React.FC = () => {
   };
 
   const handleContactSupport = () => {
-    Alert.alert(
-      t.settings.contactSupport,
-      t.settings.contactSupportAlertMessage,
+    Linking.openURL('mailto:gabdullov97@gmail.com').catch(() =>
+      Alert.alert(t.settings.contactSupport, 'gabdullov97@gmail.com'),
     );
   };
 
@@ -217,8 +230,10 @@ const SettingsScreen: React.FC = () => {
     rightElement?: React.ReactNode,
     onPress?: () => void,
     destructive?: boolean,
+    testID?: string,
   ) => (
     <TouchableOpacity
+      testID={testID}
       style={[
         styles.settingRow,
         { borderBottomColor: theme.backgrounds.tertiary },
@@ -256,6 +271,7 @@ const SettingsScreen: React.FC = () => {
     >
       <TouchableOpacity
         style={styles.modalOverlay}
+        accessible={false}
         activeOpacity={1}
         onPress={() => setShowThemeModal(false)}
       >
@@ -272,6 +288,9 @@ const SettingsScreen: React.FC = () => {
             themeType => (
               <TouchableOpacity
                 key={themeType}
+                testID={`settings-theme-${themeType}`}
+                accessibilityRole="radio"
+                accessibilityState={{ checked: preferences.theme === themeType }}
                 style={[
                   styles.modalOption,
                   { borderBottomColor: theme.backgrounds.tertiary },
@@ -351,6 +370,7 @@ const SettingsScreen: React.FC = () => {
     >
       <TouchableOpacity
         style={styles.modalOverlay}
+        accessible={false}
         activeOpacity={1}
         onPress={() => setShowLanguageModal(false)}
       >
@@ -368,6 +388,9 @@ const SettingsScreen: React.FC = () => {
             {(Object.keys(languageNames) as Language[]).map(lang => (
               <TouchableOpacity
                 key={lang}
+                testID={`settings-language-${lang}`}
+                accessibilityRole="radio"
+                accessibilityState={{ checked: preferences.language === lang }}
                 style={[
                   styles.modalOption,
                   { borderBottomColor: theme.backgrounds.tertiary },
@@ -421,7 +444,7 @@ const SettingsScreen: React.FC = () => {
           { borderBottomColor: theme.backgrounds.tertiary },
         ]}
       >
-        <TouchableOpacity style={styles.closeButton} onPress={handleClose}>
+        <TouchableOpacity testID="settings-close" style={styles.closeButton} onPress={handleClose}>
           <Text style={[styles.closeIcon, { color: theme.text.secondary }]}>
             ✕
           </Text>
@@ -433,6 +456,7 @@ const SettingsScreen: React.FC = () => {
       </View>
 
       <ScrollView
+        testID="settings-scroll"
         style={styles.scrollView}
         showsVerticalScrollIndicator={false}
       >
@@ -449,6 +473,8 @@ const SettingsScreen: React.FC = () => {
                 {getThemeName(preferences.theme)}
               </Text>,
               () => setShowThemeModal(true),
+              false,
+              'settings-theme',
             )}
             {renderSettingRow(
               t.settings.haptics,
@@ -479,6 +505,8 @@ const SettingsScreen: React.FC = () => {
                 {languageNames[preferences.language]}
               </Text>,
               () => setShowLanguageModal(true),
+              false,
+              'settings-language',
             )}
           </>,
         )}
@@ -487,6 +515,12 @@ const SettingsScreen: React.FC = () => {
         {renderSection(
           t.settings.account,
           <>
+            {renderSettingRow('Marqo Pro', isPro ? copy.active : `${copy.cleanExports} · ${copy.premiumAssets}`, undefined,
+              () => isPro ? void Linking.openURL(MANAGE_SUBSCRIPTIONS_URL) : setShowPaywall(true), false, 'settings-pro')}
+            {renderSettingRow(t.settings.restorePurchases, t.settings.restorePurchasesDesc, undefined, async () => {
+              try { Alert.alert('Marqo Pro', await restorePro() ? copy.restored : copy.noRestore); }
+              catch { Alert.alert(t.common.error, copy.failed); }
+            })}
             {renderSettingRow(
               t.settings.exportAllProjects,
               t.settings.exportAllProjectsDesc,
@@ -570,21 +604,13 @@ const SettingsScreen: React.FC = () => {
               t.settings.privacyPolicy,
               t.settings.privacyPolicyDesc,
               undefined,
-              () =>
-                Alert.alert(
-                  t.settings.privacyPolicy,
-                  t.settings.privacyPolicyAlertMessage,
-                ),
+              () => { void Linking.openURL(PRIVACY_URL); },
             )}
             {renderSettingRow(
               t.settings.termsOfService,
               t.settings.termsOfServiceDesc,
               undefined,
-              () =>
-                Alert.alert(
-                  t.settings.termsOfService,
-                  t.settings.termsOfServiceAlertMessage,
-                ),
+              () => { void Linking.openURL(TERMS_URL); },
             )}
           </>,
         )}
@@ -612,6 +638,7 @@ const SettingsScreen: React.FC = () => {
 
       {renderThemeModal()}
       {renderLanguageModal()}
+      <PaywallModal visible={showPaywall} onClose={() => setShowPaywall(false)} />
     </SafeAreaView>
   );
 };

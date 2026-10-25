@@ -44,7 +44,7 @@ export const nl: Translations = {
     hapticFeedback: 'Haptische Feedback',
     hapticFeedbackDesc: 'Trillingen voor interacties',
     version: 'Versie',
-    rateApp: 'Beoordeel Stikaro',
+    rateApp: 'Beoordeel Marqo',
     rateAppDesc: 'Help ons verbeteren met je feedback',
     contactSupport: 'Neem Contact op met Support',
     contactSupportDesc: 'Krijg hulp of meld problemen',

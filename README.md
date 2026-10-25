@@ -1,275 +1,109 @@
-# Stikaro - Offline Photo Annotation App
+# Marqo
 
-Stikaro is a premium iOS photo annotation app built with React Native, designed to provide an elegant, gesture-driven interface for adding watermarks, text, stickers, and stamps to photos. The app operates completely offline, ensuring user privacy and reliability.
+Marqo is a mobile photo editor for adding text, stickers, stamps, and watermarks to photos. It runs on iOS and Android, with iPad support on iOS. Photo editing, project storage, and export rendering happen on-device and work offline; App Store network access is used for subscription actions.
 
-## 🎯 Key Features
+## Features
 
-### Core Functionality
+### Photo editing
 
-- **Offline-First Architecture**: All features work without internet connection
-- **Gesture-Driven Editing**: Pinch, rotate, and drag elements with natural physics
-- **Professional Export**: High-resolution PNG/JPG export with customizable quality
-- **Privacy-Focused**: No data collection, no tracking, no cloud dependencies
+- Import a photo from the device photo library.
+- Add and style text with fonts, colors, effects, and backgrounds.
+- Add categorized stickers and stamps, including language-specific artwork where available.
+- Create text or image watermarks with reusable presets and patterns.
+- Apply photo-filter presets and adjust their intensity.
+- Move, scale, and rotate canvas elements with gestures; manage layers and use undo/redo.
 
-### Free Tier
+### Projects and export
 
-- ✅ Unlimited text, stickers, watermarks, and stamps
-- ✅ 8 fonts, 30 stickers, 10 watermark templates, 8 stamps
-- ✅ Full gesture editing capabilities
-- ✅ Unlimited project saves
-- ⚠️ Exported photos include small "Stikaro" watermark
+- Save and reopen projects from the on-device project gallery.
+- Sort, duplicate, and select multiple projects for deletion.
+- Export at the source photo's dimensions as PNG or JPEG, with adjustable JPEG quality.
+- Save exports to the photo library or share them from the export screen.
+- Free exports include a small Marqo logo. Marqo Pro removes it. An export that uses a Pro sticker or stamp requires an active Pro subscription.
 
-### Pro Tier ($9.99 one-time purchase)
+### Marqo Pro
 
-- ✅ 30+ premium fonts
-- ✅ 100+ premium stickers
-- ✅ 40+ professional watermark templates
-- ✅ Custom watermark uploads
-- ✅ Advanced photo filters
-- ✅ No export watermark
-- ✅ Priority support
+The paywall offers monthly and yearly auto-renewing subscriptions. It unlocks clean exports and premium sticker and stamp assets. Prices and introductory-offer eligibility are loaded from App Store product data when available. Purchases can be restored or managed through Apple.
 
-## 🏗 Architecture
+The StoreKit purchase and restore integration is currently available on iOS. Android builds support the free editing and export flow, but Android subscription billing is not wired up yet.
 
-### Technology Stack
+### Languages and preferences
 
-- **React Native 0.81+** - Cross-platform framework
-- **React Native Reanimated 3.6+** - 60/120fps animations on UI thread
-- **React Native Skia 1.0+** - High-performance 2D graphics rendering
-- **Zustand 4.5+** - Lightweight state management
-- **MMKV 2.11+** - Fast, synchronous local storage
-- **TypeScript 5.3+** - Type safety and better DX
+The interface supports 29 languages: Arabic, Czech, Danish, Dutch, English, Filipino, Finnish, French, German, Greek, Hebrew, Hindi, Hungarian, Indonesian, Italian, Japanese, Korean, Malay, Norwegian, Polish, Portuguese (Brazil), Romanian, Russian, Spanish (Mexico), Swedish, Thai, Turkish, Ukrainian, Vietnamese, and Chinese (Simplified). Marqo detects the device language and also lets you choose a language in Settings.
 
-### Key Design Principles
+Settings also include light, dark, solar, and mono themes, plus a haptic-feedback toggle.
 
-1. **Dark Mode First**: Optimized for OLED displays and reduced eye strain
-2. **8pt Grid System**: Consistent spacing and visual hierarchy
-3. **60fps Minimum**: All animations run on UI thread via Reanimated worklets
-4. **Accessibility**: WCAG AA compliance, VoiceOver support, Dynamic Type
-5. **Privacy by Design**: No network requests except for IAP
+## Privacy
 
-### Project Structure
+Photos and projects are processed and stored locally. Marqo does not upload them to its servers, require an account, or include advertising or analytics trackers. Apple processes subscription purchases and renewals through the App Store.
+
+See the [Marqo Privacy Policy](https://marqo-privacy-policy.anton-chepur.chatgpt.site) and [Apple's Standard EULA](https://www.apple.com/legal/internet-services/itunes/dev/stdeula/).
+
+## Technology
+
+- React Native 0.81 and TypeScript
+- React Native Skia for canvas rendering and export
+- Reanimated and Gesture Handler for interactions and animation
+- Zustand for application state
+- Native StoreKit 2 bridge for iOS subscriptions
+
+## Project layout
 
 ```
 src/
-├── components/          # Reusable UI components
-├── constants/          # Colors, typography, spacing
-├── database/           # Local storage (MMKV)
-├── navigation/         # React Navigation setup
-├── screens/           # Main app screens
-├── stores/            # Zustand state management
-├── types/             # TypeScript definitions
-└── utils/             # Helper functions
+├── assets/          # Fonts, stickers, stamps, and localized artwork
+├── components/      # Canvas, editor controls, and modals
+├── constants/       # Themes, filters, and asset catalogs
+├── database/        # Local project persistence
+├── hooks/           # Editor, theme, and localization hooks
+├── localization/    # Translations and locale detection
+├── screens/         # Onboarding, gallery, picker, editor, and settings
+├── services/        # Subscription and billing integration
+├── stores/          # Zustand state stores
+├── types/           # Shared application types
+└── utils/           # Import, gesture, watermark, and export helpers
 ```
 
-## 🚀 Getting Started
+## Development
 
-### Prerequisites
+### Requirements
 
-- Node.js 20+
-- React Native development environment
-- iOS development setup (Xcode, iOS Simulator)
-- Yarn package manager
+- Node.js 20 or newer
+- Yarn 4
+- Android Studio and Android SDK for Android builds
+- Xcode and CocoaPods for iOS builds
 
-### Installation
-
-1. **Clone and install dependencies:**
+### Install and run
 
 ```bash
-git clone <repository-url>
-cd Stikaro
 yarn install
-```
 
-2. **iOS Setup:**
-
-```bash
+# iOS native dependencies
 cd ios
 bundle install
 bundle exec pod install
 cd ..
-```
 
-3. **Start Metro bundler:**
-
-```bash
+# Start Metro
 yarn start
 ```
 
-4. **Run on iOS:**
+In a second terminal, run a platform:
 
 ```bash
 yarn ios
+yarn android
 ```
 
-### Development Dependencies
+The development server uses port 8082.
 
-The app requires several native dependencies that need proper linking:
-
-```bash
-# Core dependencies (already in package.json)
-yarn add react-native-reanimated
-yarn add react-native-gesture-handler
-yarn add @shopify/react-native-skia
-yarn add react-native-mmkv
-yarn add @react-native-camera-roll/camera-roll
-yarn add react-native-vision-camera
-yarn add react-native-fast-image
-yarn add react-native-iap
-yarn add react-native-share
-yarn add react-native-fs
-yarn add react-native-haptic-feedback
-```
-
-**Note**: Some dependencies may require additional native configuration. Refer to each library's documentation for iOS setup instructions.
-
-## 📱 App Flow
-
-### User Journey
-
-1. **Splash Screen** (2.8s) - Physics-based logo animation
-2. **Onboarding** (First launch) - 3-panel carousel explaining features
-3. **Home Screen** - Project gallery with FAB for new projects
-4. **Image Picker** - Custom photo selection with camera integration
-5. **Editor** - Main canvas with gesture-driven editing
-6. **Export** - High-resolution rendering with format options
-
-### State Management
-
-- **App Store**: Global settings, Pro status, onboarding state
-- **Project Gallery Store**: Project list, selection mode, sorting
-- **Editor Store**: Canvas elements, history, undo/redo
-
-## 🎨 Design System
-
-### Color Palette
-
-- **Primary Background**: `#0F0F12` (Near black with blue tint)
-- **Secondary Background**: `#1A1A1D` (Elevated surfaces)
-- **Accent Gold**: `#D4AF37` (CTAs, Pro indicators)
-- **Text Primary**: `#FFFFFF` (Headings, important text)
-- **Text Secondary**: `#A0A0A0` (Body text, labels)
-
-### Typography
-
-- **Font Family**: SF Pro (Apple's system font)
-- **Scale**: Hero (36pt) → H1 (32pt) → H2 (28pt) → Body (17pt) → Caption (13pt)
-- **Dynamic Type**: Supports iOS accessibility text scaling
-
-### Spacing
-
-- **Base Unit**: 8pt grid system
-- **Scale**: 4pt → 8pt → 12pt → 16pt → 24pt → 32pt → 48pt → 64pt
-
-## 🔧 Development
-
-### Running Tests
+### Checks
 
 ```bash
-# Unit tests
 yarn test
-
-# E2E tests (requires setup)
-yarn test:e2e
-```
-
-### Code Quality
-
-```bash
-# Linting
 yarn lint
-
-# Type checking
-yarn type-check
-
-# Format code
-yarn format
 ```
 
-### Performance Monitoring
+## License
 
-- Use Flipper for debugging
-- Monitor with Xcode Instruments for performance profiling
-- Test on physical devices for accurate performance metrics
-
-## 📦 Build & Release
-
-### iOS Build
-
-```bash
-# Development build
-yarn ios --configuration Debug
-
-# Release build
-yarn ios --configuration Release
-```
-
-### App Store Submission
-
-1. Update version in `package.json` and iOS project
-2. Generate release build with proper signing
-3. Upload to App Store Connect
-4. Submit for review with metadata from SDD
-
-## 🔒 Privacy & Security
-
-### Data Handling
-
-- **No Analytics**: No Firebase, Mixpanel, or tracking SDKs
-- **Local Storage**: All data stored on device using iOS encryption
-- **Photos Access**: Minimal permissions, user controls access
-- **No Servers**: Completely offline operation
-
-### Permissions
-
-- **Photos**: Read access for image selection, write access for saving
-- **Camera**: Optional, only when user taps camera button
-- **No Other Permissions**: No location, contacts, microphone, etc.
-
-## 🛣 Roadmap
-
-### Version 1.1 (Q2 2025)
-
-- Light mode support
-- Additional export formats (HEIC)
-- More free tier assets
-
-### Version 1.2 (Q3 2025)
-
-- iPad optimization
-- Multi-select and group manipulation
-- Custom font installation
-
-### Version 2.0 (2026)
-
-- Optional cloud sync (encrypted)
-- Collaboration features
-- AI-powered features
-
-## 📄 License
-
-This project is proprietary software. All rights reserved.
-
-## 🤝 Contributing
-
-This is a commercial project. For bug reports or feature requests, please contact support@stikaro.app.
-
-## 📞 Support
-
-- **Email**: support@stikaro.app
-- **Privacy Policy**: stikaro.app/privacy
-- **Terms of Service**: stikaro.app/terms
-
----
-
-Built with ❤️ using React Native
-
-TODO: add feeling/resizing button ![alt text](image.png)
-TODO: watermark modal's slider gestures
-TODO: fix - watermarks are not visible on the exported image
-TODO: fix - the exported image with sepia filter is broken
-TODO: fix - Myafair and Rise filters have wrong effect
-TODO: add opacity slider for watermarks
-Make the Stamps and Stickers assets categorized
-TODO: fix - Lo-Fi filter effect should be stronger
-TODO: replace emojis
+Marqo is proprietary software. All rights reserved.

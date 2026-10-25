@@ -22,6 +22,13 @@ import { exportCanvasToImage } from '../../utils/imageExporter';
 import { CameraRoll } from '@react-native-camera-roll/camera-roll';
 import { Share } from 'react-native';
 import { useTranslation } from '../../hooks/useTranslation';
+import { useCurrentLanguage } from '../../hooks/useTranslation';
+import { PaywallContent } from '../PaywallContent';
+import { hasProEntitlement, useSubscriptionStore } from '../../stores/subscriptionStore';
+import { getProCopy } from '../../localization/pro';
+import { ProRequiredError } from '../../utils/proExportPolicy';
+import { useEffect } from 'react';
+import { useWindowDimensions } from 'react-native';
 
 const instagramIcon = require('../../assets/icons/instagram.png');
 const xIcon = require('../../assets/icons/x-logo.png');
@@ -40,6 +47,12 @@ export const ExportModal: React.FC<ExportModalProps> = ({
   canvasDimensions,
 }) => {
   const t = useTranslation();
+  const copy = getProCopy(useCurrentLanguage());
+  const entitlement = useSubscriptionStore(state => state.entitlement);
+  const isPro = hasProEntitlement(entitlement);
+  const [showPaywall, setShowPaywall] = useState(false);
+  const { height: screenHeight } = useWindowDimensions();
+  useEffect(() => { if (!visible) setShowPaywall(false); }, [visible]);
   const theme = useTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
   const [selectedFormat, _setSelectedFormat] = useState<ExportFormat>('png');
@@ -78,7 +91,6 @@ export const ExportModal: React.FC<ExportModalProps> = ({
         {
           format: selectedFormat,
           quality,
-          addWatermark: true,
           canvasSize: storedCanvasSize || canvasDimensions,
         },
         appliedFilter,
@@ -86,6 +98,10 @@ export const ExportModal: React.FC<ExportModalProps> = ({
 
       return result;
     } catch (error) {
+      if (error instanceof ProRequiredError) {
+        setShowPaywall(true);
+        throw error;
+      }
       console.error('Export error:', error);
       Alert.alert(t.common.error, t.export.failedToExport);
       throw error;
@@ -232,11 +248,17 @@ export const ExportModal: React.FC<ExportModalProps> = ({
   };
 
   return (
-    <BottomSheet visible={visible} onClose={onClose} height={380}>
+    <BottomSheet visible={visible} onClose={onClose} height={showPaywall ? screenHeight * 0.94 : 440} dragFromHandleOnly={showPaywall}>
+      {showPaywall ? <PaywallContent onClose={() => setShowPaywall(false)} onUnlocked={() => setShowPaywall(false)} /> : (
       <View style={styles.container}>
+        {!isPro && <TouchableOpacity testID="export-pro" accessibilityRole="button" onPress={() => setShowPaywall(true)} style={{ paddingVertical: 12 }}>
+          <Text style={{ color: theme.text.secondary, textAlign: 'center', fontSize: 13 }}>{copy.freeExport}</Text>
+          <Text style={{ color: theme.accent.primary, textAlign: 'center', marginTop: 5, fontWeight: '600' }}>{copy.cleanExports} · Marqo Pro →</Text>
+        </TouchableOpacity>}
         {/* Export actions */}
         <View style={styles.actionList}>
           <TouchableOpacity
+            testID="export-save"
             style={styles.actionButton}
             onPress={handleSaveToDevice}
             disabled={isExporting}
@@ -296,6 +318,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({
           </TouchableOpacity>
         </View>
       </View>
+      )}
     </BottomSheet>
   );
 };

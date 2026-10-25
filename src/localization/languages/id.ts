@@ -44,7 +44,7 @@ export const id: Translations = {
     hapticFeedback: 'Umpan Balik Haptik',
     hapticFeedbackDesc: 'Getaran untuk interaksi',
     version: 'Versi',
-    rateApp: 'Beri Nilai Stikaro',
+    rateApp: 'Beri Nilai Marqo',
     rateAppDesc: 'Bantu kami meningkatkan dengan masukan Anda',
     contactSupport: 'Hubungi Dukungan',
     contactSupportDesc: 'Dapatkan bantuan atau laporkan masalah',

@@ -45,7 +45,7 @@ export const pl: Translations = {
     hapticFeedback: 'Sprzężenie zwrotne haptyczne',
     hapticFeedbackDesc: 'Wibracje przy interakcjach',
     version: 'Wersja',
-    rateApp: 'Oceń Stikaro',
+    rateApp: 'Oceń Marqo',
     rateAppDesc: 'Pomóż nam ulepszyć dzięki swoim opiniom',
     contactSupport: 'Skontaktuj się z supportem',
     contactSupportDesc: 'Uzyskaj pomoc lub zgłoś problemy',

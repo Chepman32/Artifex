@@ -1,0 +1,109 @@
+# Tests both Pro collections gate free users and free image saving still works.
+# Prerequisites: app installed; app-owned image seeded into the test photo library.
+appId: com.artifex.app
+tags: [smoke, pro, export, ios]
+---
+- runFlow: flows/launch.yaml
+- tapOn:
+    id: home-settings
+- tapOn:
+    id: settings-language
+- tapOn:
+    id: settings-language-en
+- tapOn:
+    id: settings-close
+- tapOn:
+    id: home-new-project
+- runFlow:
+    when:
+      visible: "Allow Full Access|Разрешить полный доступ"
+    commands:
+      - tapOn: "Allow Full Access|Разрешить полный доступ"
+- extendedWaitUntil:
+    visible:
+      id: image-picker-photo-0
+    timeout: 15000
+- tapOn:
+    id: image-picker-photo-0
+- extendedWaitUntil:
+    visible:
+      id: editor-export
+    timeout: 15000
+- tapOn:
+    id: editor-tool-sticker
+- scrollUntilVisible:
+    element:
+      id: sticker-category-pro
+    direction: RIGHT
+    timeout: 10000
+- tapOn:
+    id: sticker-category-pro
+- assertVisible:
+    id: asset-pro-crystal-heart
+- takeScreenshot: output/marqo-pro/maestro/premium-stickers-native
+- tapOn:
+    id: asset-pro-crystal-heart
+- extendedWaitUntil:
+    visible:
+      id: pro-paywall
+    timeout: 10000
+- tapOn:
+    id: paywall-close
+- assertVisible:
+    id: asset-pro-crystal-heart
+- swipe:
+    start: "50%,12%"
+    end: "50%,85%"
+    duration: 600
+- extendedWaitUntil:
+    visible:
+      id: editor-tool-stamps
+    timeout: 5000
+- tapOn:
+    id: editor-tool-stamps
+- scrollUntilVisible:
+    element:
+      id: stamp-category-pro
+    direction: RIGHT
+    timeout: 10000
+- tapOn:
+    id: stamp-category-pro
+- assertVisible:
+    id: asset-pro-laurel-star
+- takeScreenshot: output/marqo-pro/maestro/premium-stamps-native
+- tapOn:
+    id: asset-pro-laurel-star
+- extendedWaitUntil:
+    visible:
+      id: pro-paywall
+    timeout: 10000
+- tapOn:
+    id: paywall-close
+- assertVisible:
+    id: asset-pro-laurel-star
+- swipe:
+    start: "50%,12%"
+    end: "50%,85%"
+    duration: 600
+- tapOn:
+    id: editor-export
+- assertVisible:
+    id: export-pro
+- tapOn:
+    id: export-pro
+- assertVisible:
+    id: pro-paywall
+- tapOn:
+    id: paywall-close
+- tapOn:
+    id: export-save
+- runFlow:
+    when:
+      visible: "Allow Access to All Photos"
+    commands:
+      - tapOn: "Allow Access to All Photos"
+- extendedWaitUntil:
+    visible: "Saved to Photos"
+    timeout: 15000
+- takeScreenshot: output/marqo-pro/maestro/free-export-saved
+- tapOn: "OK"

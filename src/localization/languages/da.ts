@@ -44,7 +44,7 @@ export const da: Translations = {
     hapticFeedback: 'Haptisk feedback',
     hapticFeedbackDesc: 'Vibration for interaktioner',
     version: 'Version',
-    rateApp: 'Bedøm Stikaro',
+    rateApp: 'Bedøm Marqo',
     rateAppDesc: 'Hjælp os med at forbedre med din feedback',
     contactSupport: 'Kontakt support',
     contactSupportDesc: 'Få hjælp eller rapporter problemer',

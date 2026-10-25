@@ -1,0 +1,55 @@
+# Verify theme changes remain usable and Pro’s legal/footer controls can scroll.
+# Works on iPhone and iPad; no account sign-in or purchase is performed.
+appId: com.artifex.app
+tags: [smoke, pro, layout, ios]
+---
+- runFlow: flows/launch.yaml
+- tapOn:
+    id: home-settings
+- tapOn:
+    id: settings-theme
+- tapOn:
+    id: settings-theme-light
+- tapOn:
+    id: settings-pro
+- assertVisible:
+    id: plan-yearly
+- takeScreenshot: paywall-native-light
+- swipe:
+    direction: UP
+    duration: 500
+- assertVisible:
+    id: paywall-privacy
+- takeScreenshot: paywall-native-light-footer
+- tapOn:
+    id: paywall-close
+- tapOn:
+    id: settings-theme
+- tapOn:
+    id: settings-theme-solar
+- tapOn:
+    id: settings-pro
+- assertVisible:
+    id: subscribe-pro
+- takeScreenshot: paywall-native-solar
+- tapOn:
+    id: paywall-close
+- tapOn:
+    id: settings-theme
+- tapOn:
+    id: settings-theme-mono
+- tapOn:
+    id: settings-pro
+- assertVisible:
+    id: subscribe-pro
+- takeScreenshot: paywall-native-mono
+- tapOn:
+    id: paywall-close
+- tapOn:
+    id: settings-theme
+- tapOn:
+    id: settings-theme-dark
+- tapOn:
+    id: settings-close
+- assertVisible:
+    id: home-settings

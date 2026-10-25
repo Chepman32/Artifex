@@ -216,6 +216,8 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   sourceImageDimensions: null,
   canvasSize: null,
   appliedFilter: null,
+  initialCanvasElements: [],
+  initialAppliedFilter: null,
 
   addElement: element => {
     const { canvasElements, history, historyIndex } = get();

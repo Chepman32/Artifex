@@ -125,7 +125,7 @@ export const FilterToolModal: React.FC<FilterToolModalProps> = ({
   };
 
   const getFilterItemLayout = useCallback(
-    (_: Filter[] | null, index: number) => ({
+    (_: ArrayLike<Filter> | null | undefined, index: number) => ({
       length: filterSize + Spacing.m,
       offset: Math.floor(index / FILTER_COLUMNS) * (filterSize + Spacing.m),
       index,

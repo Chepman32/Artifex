@@ -1,0 +1,14 @@
+# Open Apple's checkout without approving a purchase; inspect and cancel next.
+appId: com.artifex.app
+---
+- runFlow: launch.yaml
+- tapOn:
+    id: home-settings
+- tapOn:
+    id: settings-pro
+- tapOn:
+    id: subscribe-pro
+- extendedWaitUntil:
+    visible: "Cancel|Отмена|Отменить"
+    timeout: 20000
+- takeScreenshot: checkout-native-open

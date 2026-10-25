@@ -45,7 +45,7 @@ export const it: Translations = {
     hapticFeedback: 'Feedback Aptico',
     hapticFeedbackDesc: 'Vibrazione per le interazioni',
     version: 'Versione',
-    rateApp: 'Valuta Stikaro',
+    rateApp: 'Valuta Marqo',
     rateAppDesc: 'Aiutaci a migliorare con il tuo feedback',
     contactSupport: 'Contatta il Supporto',
     contactSupportDesc: 'Ottieni aiuto o segnala problemi',

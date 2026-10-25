@@ -52,7 +52,7 @@ const GestureSlider: React.FC<GestureSliderProps> = ({
   formatValue,
 }) => {
   const theme = useTheme();
-  const styles = useMemo(() => createStyles(theme), [theme]);
+  const styles = useMemo(() => createStyles(theme, 0), [theme]);
   const trackWidth = useSharedValue(0);
   const thumbX = useSharedValue(0);
   const isDragging = useSharedValue(false);
@@ -223,7 +223,7 @@ export const WatermarkToolModal: React.FC<WatermarkToolModalProps> = ({
   const densityTranslations = t.watermark.densities as Record<string, string>;
   const presetRowHeight = presetWidth + Spacing.m;
   const getPresetItemLayout = useCallback(
-    (_: WatermarkPreset[] | null, index: number) => ({
+    (_: ArrayLike<WatermarkPreset> | null | undefined, index: number) => ({
       length: presetRowHeight,
       offset: Math.floor(index / GRID_COLUMNS) * presetRowHeight,
       index,

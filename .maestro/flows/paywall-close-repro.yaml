@@ -1,0 +1,9 @@
+appId: com.artifex.app
+---
+- tapOn:
+    id: paywall-close
+- takeScreenshot: after-close
+- extendedWaitUntil:
+    visible:
+      id: settings-pro
+    timeout: 5000

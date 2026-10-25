@@ -1,6 +1,6 @@
 // Stamps picker modal with free and pro assets
 
-import React, { useMemo, useState, useCallback } from 'react';
+import React, { useMemo, useState, useCallback, useEffect } from 'react';
 import {
   View,
   Text,
@@ -10,39 +10,39 @@ import {
   Image,
   ScrollView,
   useWindowDimensions,
+  type ImageSourcePropType,
 } from 'react-native';
 import { BottomSheet } from './BottomSheet';
 import { Theme } from '../../constants/themes';
 import { useTheme } from '../../hooks/useTheme';
-import { useTranslation } from '../../hooks/useTranslation';
+import { useCurrentLanguage, useTranslation } from '../../hooks/useTranslation';
 import { Typography } from '../../constants/typography';
 import { Spacing } from '../../constants/spacing';
-import { STAMPS, STAMP_CATEGORIES } from '../../constants/assets';
+import { STAMP_CATEGORIES, type AssetItem } from '../../constants/assets';
+import { getLocalizedStamps } from '../../constants/localizedAssets';
 import { useAppStore } from '../../stores/appStore';
 import { triggerHaptic } from '../../utils/haptics';
+import { PaywallContent } from '../PaywallContent';
+import { ProBadge } from '../ProBadge';
+import { refreshEntitlement } from '../../services/subscriptions';
+import { hasProEntitlement, useSubscriptionStore } from '../../stores/subscriptionStore';
+import { getProCopy } from '../../localization/pro';
 
 const GRID_COLUMNS = 3;
 const GRID_GAP = Spacing.xs;
 
-interface Stamp {
-  id: string;
-  name: string;
-  uri?: string;
-  file?: any;
-  category: string;
-  isPro: boolean;
-  width?: number;
-  height?: number;
-}
-
-// Combine free and pro stamps
-const ALL_STAMPS = [...STAMPS.free, ...STAMPS.pro];
+type Stamp = AssetItem;
 type StampCategory = (typeof STAMP_CATEGORIES)[number];
 
 interface StampsPickerModalProps {
   visible: boolean;
   onClose: () => void;
-  onSelect: (stampUri: string, width: number, height: number) => void;
+  onSelect: (
+    stampSource: string | ImageSourcePropType,
+    width: number,
+    height: number,
+    assetId?: string,
+  ) => void;
 }
 
 export const StampsPickerModal: React.FC<StampsPickerModalProps> = ({
@@ -52,6 +52,13 @@ export const StampsPickerModal: React.FC<StampsPickerModalProps> = ({
 }) => {
   const theme = useTheme();
   const t = useTranslation();
+  const language = useCurrentLanguage();
+  const copy = getProCopy(language);
+  const entitlement = useSubscriptionStore(state => state.entitlement);
+  const isPro = hasProEntitlement(entitlement);
+  const [showPaywall, setShowPaywall] = useState(false);
+  useEffect(() => { if (!visible) setShowPaywall(false); }, [visible]);
+  const stamps = useMemo(() => getLocalizedStamps(language), [language]);
   const { width: screenWidth, height: screenHeight } = useWindowDimensions();
   const hapticsEnabled = useAppStore(state => state.preferences.hapticFeedback);
   const stampSize = useMemo(
@@ -60,9 +67,13 @@ export const StampsPickerModal: React.FC<StampsPickerModalProps> = ({
       GRID_COLUMNS,
     [screenWidth],
   );
-  const styles = useMemo(() => createStyles(theme, stampSize), [theme, stampSize]);
+  const styles = useMemo(
+    () => createStyles(theme, stampSize),
+    [theme, stampSize],
+  );
   const [selectedCategory, setSelectedCategory] = useState('all');
   const getCategoryLabel = (categoryId: string) => {
+    if (categoryId === 'pro') return copy.collection;
     const labels = t.stamps.categories as Record<string, string>;
     return labels[categoryId] || categoryId;
   };
@@ -72,7 +83,7 @@ export const StampsPickerModal: React.FC<StampsPickerModalProps> = ({
     return Math.min(screenHeight * 0.9, screenHeight - 80);
   }, [screenHeight]);
 
-  const filteredStamps = ALL_STAMPS.filter(stamp => {
+  const filteredStamps = stamps.filter(stamp => {
     if (selectedCategory === 'all') {
       return true;
     }
@@ -80,7 +91,7 @@ export const StampsPickerModal: React.FC<StampsPickerModalProps> = ({
   });
 
   const getStampItemLayout = useCallback(
-    (_: Stamp[] | null, index: number) => ({
+    (_: ArrayLike<Stamp> | null | undefined, index: number) => ({
       length: stampSize + GRID_GAP,
       offset: Math.floor(index / GRID_COLUMNS) * (stampSize + GRID_GAP),
       index,
@@ -88,13 +99,21 @@ export const StampsPickerModal: React.FC<StampsPickerModalProps> = ({
     [stampSize],
   );
 
-  const handleStampPress = (stamp: Stamp) => {
+  const handleStampPress = async (stamp: Stamp) => {
+    if (stamp.isPro && !(await refreshEntitlement())) {
+      setShowPaywall(true);
+      return;
+    }
     if (hapticsEnabled) {
       triggerHaptic('selection');
     }
     // Select the stamp - use file if available, otherwise uri
     const stampSource = stamp.file || stamp.uri || '';
-    onSelect(stampSource, stamp.width || 80, stamp.height || 80);
+    if (stamp.isPro) {
+      onSelect(stampSource, stamp.width || 80, stamp.height || 80, stamp.id);
+    } else {
+      onSelect(stampSource, stamp.width || 80, stamp.height || 80);
+    }
     onClose();
   };
 
@@ -104,6 +123,7 @@ export const StampsPickerModal: React.FC<StampsPickerModalProps> = ({
     return (
       <TouchableOpacity
         key={category.id}
+        testID={`stamp-category-${category.id}`}
         style={[styles.categoryPill, isSelected && styles.categoryPillSelected]}
         onPress={() => setSelectedCategory(category.id)}
         activeOpacity={0.8}
@@ -124,6 +144,10 @@ export const StampsPickerModal: React.FC<StampsPickerModalProps> = ({
     return (
       <TouchableOpacity
         style={styles.stampItem}
+        accessibilityRole="button"
+        accessibilityLabel={item.isPro ? `${item.name}, ${copy.collection}` : item.name}
+        accessibilityHint={item.isPro && !isPro ? copy.subscribe : undefined}
+        testID={`asset-${item.id}`}
         onPress={() => handleStampPress(item)}
         activeOpacity={0.7}
       >
@@ -133,13 +157,15 @@ export const StampsPickerModal: React.FC<StampsPickerModalProps> = ({
             style={styles.stampImage}
             resizeMode="contain"
           />
+          {item.isPro && <ProBadge locked={!isPro} />}
         </View>
       </TouchableOpacity>
     );
   };
 
   return (
-    <BottomSheet visible={visible} onClose={onClose} height={modalHeight}>
+    <BottomSheet visible={visible} onClose={onClose} height={modalHeight} dragFromHandleOnly={showPaywall}>
+      {showPaywall ? <PaywallContent onClose={() => setShowPaywall(false)} onUnlocked={() => setShowPaywall(false)} /> : (
       <View style={styles.container}>
         <Text style={styles.title}>{t.stamps.title}</Text>
 
@@ -163,9 +189,7 @@ export const StampsPickerModal: React.FC<StampsPickerModalProps> = ({
           showsVerticalScrollIndicator={false}
           ListEmptyComponent={
             <View style={styles.emptyState}>
-              <Text style={styles.emptyText}>
-                {t.stamps.emptyCategory}
-              </Text>
+              <Text style={styles.emptyText}>{t.stamps.emptyCategory}</Text>
             </View>
           }
           getItemLayout={getStampItemLayout}
@@ -176,6 +200,7 @@ export const StampsPickerModal: React.FC<StampsPickerModalProps> = ({
           removeClippedSubviews
         />
       </View>
+      )}
     </BottomSheet>
   );
 };
